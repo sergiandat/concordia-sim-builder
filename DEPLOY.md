@@ -13,9 +13,6 @@ Un solo contenedor: FastAPI sirve la API y además el SPA compilado desde
 Starter ($7) **no agrega memoria** — sigue en 512 MB, solo evita que se duerma.
 Para tener RAM real en Render hay que ir a Standard ($25/mes).
 
-Hugging Face Spaces da 2 vCPU / **16 GB RAM** / 50 GB de disco gratis y sin
-tarjeta, con URL pública y SDK Docker.
-
 Medido por `.github/workflows/deploy-smoke.yml` (run del 2026-08-06):
 
 | Métrica | Valor |
@@ -28,25 +25,45 @@ Los 536 MB son con **cero agentes y cero simulación corriendo**. Render free da
 512 MB: no entra ni en reposo. El workflow vuelve a correr solo cuando cambia
 el `Dockerfile` o `requirements.txt`, así que el número se mantiene honesto.
 
-## Hugging Face Spaces
+## Cómo se levanta: GitHub Codespaces
 
-1. Sacar la API key en <https://aistudio.google.com/apikey> (gratis, sin tarjeta).
-2. Crear el Space: **New Space → SDK: Docker → Blank**, hardware **CPU basic
-   (FREE)**. Elegí **Private** si querés que solo lo vea el equipo (ver
-   "Acceso" abajo). El SDK Docker es gratis; lo que es PRO es Dev Mode.
-3. En **Settings → Variables and secrets**, agregar como *secret*:
-   - `GEMINI_API_KEY` = la key de AI Studio
-4. Pushear este repo al remote del Space:
+Es la opción elegida para la demo: sin tarjeta, sin costo, y el Codespace tiene
+8 GB de RAM contra los 536 MB de piso. La contra es que **la URL vive solo
+mientras el Codespace está prendido** y consume de las 60 h/mes del free tier.
+Para una demo interna alcanza; para algo sostenido, ver "Otros hosts".
+
+1. Sacar la API key de Gemini en <https://aistudio.google.com/apikey>
+   (gratis, sin tarjeta).
+2. Cargarla como **secret de Codespaces**, no en el repo:
+   <https://github.com/settings/codespaces> → New secret → `GEMINI_API_KEY`,
+   con acceso a este repositorio.
+3. Crear el Codespace desde el repo: **Code → Codespaces → Create codespace**.
+   El `.devcontainer/` instala todo solo (torch CPU, requirements, embedder,
+   build del SPA). La primera vez tarda ~10 min.
+4. Cuando termine:
 
    ```bash
-   git remote add space https://huggingface.co/spaces/<usuario>/<space>
-   git push space main
+   ./run-demo.sh
    ```
 
-5. El Space buildea solo y queda en `https://<usuario>-<space>.hf.space`.
+   El script pone el puerto 8000 en público e imprime la URL, del estilo
+   `https://<codespace>-8000.app.github.dev`. Esa es la que se comparte.
 
-El `README.md` de la raíz lleva el frontmatter que HF necesita (`sdk: docker`,
-`app_port: 7860`). Si lo editás, no borres ese bloque.
+Si el script no logra cambiar la visibilidad, se hace a mano desde la pestaña
+**PORTS** de VS Code: click derecho en el puerto 8000 → Port Visibility →
+Public. Sin eso, el link pide login de GitHub y sólo entra quien tenga acceso
+al repo.
+
+## Hugging Face Spaces: ya no sirve gratis
+
+Alrededor de julio de 2026 HF eliminó el CPU Basic gratuito y dejó **Docker y
+Gradio detrás de plan pago** (PRO, USD 9/mes personal). La doc de Docker Spaces
+todavía no refleja el cambio. Lo que queda gratis es ZeroGPU con 3,5 min
+diarios de cuota, que no alcanza.
+
+El `README.md` conserva el frontmatter (`sdk: docker`, `app_port: 7860`) por si
+en algún momento se paga PRO: con eso el deploy es `git push` al remote del
+Space y nada más. No molesta en ningún otro host.
 
 ### En la app
 
@@ -80,25 +97,38 @@ embebe en cada memoria escrita y cada recuperación.
 
 ## Acceso
 
-**Space privado** (recomendado): solo entra quien tenga cuenta de HF y esté
-agregado al Space o a la organización. Cero código.
+En Codespaces el puerto tiene dos modos:
 
-Si el Space tiene que ser público, hace falta un gate en la app —
-`X-Team-Key` en `/api/simulations/*` más una pantalla de clave en el frontend.
-El streaming usa `fetch` + `ReadableStream` (no `EventSource`), así que mandar
-headers custom funciona. No está implementado todavía.
+- **Private** (default): el link pide login de GitHub y sólo entra quien tenga
+  acceso al repo. Sirve si todo el equipo está en el fork.
+- **Public**: entra cualquiera con el link. Es lo que hace `run-demo.sh`.
+
+En modo público no hay ninguna protección: el link es la credencial. Como la
+URL es larga y efímera alcanza para una demo, pero **no dejes el Codespace
+prendido sin necesidad**.
+
+Si hiciera falta un gate real, sería `X-Team-Key` en `/api/simulations/*` más
+una pantalla de clave en el frontend. El streaming usa `fetch` +
+`ReadableStream` (no `EventSource`), así que mandar headers custom funciona.
+No está implementado.
 
 ## Otros hosts
 
-El `CMD` respeta `$PORT`, así que la misma imagen corre en Render, Fly o Cloud
-Run sin cambios. Si además separás el frontend a otro dominio, seteá
-`ALLOWED_ORIGINS` (coma-separado) para que CORS lo permita.
+El `CMD` del Dockerfile respeta `$PORT`, así que la misma imagen corre en
+Render, Fly o Cloud Run sin cambios. Para algo que dure más que una sesión,
+**Cloud Run** es la mejor opción: free tier amplio, Docker nativo, escala a
+cero y admite hasta 60 min de timeout por request (útil para simulaciones
+largas). Pide tarjeta para habilitar billing aunque no cobre.
+
+Si además separás el frontend a otro dominio, seteá `ALLOWED_ORIGINS`
+(coma-separado) para que CORS lo permita.
 
 ## Limitaciones conocidas
 
-- **Los logs son efímeros.** `logs/` vive en el filesystem del contenedor: se
-  pierde en cada rebuild y en cada arranque en frío. En Spaces free no hay disco
-  persistente. Si hay que conservar corridas, migrar a Supabase.
+- **Los logs se pierden con el Codespace.** `logs/` vive en el disco del
+  Codespace, que GitHub borra tras 30 días de inactividad (o cuando lo
+  eliminás). Si una corrida importa, bajala del explorador de archivos antes de
+  apagar, o migrar a Supabase.
 - **Rate limit de Gemini free**: ~15 req/min en los modelos flash. Concordia
   dispara varias llamadas por agente por paso, así que simulaciones grandes van
   a comer 429. Empezar con el template "Coffee Shop Demo" (5 pasos).

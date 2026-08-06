@@ -1,0 +1,5 @@
+# Shell scripts and container files must keep LF, or bash on Linux fails with
+# "bad interpreter: no such file or directory" when checked out from Windows.
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
