@@ -291,7 +291,9 @@ def get_available_providers() -> list[dict]:
         {
             "provider": LLMProvider.GEMINI,
             "name": "Google Gemini",
-            "models": ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"],
+            # The 1.5 line is retired — those IDs now 404. These are fallbacks
+            # only; the dropdown queries Google's models API for the live list.
+            "models": ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.0-flash"],
             "requires_api_key": True
         },
         {
