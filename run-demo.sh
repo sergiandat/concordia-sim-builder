@@ -19,10 +19,18 @@ fi
 # Codespaces forwards ports privately by default; make it public so teammates
 # can open the URL without a GitHub account.
 if [ -n "${CODESPACE_NAME:-}" ]; then
-  echo "==> Making port ${PORT} public"
-  gh codespace ports visibility "${PORT}:public" -c "${CODESPACE_NAME}" \
-    || echo "    (could not set visibility automatically — do it from the PORTS tab)"
-  echo "==> URL: https://${CODESPACE_NAME}-${PORT}.app.github.dev"
+  URL="https://${CODESPACE_NAME}-${PORT}.app.github.dev"
+  if command -v gh >/dev/null 2>&1; then
+    echo "==> Making port ${PORT} public"
+    gh codespace ports visibility "${PORT}:public" -c "${CODESPACE_NAME}" \
+      || echo "    (failed — set it from the PORTS tab instead)"
+  else
+    echo "NOTE: gh is not installed, so the port is still PRIVATE."
+    echo "      Only people with access to this repo can open the URL."
+    echo "      To share it: PORTS tab -> right-click port ${PORT} ->"
+    echo "      Port Visibility -> Public."
+  fi
+  echo "==> URL: ${URL}"
   echo
 fi
 
