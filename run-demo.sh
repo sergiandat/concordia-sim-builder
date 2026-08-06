@@ -11,10 +11,11 @@ if [ -z "${GEMINI_API_KEY:-}" ]; then
   echo
 fi
 
-if [ ! -d frontend/dist ]; then
-  echo "frontend/dist missing — building it now"
-  (cd frontend && npm run build)
-fi
+# Always rebuild. Building only when dist/ is absent means a git pull that
+# changes the frontend leaves the old bundle in place, and the app silently
+# runs code you already fixed — a failure mode that looks like a backend bug.
+echo "==> Building the SPA"
+(cd frontend && npm run build)
 
 # Codespaces forwards ports privately by default; make it public so teammates
 # can open the URL without a GitHub account.
