@@ -11,7 +11,8 @@
   "portsAttributes": {
     "8000": {
       "label": "Concordia demo",
-      "onAutoForward": "notify"
+      "onAutoForward": "notify",
+      "visibility": "public"
     }
   },
   "hostRequirements": {
