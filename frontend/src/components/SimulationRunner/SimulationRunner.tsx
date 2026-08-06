@@ -332,7 +332,11 @@ export default function SimulationRunner() {
   const startPollingRecovery = useCallback((tid: string) => {
     if (pollRef.current) clearInterval(pollRef.current);
     let failCount = 0;
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    // Was reading VITE_API_BASE_URL — a name nothing else in the app sets, so
+    // this poller ignored VITE_API_URL and always hit localhost. Same
+    // same-origin rule as utils/api.ts.
+    const API_BASE =
+      import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
     const stopPolling = (clearBanner = true) => {
       if (pollRef.current) clearInterval(pollRef.current);

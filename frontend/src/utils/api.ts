@@ -13,7 +13,11 @@ import type {
 } from '../types/simulation';
 
 // API base URL - default to localhost in development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// In a production build the backend serves frontend/dist itself, so requests
+// must be same-origin — an absolute localhost URL would point at the viewer's
+// own machine. The dev server runs on its own port, so it still needs one.
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 // Simulation timeout in milliseconds (default: 5 hours)
 // Can be overridden via VITE_SIMULATION_TIMEOUT environment variable
