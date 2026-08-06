@@ -313,14 +313,21 @@ class GeminiModel:
     @staticmethod
     def _rate_limit_delay(err: Exception) -> float | None:
         """
-        Seconds to wait before retrying, or None if the error is not a rate limit.
+        Seconds to wait before retrying, or None if the error is not retryable.
 
-        Gemini reports the wait it wants ("Please retry in 1.7s" and a
-        'retryDelay' field); honour it rather than guessing. Returns 0.0 when
-        rate-limited without a usable hint, so the caller falls back to backoff.
+        Two transient cases, both seen in practice:
+          429 RESOURCE_EXHAUSTED — quota. The error states the wait it wants
+              ("Please retry in 19.6s" plus a 'retryDelay' field); honour that
+              rather than guessing, because the quota window is the server's.
+          503 UNAVAILABLE — the model is momentarily oversubscribed. No hint is
+              given, so the caller backs off exponentially.
+
+        Returns 0.0 when retryable without a usable hint.
         """
         text = str(err)
-        if '429' not in text and 'RESOURCE_EXHAUSTED' not in text:
+        retryable = ('429' in text or 'RESOURCE_EXHAUSTED' in text
+                     or '503' in text or 'UNAVAILABLE' in text)
+        if not retryable:
             return None
 
         match = (re.search(r"retry in ([0-9.]+)s", text)
