@@ -186,6 +186,19 @@ def get_model_and_embedder(settings: LLMSettings) -> Tuple[language_model.Langua
             base_url='https://api.deepseek.com'
         )
 
+    elif provider == LLMProvider.NVIDIA.value:
+        # NVIDIA NIM — OpenAI-compatible endpoint at build.nvidia.com.
+        # base_url is overridable so a self-hosted NIM container can be used too.
+        if not api_key:
+            api_key = os.getenv('NVIDIA_NIM_API_KEY')
+        if not api_key:
+            raise ValueError("NVIDIA_NIM_API_KEY not set in settings or environment")
+        model = CustomGPTModel(
+            api_key=api_key,
+            model_name=model_name,
+            base_url=base_url or os.getenv('NVIDIA_NIM_BASE_URL', 'https://integrate.api.nvidia.com/v1')
+        )
+
     elif provider == LLMProvider.GEMINI.value:
         if not api_key:
             api_key = os.getenv('GEMINI_API_KEY')
@@ -262,6 +275,18 @@ def get_available_providers() -> list[dict]:
             "name": "DeepSeek",
             "models": ["deepseek-v4-flash", "deepseek-v4-pro"],
             "requires_api_key": True
+        },
+        {
+            "provider": LLMProvider.NVIDIA,
+            "name": "NVIDIA NIM",
+            "models": [
+                "meta/llama-3.3-70b-instruct",
+                "nvidia/llama-3.1-nemotron-70b-instruct",
+                "deepseek-ai/deepseek-r1",
+                "qwen/qwen2.5-72b-instruct"
+            ],
+            "requires_api_key": False,  # Loaded from NVIDIA_NIM_API_KEY env var
+            "note": "Configure in .env: NVIDIA_NIM_API_KEY. Model IDs must match the catalog at build.nvidia.com/models — you can also type one manually."
         },
         {
             "provider": LLMProvider.GEMINI,

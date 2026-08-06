@@ -1,4 +1,18 @@
+---
+title: Concordia Simulation Builder
+emoji: 🏘️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
+<!-- The YAML block above is required by Hugging Face Spaces. Leave it in place. -->
+
 # Concordia Simulation Builder
+
+> Deploy de la demo: ver [DEPLOY.md](DEPLOY.md).
 
 A web interface for Google DeepMind's [Concordia](https://github.com/google-deepmind/concordia) library that makes running agent-based social simulations accessible—no Python programming required.
 

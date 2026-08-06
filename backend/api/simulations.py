@@ -314,6 +314,37 @@ async def get_provider_models(
         except Exception as e:
             return {'provider': provider, 'models': [], 'error': str(e)}
 
+    elif provider == LLMProvider.NVIDIA.value:
+        # NIM exposes an OpenAI-compatible /models listing the whole catalog.
+        key = api_key or os.getenv('NVIDIA_NIM_API_KEY')
+        if not key:
+            return {'provider': provider, 'models': [], 'error': 'NVIDIA_NIM_API_KEY not set in .env'}
+
+        nim_base = base_url or os.getenv('NVIDIA_NIM_BASE_URL', 'https://integrate.api.nvidia.com/v1')
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{nim_base.rstrip('/')}/models",
+                    headers={'Authorization': f'Bearer {key}'}
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    models = sorted(
+                        [
+                            {'id': m['id'], 'name': m['id'], 'owned_by': m.get('owned_by', 'nvidia')}
+                            for m in data.get('data', [])
+                            if m.get('id')
+                        ],
+                        key=lambda m: m['id']
+                    )
+                    return {'provider': provider, 'models': models}
+
+                return {'provider': provider, 'models': [], 'error': f"API returned status {response.status_code}"}
+
+        except Exception as e:
+            return {'provider': provider, 'models': [], 'error': str(e)}
+
     elif provider == LLMProvider.GEMINI.value:
         # For Gemini, use their models API
         key = api_key or os.getenv('GEMINI_API_KEY')

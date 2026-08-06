@@ -7,7 +7,7 @@
 export type EngineType = 'sequential' | 'simultaneous' | 'asynchronous' | 'step_controller' | 'interview' | 'survey';
 export type ClockType = 'multi_interval' | 'fixed_increment' | 'generative';
 export type ActingOrder = 'fixed' | 'random' | 'game_master_choice';
-export type LLMProvider = 'openai' | 'azure' | 'deepseek' | 'gemini' | 'anthropic' | 'glm' | 'ollama' | 'ollama_remote';
+export type LLMProvider = 'openai' | 'azure' | 'deepseek' | 'nvidia' | 'gemini' | 'anthropic' | 'glm' | 'ollama' | 'ollama_remote';
 export type EventType = 'simulation_start' | 'step_start' | 'agent_act' | 'observation' | 'step_end' | 'simulation_complete' | 'error';
 
 // Constants for enum-like usage
@@ -36,6 +36,7 @@ export const LLMProvider = {
   OPENAI: 'openai' as LLMProvider,
   AZURE: 'azure' as LLMProvider,
   DEEPSEEK: 'deepseek' as LLMProvider,
+  NVIDIA: 'nvidia' as LLMProvider,
   GEMINI: 'gemini' as LLMProvider,
   ANTHROPIC: 'anthropic' as LLMProvider,
   GLM: 'glm' as LLMProvider,

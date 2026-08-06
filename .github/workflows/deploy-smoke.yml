@@ -1,0 +1,104 @@
+name: Deploy smoke test
+
+# Builds the deploy image and measures the memory floor, so we can tell whether
+# a 512 MB free tier is viable before paying for or committing to a host.
+# Runs on GitHub's runners — no local disk needed.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'requirements.txt'
+      - 'frontend/package*.json'
+      - '.github/workflows/deploy-smoke.yml'
+
+jobs:
+  build-and-measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
+
+      - name: Build image
+        run: docker build -t csb:test .
+
+      - name: Report image size
+        run: |
+          BYTES=$(docker image inspect csb:test -f '{{.Size}}')
+          echo "IMAGE_MB=$((BYTES / 1024 / 1024))" >> "$GITHUB_ENV"
+          echo "Image size: $((BYTES / 1024 / 1024)) MB"
+
+      - name: Measure memory floor
+        run: |
+          docker run --rm csb:test python -c "
+          import resource
+          from sentence_transformers import SentenceTransformer
+          m = SentenceTransformer('all-MiniLM-L6-v2')
+          m.encode(['warm up the model so weights are actually resident'])
+          import backend.main  # FastAPI app + concordia import graph
+          mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+          print(f'PEAK_RSS_MB={mb:.0f}')
+          " | tee measure.log
+          echo "PEAK_RSS_MB=$(grep -oP 'PEAK_RSS_MB=\K[0-9]+' measure.log)" >> "$GITHUB_ENV"
+
+      - name: Boot container and check /health
+        run: |
+          docker run -d --name app -p 7860:7860 csb:test
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:7860/health; then
+              echo "" && echo "health OK after ${i}s"
+              break
+            fi
+            if [ "$i" = "60" ]; then
+              echo "health check never passed; container logs:"
+              docker logs app
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Check the SPA is actually served
+        run: |
+          curl -fsS http://localhost:7860/ | head -c 400
+          echo ""
+          curl -fsS -o /dev/null -w 'index.html -> %{http_code}\n' http://localhost:7860/
+          docker exec app sh -c 'ls frontend/dist && ls frontend/dist/assets | head -5'
+
+      - name: Idle memory of the running server
+        run: |
+          IDLE=$(docker stats --no-stream --format '{{.MemUsage}}' app)
+          echo "IDLE_MEM=$IDLE" >> "$GITHUB_ENV"
+          echo "Idle: $IDLE"
+
+      - name: Verdict
+        run: |
+          {
+            echo "## Deploy smoke test"
+            echo ""
+            echo "| Metric | Value |"
+            echo "| --- | --- |"
+            echo "| Image size | ${IMAGE_MB} MB |"
+            echo "| Peak RSS (embedder loaded + app imported) | ${PEAK_RSS_MB} MB |"
+            echo "| Idle server memory | ${IDLE_MEM} |"
+            echo ""
+            if [ "${PEAK_RSS_MB}" -lt 400 ]; then
+              echo "**Render free (512 MB) is plausible** — but this is the floor, before any"
+              echo "simulation state. Leave headroom."
+            else
+              echo "**Render free (512 MB) is not viable.** The floor alone is ${PEAK_RSS_MB} MB,"
+              echo "before a single agent exists. Use Hugging Face Spaces (16 GB, free) or a"
+              echo "host with real memory."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs app || true

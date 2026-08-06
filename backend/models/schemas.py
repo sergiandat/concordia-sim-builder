@@ -35,6 +35,7 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"
     AZURE = "azure"  # Azure OpenAI
     DEEPSEEK = "deepseek"
+    NVIDIA = "nvidia"  # NVIDIA NIM (build.nvidia.com, OpenAI-compatible)
     GEMINI = "gemini"
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"

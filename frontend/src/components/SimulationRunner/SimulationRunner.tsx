@@ -705,6 +705,7 @@ export default function SimulationRunner() {
                   <option value="gemini">Gemini</option>
                   <option value="anthropic">Anthropic</option>
                   <option value="deepseek">DeepSeek</option>
+                  <option value="nvidia">NVIDIA NIM</option>
                   <option value="azure">Azure OpenAI</option>
                   <option value="glm">GLM (Zhipu AI)</option>
                   <option value="ollama">Ollama (Local)</option>
@@ -881,6 +882,7 @@ export default function SimulationRunner() {
                       <option value="gemini">Gemini</option>
                       <option value="anthropic">Anthropic</option>
                       <option value="deepseek">DeepSeek</option>
+                      <option value="nvidia">NVIDIA NIM</option>
                       <option value="azure">Azure OpenAI</option>
                       <option value="glm">GLM (Zhipu AI)</option>
                       <option value="ollama">Ollama (Local)</option>

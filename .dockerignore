@@ -1,0 +1,26 @@
+# 27 committed simulation logs (~45 MB) — not needed in the image
+logs/
+logs.bak/
+
+.git/
+.github/
+.env
+
+# Rebuilt inside the image
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Not copied into the image; excluded to keep the build context small
+docs/
+examples/
+patches/
+# Root-anchored so frontend/index.html and frontend/README.md are kept
+/*.md
+/*.html

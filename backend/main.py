@@ -47,9 +47,14 @@ app = FastAPI(
 )
 
 # Configure CORS
+# Vite default ports for local dev; deployments that serve the SPA from a
+# different origin add theirs via ALLOWED_ORIGINS (comma-separated).
+_DEFAULT_ORIGINS = ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"]
+_EXTRA_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],  # Vite default ports
+    allow_origins=_DEFAULT_ORIGINS + _EXTRA_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
