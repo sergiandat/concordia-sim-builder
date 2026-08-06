@@ -15,6 +15,7 @@ Supported providers:
 """
 
 from typing import Sequence
+import re
 import time
 import sys
 import os
@@ -297,11 +298,37 @@ class GeminiModel:
     """
     Gemini model wrapper using Google's genai library.
     """
+    # The free tier allows 15 requests/min per model. A simulation issues calls
+    # back to back and exhausts that in seconds, so a 429 is an expected part of
+    # normal operation, not a failure — without retries it aborts the whole run
+    # at step 0.
+    _MAX_RETRIES = 6
+
     def __init__(self, api_key: str, model_name: str, timeout: float = 300.0):
         import google.genai as genai
         self._client = genai.Client(api_key=api_key)
         self._model_name = model_name
         self._default_timeout = timeout
+
+    @staticmethod
+    def _rate_limit_delay(err: Exception) -> float | None:
+        """
+        Seconds to wait before retrying, or None if the error is not a rate limit.
+
+        Gemini reports the wait it wants ("Please retry in 1.7s" and a
+        'retryDelay' field); honour it rather than guessing. Returns 0.0 when
+        rate-limited without a usable hint, so the caller falls back to backoff.
+        """
+        text = str(err)
+        if '429' not in text and 'RESOURCE_EXHAUSTED' not in text:
+            return None
+
+        match = (re.search(r"retry in ([0-9.]+)s", text)
+                 or re.search(r"'retryDelay':\s*'([0-9.]+)s'", text))
+        if match:
+            # Small cushion: the server's own clock is what counts, not ours.
+            return min(float(match.group(1)) + 0.5, 60.0)
+        return 0.0
 
     def sample_text(
         self,
@@ -336,12 +363,25 @@ class GeminiModel:
                     config=config,
                 )
 
-            with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
-                _fut = _ex.submit(_call)
+            for attempt in range(self._MAX_RETRIES + 1):
                 try:
-                    response = _fut.result(timeout=timeout)
-                except _cf.TimeoutError:
-                    raise TimeoutError(f"Gemini call timed out after {timeout:.0f}s")
+                    with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                        _fut = _ex.submit(_call)
+                        try:
+                            response = _fut.result(timeout=timeout)
+                        except _cf.TimeoutError:
+                            raise TimeoutError(f"Gemini call timed out after {timeout:.0f}s")
+                    break
+                except Exception as call_err:
+                    delay = self._rate_limit_delay(call_err)
+                    if delay is None or attempt == self._MAX_RETRIES:
+                        raise
+                    wait = delay or min(2 ** attempt, 30)
+                    llm_print(
+                        f"[LLM] Rate limited, waiting {wait:.1f}s "
+                        f"(attempt {attempt + 1}/{self._MAX_RETRIES})"
+                    )
+                    time.sleep(wait)
 
             elapsed = time.time() - call_start
 
