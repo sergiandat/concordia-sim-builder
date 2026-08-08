@@ -1,0 +1,54 @@
+name: Correr una simulación
+description: Enviás el escenario y se ejecuta solo. Cuando termina, te avisamos acá mismo con el link a los resultados.
+title: "Simulación: "
+labels: ["simulacion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Completá el título de arriba con un nombre que te sirva para reconocerla
+        después (por ejemplo `Simulación: convocatoria NOA, fondo mixto`).
+
+        La corrida arranca sola apenas envíes esto. **No hace falta que esperes
+        con la página abierta**: podés cerrar todo y volver más tarde. Cuando
+        termine aparece un comentario en este mismo hilo con el link.
+
+        Tarda entre 40 y 60 minutos, según cuántos pasos tenga el escenario.
+
+  - type: textarea
+    id: escenario
+    attributes:
+      label: Escenario
+      description: >
+        Pegá acá el contenido completo del archivo `.json` que bajaste del
+        constructor de escenarios. Abrilo con el Bloc de notas, seleccioná todo
+        y copialo.
+      render: json
+      placeholder: |
+        {
+          "config": { ... },
+          "llm_settings": { ... }
+        }
+    validations:
+      required: true
+
+  - type: input
+    id: pasos
+    attributes:
+      label: Cantidad de pasos
+      description: >
+        Dejalo vacío para usar el valor que trae el escenario. Poné un número
+        chico (2 o 3) si querés probar rápido que todo funciona antes de largar
+        la corrida entera.
+      placeholder: "vacío = el del escenario"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Cada agente habla por turno, uno por paso.** Con cinco agentes, cinco
+        pasos alcanzan para que cada uno hable una sola vez: nadie llega a
+        responderle a nadie. Para que haya ida y vuelta necesitás cuatro o cinco
+        vueltas completas, o sea unos veinte pasos.

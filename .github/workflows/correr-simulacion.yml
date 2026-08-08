@@ -1,0 +1,178 @@
+name: Correr simulación
+
+# Se dispara cuando alguien abre un issue con la plantilla "Correr una
+# simulación". El equipo no necesita instalar nada ni depender de que haya
+# alguien con la máquina prendida: el runner de GitHub hace todo y deja los
+# resultados publicados.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write     # comentar el resultado en el hilo
+  contents: write   # publicar el HTML en la rama gh-pages
+
+jobs:
+  correr:
+    if: contains(github.event.issue.labels.*.name, 'simulacion')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Verificar que quien pide esté habilitado
+        env:
+          # El repo es público: sin este filtro, cualquiera podría disparar
+          # corridas contra la cuota de Gemini del dueño. Se edita en
+          # Settings -> Secrets and variables -> Variables -> USUARIOS_HABILITADOS
+          # como lista separada por comas. Vacío = solo el dueño del repo.
+          HABILITADOS: ${{ vars.USUARIOS_HABILITADOS }}
+          ACTOR: ${{ github.actor }}
+          DUENO: ${{ github.repository_owner }}
+        run: |
+          LISTA="${HABILITADOS:-$DUENO}"
+          if echo ",$LISTA," | tr -d ' ' | grep -qi ",$ACTOR,"; then
+            echo "$ACTOR está habilitado."
+          else
+            echo "::error::$ACTOR no está en la lista de usuarios habilitados."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Extraer el escenario del issue
+        env:
+          CUERPO: ${{ github.event.issue.body }}
+        run: |
+          python - <<'PY'
+          import json, os, re, sys
+
+          cuerpo = os.environ["CUERPO"]
+
+          # La plantilla usa render: json, así que el escenario llega dentro de
+          # un bloque de código. Si alguien lo pega suelto, se toma el primer
+          # objeto balanceado que aparezca.
+          bloques = re.findall(r"```(?:json)?\s*\n(.*?)```", cuerpo, re.S)
+          candidatos = bloques or re.findall(r"(\{.*\})", cuerpo, re.S)
+
+          escenario = None
+          for c in candidatos:
+              try:
+                  d = json.loads(c)
+              except json.JSONDecodeError:
+                  continue
+              if isinstance(d, dict) and ("config" in d or "premise" in d):
+                  escenario = d
+                  break
+
+          if escenario is None:
+              print("::error::No encontré un escenario válido en el issue. "
+                    "Revisá que hayas pegado el JSON completo, desde la primera "
+                    "llave hasta la última.")
+              sys.exit(1)
+
+          # Los pasos van en un campo aparte del formulario; si vino un número,
+          # pisa el del escenario.
+          m = re.search(r"###\s*Cantidad de pasos\s*\n+\s*(\d+)", cuerpo)
+          if m:
+              cfg = escenario.get("config", escenario)
+              cfg["max_steps"] = int(m.group(1))
+              print(f"Pasos pedidos en el formulario: {m.group(1)}")
+
+          with open("escenario.json", "w", encoding="utf-8") as f:
+              json.dump(escenario, f, ensure_ascii=False, indent=1)
+
+          cfg = escenario.get("config", escenario)
+          print(f"Agentes: {len(cfg.get('agents', []))}")
+          print(f"Pasos:   {cfg.get('max_steps')}")
+          PY
+
+      - name: Instalar dependencias
+        run: |
+          # torch de CPU primero: si no, sentence-transformers arrastra las
+          # ruedas de CUDA, que acá no sirven para nada y son gigantes.
+          pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Correr la simulación
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NVIDIA_NIM_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}
+          PYTHONUNBUFFERED: '1'
+          TOKENIZERS_PARALLELISM: 'false'
+        run: python scripts/run_headless.py escenario.json -o salida/
+
+      - name: Publicar los resultados
+        id: publicar
+        env:
+          NUMERO: ${{ github.event.issue.number }}
+        run: |
+          DESTINO="resultados/$NUMERO"
+          git fetch origin gh-pages --depth 1 2>/dev/null \
+            && git worktree add ../pages gh-pages \
+            || { git worktree add --detach ../pages \
+                 && git -C ../pages checkout --orphan gh-pages \
+                 && git -C ../pages rm -rf . 2>/dev/null || true; }
+
+          mkdir -p "../pages/$DESTINO"
+          cp -r salida/* "../pages/$DESTINO/"
+
+          cd ../pages
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Resultados de la simulación #$NUMERO" || echo "sin cambios"
+          git push -q origin gh-pages
+
+          echo "ruta=$DESTINO" >> "$GITHUB_OUTPUT"
+
+      - name: Avisar en el issue
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          RUTA: ${{ steps.publicar.outputs.ruta }}
+        with:
+          script: |
+            const fs = require('fs');
+            const ok = '${{ job.status }}' === 'success';
+            const [duenio, repo] = '${{ github.repository }}'.split('/');
+            const corrida = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            let cuerpo;
+            if (ok && process.env.RUTA) {
+              const url = `https://${duenio}.github.io/${repo}/${process.env.RUTA}/`;
+              let detalle = '';
+              try {
+                const r = JSON.parse(fs.readFileSync('salida/resumen.json', 'utf8'));
+                detalle = [
+                  '',
+                  `- **Pasos:** ${r.pasos_completados} de ${r.pasos_pedidos}`,
+                  `- **Duración:** ${r.duracion_min} minutos`,
+                  `- **Participantes:** ${r.agentes.join(', ')}`,
+                  r.completa ? '' : `- ⚠️ Quedó incompleta: ${r.error || 'se cortó antes de terminar'}`,
+                ].filter(Boolean).join('\n');
+              } catch (e) { /* el resumen es opcional */ }
+
+              cuerpo = `## Listo\n\n**[Ver la deliberación](${url})**${detalle}\n\n` +
+                `<sub>Los datos en crudo están en [raw_log.json](${url}raw_log.json). ` +
+                `Si el link todavía no abre, esperá un minuto: GitHub tarda un poco en publicar.</sub>`;
+            } else {
+              cuerpo = `## No pude terminar\n\nLa corrida falló. ` +
+                `El detalle está en [el registro de ejecución](${corrida}).\n\n` +
+                `<sub>Lo más común es que el JSON del escenario esté incompleto ` +
+                `o que falte configurar la clave del modelo.</sub>`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: cuerpo,
+            });
