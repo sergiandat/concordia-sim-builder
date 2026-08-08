@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulaciones · Concordia</title>
+<style>
+  :root {
+    --fondo: #fbfaf8;
+    --papel: #ffffff;
+    --tinta: #1c1a17;
+    --tinta-suave: #57534e;
+    --borde: #e5e1db;
+    --acento: #7c5c3e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fondo: #16151300;
+      --fondo: #161513;
+      --papel: #1f1d1a;
+      --tinta: #f0ede8;
+      --tinta-suave: #a8a29a;
+      --borde: #33302b;
+      --acento: #c8a37a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fondo: #161513;
+    --papel: #1f1d1a;
+    --tinta: #f0ede8;
+    --tinta-suave: #a8a29a;
+    --borde: #33302b;
+    --acento: #c8a37a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--tinta);
+    font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 3rem 1.25rem 5rem;
+  }
+  main { width: 100%; max-width: 40rem; }
+  h1 {
+    font-size: 1.65rem;
+    line-height: 1.25;
+    margin: 0 0 .4rem;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+  }
+  .sub { color: var(--tinta-suave); margin: 0 0 2.5rem; }
+  .tarjeta {
+    background: var(--papel);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 1.5rem 1.6rem;
+    margin-bottom: 1rem;
+  }
+  h2 {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: var(--acento);
+    margin: 0 0 .9rem;
+  }
+  ol { margin: 0; padding-left: 1.15rem; }
+  li { margin-bottom: .55rem; }
+  li:last-child { margin-bottom: 0; }
+  a { color: var(--acento); }
+  .nota {
+    color: var(--tinta-suave);
+    font-size: .9rem;
+    border-top: 1px solid var(--borde);
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+  }
+  code {
+    background: var(--fondo);
+    border: 1px solid var(--borde);
+    border-radius: 4px;
+    padding: .1em .4em;
+    font-size: .88em;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Simulaciones de deliberación</h1>
+  <p class="sub">Acá se publican los resultados de cada corrida.</p>
+
+  <div class="tarjeta">
+    <h2>Cómo pedir una</h2>
+    <ol>
+      <li>Entrá a <a href="https://github.com/sergiandat/concordia-sim-builder/issues/new/choose">Nueva simulación</a>.</li>
+      <li>Elegí <strong>Correr una simulación</strong> y pegá el escenario.</li>
+      <li>Enviá y cerrá la página: la corrida sigue sola.</li>
+      <li>Cuando termine, te avisamos en ese mismo hilo con el link.</li>
+    </ol>
+  </div>
+
+  <div class="tarjeta">
+    <h2>Dónde queda cada resultado</h2>
+    <p style="margin:0">
+      Cada corrida se publica en <code>resultados/</code> seguido del número de
+      su pedido. El link te llega en el aviso, así que no hace falta que lo
+      busques a mano.
+    </p>
+  </div>
+
+  <p class="nota">
+    Una corrida tarda entre cuarenta minutos y una hora. Los agentes hablan por
+    turno, uno por paso, así que con cinco participantes hacen falta unos veinte
+    pasos para que alcancen a responderse entre ellos.
+  </p>
+</main>
+</body>
+</html>
