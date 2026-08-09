@@ -1,0 +1,18 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-08-09T00:54:08",
+  "duracion_min": 16.3,
+  "pasos_completados": 20,
+  "pasos_pedidos": 20,
+  "completa": true,
+  "error": null,
+  "agentes": [
+    "Laura Benítez — Dirección de Estudios",
+    "Mariana Roldán — Secretaría",
+    "Martín Salvatierra — Comité de Evaluación",
+    "Verónica Cruz — Consejo Federal",
+    "Sergio Ledesma — Cámara de Productores"
+  ],
+  "modelo": "LLMProvider.GEMINI/gemini-3.5-flash-lite",
+  "modelo_gm": "LLMProvider.GEMINI/gemini-3.1-flash-lite"
+}
