@@ -151,13 +151,15 @@ jobs:
               let detalle = '';
               try {
                 const r = JSON.parse(fs.readFileSync('salida/resumen.json', 'utf8'));
-                detalle = [
-                  '',
+                const puntos = [
                   `- **Pasos:** ${r.pasos_completados} de ${r.pasos_pedidos}`,
                   `- **Duración:** ${r.duracion_min} minutos`,
                   `- **Participantes:** ${r.agentes.join(', ')}`,
                   r.completa ? '' : `- ⚠️ Quedó incompleta: ${r.error || 'se cortó antes de terminar'}`,
-                ].filter(Boolean).join('\n');
+                ].filter(Boolean);
+                // El salto va afuera del filtro: como cadena vacía lo descartaba
+                // y la lista terminaba pegada al link.
+                detalle = '\n\n' + puntos.join('\n');
               } catch (e) { /* el resumen es opcional */ }
 
               cuerpo = `## Listo\n\n**[Ver la deliberación](${url})**${detalle}\n\n` +
