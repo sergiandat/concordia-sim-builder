@@ -219,10 +219,11 @@ def franja(nombre: str, serie: list[tuple[int, str]], max_paso: int) -> str:
 COLORES = ["#2d5f5d", "#8a6a1f", "#7a4b6b", "#3d6b8a", "#8f5a3a", "#4a7a4a"]
 
 
-def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int) -> str:
+def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int, hitos=None) -> str:
     """Líneas en SVG. Sin librerías: tiene que abrir en cualquier navegador."""
     if not series or max_paso < 1:
         return ""
+    hitos = hitos or []
 
     an, al = 720, 260
     izq, der, arr, aba = 46, 16, 16, 34
@@ -248,6 +249,13 @@ def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int) -> str:
         yy = y(v)
         p.append(f'<line x1="{izq}" y1="{yy:.1f}" x2="{an-der}" y2="{yy:.1f}" class="rejilla"/>')
         p.append(f'<text x="{izq-8}" y="{yy+4:.1f}" class="eje-y">{v:.0f}</text>')
+
+    # Momentos de decisión: permiten ver si los indicadores se movieron ahí
+    for paso_hito in hitos:
+        if 1 <= paso_hito <= max_paso:
+            xx = x(paso_hito)
+            p.append(f'<line x1="{xx:.1f}" y1="{arr}" x2="{xx:.1f}" y2="{arr+alto}" class="hito-linea"/>')
+            p.append(f'<text x="{xx:.1f}" y="{arr-4}" class="hito-marca">decisión</text>')
 
     for paso in range(1, max_paso + 1):  # marcas del eje x
         if max_paso <= 12 or paso == 1 or paso == max_paso or paso % 5 == 0:
@@ -280,11 +288,202 @@ def bonito(clave: str) -> str:
     return clave.replace("_", " ").strip().capitalize()
 
 
+# ---------------------------------------------------------------- escenario
+
+NOMBRES_MESA = {
+    "dialogic__GameMaster": "conversación",
+    "generic__GameMaster": "general",
+    "game_theoretic_and_dramaturgic__GameMaster": "juego con pagos",
+    "interviewer__GameMaster": "entrevista guiada",
+    "marketplace__GameMaster": "mercado",
+}
+NOMBRES_ORDEN = {"fixed": "fijo", "random": "al azar", "game_master_choice": "lo elige la mesa"}
+NOMBRES_MOTOR = {"sequential": "por turnos", "simultaneous": "simultáneo",
+                 "asynchronous": "asincrónico", "interview": "entrevista", "survey": "encuesta"}
+
+
+def leer_escenario(ruta: Path | None) -> dict:
+    """Lo que se configuró antes de correr. Sin esto no se puede interpretar nada."""
+    if not ruta or not ruta.is_file():
+        return {}
+    try:
+        d = json.loads(ruta.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    cfg = d.get("config", d)
+    gm = cfg.get("game_master") or {}
+    return {
+        "premisa": cfg.get("premise", ""),
+        "datos": cfg.get("shared_memories") or [],
+        "agentes": cfg.get("agents") or [],
+        "decisiones": gm.get("critical_decision_points") or [],
+        "variables": gm.get("grounded_variables") or [],
+        "mesa_nombre": gm.get("name", ""),
+        "mesa_prefab": gm.get("prefab", ""),
+        "orden": gm.get("acting_order", ""),
+        "cierre": gm.get("allow_early_termination"),
+        "motor": cfg.get("engine_type", ""),
+        "pasos": cfg.get("max_steps"),
+        "modelo": (d.get("llm_settings") or {}).get("model_name", ""),
+        "modelo_gm": (d.get("gm_llm_settings") or {}).get("model_name", ""),
+    }
+
+
+def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
+    """
+    Observaciones calculadas sobre el resultado. La idea es enseñar qué mirar:
+    un consenso clavado en el techo o un indicador que nunca se movió dicen
+    más sobre el diseño del escenario que sobre la deliberación.
+    """
+    obs: list[tuple[str, str]] = []
+
+    for nombre, serie in sorted(series.items()):
+        ini, fin = serie[0][1], serie[-1][1]
+        if fin >= 100 and "consenso" in nombre.lower():
+            obs.append(("alerta",
+                        f"El consenso terminó en {fin:.0f}, el máximo posible. En una mesa "
+                        "con intereses en conflicto eso suele indicar que los participantes "
+                        "no sostuvieron sus posiciones, más que un acuerdo trabajado."))
+        elif fin == ini:
+            obs.append(("neutra",
+                        f"«{bonito(nombre)}» no se movió en toda la deliberación: quedó en "
+                        f"{fin:.0f}. O nadie hizo nada que lo afectara, o la regla de cambio "
+                        "no es lo bastante clara."))
+
+    permitidos = {v.get("name"): (v.get("allowed_values") or [])
+                  for v in esc.get("variables", []) if v.get("allowed_values")}
+    for nombre, serie in franjas.items():
+        valores = {v for _, v in serie}
+        if nombre in permitidos:
+            fuera = [v for v in valores if v not in permitidos[nombre]]
+            if fuera:
+                obs.append(("alerta",
+                            f"«{bonito(nombre)}» tomó el valor «{fuera[0]}», que no está entre "
+                            "los que definiste. La mesa no verifica esa lista, así que conviene "
+                            "leer el valor como texto libre."))
+        # Que no cambie solo es un problema si se quedó en su valor de partida:
+        # sostener un valor ya decidido es lo esperable, no una señal de nada.
+        inicial = next((str(v.get("default_value", "")) for v in esc.get("variables", [])
+                        if v.get("name") == nombre), None)
+        unico = next(iter(valores)) if len(valores) == 1 else None
+        if unico is not None and inicial is not None and unico == inicial:
+            obs.append(("alerta",
+                        f"«{bonito(nombre)}» se quedó en «{unico}», su valor de partida, "
+                        "durante toda la deliberación. Si ahí se registraba qué se decidió, "
+                        "la decisión no llegó a tomarse."))
+        elif unico is not None and inicial is not None:
+            obs.append(("neutra",
+                        f"«{bonito(nombre)}» quedó en «{unico}» desde el turno "
+                        f"{serie[0][0]} y no volvió a moverse."))
+
+    consignas = [p["mesa"]["consigna"] for p in pasos if p.get("mesa", {}).get("consigna")]
+    distintas = len(set(consignas))
+    if consignas and distintas == 1:
+        obs.append(("alerta",
+                    f"A los {len(consignas)} turnos se les dio la palabra con la misma pregunta. "
+                    "Cuando la consigna no cambia ni menciona lo que se viene discutiendo, "
+                    "invita a seguir la conversación más que a fijar postura."))
+    elif distintas > 1:
+        obs.append(("buena",
+                    f"Hubo {distintas} consignas distintas en {len(consignas)} turnos: a cada "
+                    "participante se le pidió postura sobre algo concreto de lo que se venía "
+                    "discutiendo."))
+
+    if resumen and resumen.get("completa") is False:
+        falta = (resumen.get("pasos_pedidos") or 0) - (resumen.get("pasos_completados") or 0)
+        obs.append(("alerta",
+                    f"La corrida quedó incompleta: faltaron {falta} turnos. Lo que sigue es "
+                    "todo lo que alcanzó a pasar, así que puede no haber cierre."))
+
+    quienes = {}
+    for p in pasos:
+        quienes[p["quien"]] = quienes.get(p["quien"], 0) + 1
+    if len(quienes) > 1:
+        veces = sorted(quienes.values())
+        if veces[-1] >= veces[0] * 2:
+            mas = max(quienes, key=quienes.get)
+            obs.append(("neutra",
+                        f"La palabra quedó repartida de forma despareja: {mas} habló "
+                        f"{veces[-1]} veces y alguien lo hizo solo {veces[0]}."))
+    return obs
+
+
 # ---------------------------------------------------------------- documento
 
 def parrafos(texto: str) -> str:
     trozos = [t.strip() for t in re.split(r"\n\s*\n|\n", texto or "") if t.strip()]
     return "".join(f"<p>{html.escape(t)}</p>" for t in trozos) or "<p class='vacio'>—</p>"
+
+
+def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
+    """Lo que se configuró. Va plegado: hace falta para interpretar, no para leer."""
+    if not esc:
+        return ""
+    p = ['<details class="escenario"><summary>Cómo estaba armado el escenario</summary>',
+         '<div class="cuerpo-esc">']
+
+    if esc.get("premisa"):
+        p.append("<h3>La situación planteada</h3>")
+        p.append(parrafos(esc["premisa"]))
+
+    if esc.get("datos"):
+        p.append("<h3>Datos que todos conocían</h3><ul class='lista-datos'>")
+        for d in esc["datos"]:
+            p.append(f"<li>{html.escape(d)}</li>")
+        p.append("</ul>")
+
+    if esc.get("agentes"):
+        p.append("<h3>Cada participante</h3>")
+        for a in esc["agentes"]:
+            p.append('<div class="ficha-agente">')
+            p.append(f'<h4>{html.escape(a.get("name", ""))}</h4>')
+            if a.get("goal"):
+                p.append(f'<p class="obj-agente"><strong>Busca:</strong> {html.escape(a["goal"])}</p>')
+            mem = a.get("memories") or []
+            if mem:
+                p.append("<ul class='lista-datos'>")
+                for m in mem:
+                    p.append(f"<li>{html.escape(m)}</li>")
+                p.append("</ul>")
+            p.append("</div>")
+
+    filas = [
+        ("Tipo de mesa", NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab", "—"))),
+        ("Orden de la palabra", NOMBRES_ORDEN.get(esc.get("orden", ""), esc.get("orden", "—"))),
+        ("Motor", NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor", "—"))),
+        ("Turnos pedidos", esc.get("pasos") or "—"),
+        ("Puede cerrar antes", "sí" if esc.get("cierre") else "no"),
+        ("Modelo de participantes", esc.get("modelo") or "—"),
+        ("Modelo de la mesa", esc.get("modelo_gm") or "—"),
+    ]
+    p.append("<h3>Configuración</h3><table class='config'><tbody>")
+    for k, v in filas:
+        p.append(f"<tr><th>{html.escape(k)}</th><td>{html.escape(str(v))}</td></tr>")
+    p.append("</tbody></table>")
+
+    p.append("</div></details>")
+    return "".join(p)
+
+
+def tira_participacion(pasos, orden: list[str]) -> str:
+    """Quién habló en cada turno, de un vistazo. Deja ver la rotación o su ausencia."""
+    if not pasos:
+        return ""
+    p = ['<div class="tira">']
+    for paso in pasos:
+        i = orden.index(paso["quien"]) if paso["quien"] in orden else 0
+        color = COLORES[i % len(COLORES)]
+        p.append(f'<span class="celda" style="background:{color}" '
+                 f'title="Turno {paso["n"]}: {html.escape(paso["quien"])}">{paso["n"]}</span>')
+    p.append("</div>")
+    p.append('<ul class="leyenda leyenda-tira">')
+    for i, q in enumerate(orden):
+        cuantas = sum(1 for x in pasos if x["quien"] == q)
+        p.append(f'<li><span class="punto" style="background:{COLORES[i % len(COLORES)]}"></span>'
+                 f'<span class="leyenda-nombre">{html.escape(q)}</span>'
+                 f'<span class="leyenda-dato">{cuantas} turnos</span></li>')
+    p.append("</ul>")
+    return "".join(p)
 
 
 def exportar_csv(pasos, series, destino: Path) -> None:
@@ -406,7 +605,8 @@ def redactar_resumen(pasos, series, resumen_datos, premisa: str) -> str:
         return ""
 
 
-def armar(pasos, series, franjas, resumen, decisiones, texto_resumen="") -> str:
+def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="") -> str:
+    esc = esc or {}
     titulo = "Acta de la deliberación"
     quienes = []
     for p in pasos:
@@ -439,6 +639,22 @@ def armar(pasos, series, franjas, resumen, decisiones, texto_resumen="") -> str:
             partes.append(ficha("Estado", "Completa" if resumen["completa"] else "Incompleta"))
     partes.append("</dl>")
 
+    # --- senales calculadas: que mirar
+    obs = senales(pasos, series, franjas, esc, resumen)
+    if obs:
+        partes.append('<section class="senales"><h2>Qué mirar de esta corrida</h2>')
+        partes.append('<p class="ayuda-sec">Observaciones calculadas sobre el resultado, '
+                      'sin intervención de ningún modelo.</p>')
+        partes.append("<ul>")
+        for tipo, texto in obs:
+            partes.append(f'<li class="s-{tipo}">{html.escape(texto)}</li>')
+        partes.append("</ul></section>")
+
+    # --- ficha del escenario
+    ficha_esc = seccion_escenario(esc, quienes)
+    if ficha_esc:
+        partes.append(ficha_esc)
+
     # --- resumen redactado por el modelo
     if texto_resumen:
         partes.append('<div class="resumen">')
@@ -451,7 +667,8 @@ def armar(pasos, series, franjas, resumen, decisiones, texto_resumen="") -> str:
     if series or franjas:
         partes.append('<section><h2>Cómo evolucionaron los indicadores</h2>')
         if series:
-            partes.append('<div class="grafico">' + grafico(series, max_paso) + "</div>")
+            hitos = [d.get('step') for d in (decisiones or []) if d.get('step')]
+            partes.append('<div class="grafico">' + grafico(series, max_paso, hitos) + "</div>")
         if franjas:
             partes.append('<div class="grafico franjas">')
             for nombre, serie in sorted(franjas.items()):
@@ -461,6 +678,8 @@ def armar(pasos, series, franjas, resumen, decisiones, texto_resumen="") -> str:
 
     # --- quiénes participaron
     partes.append('<section><h2>Quiénes participaron</h2>')
+    partes.append('<p class="ayuda-sec">Cada casilla es un turno, coloreada según quién habló.</p>')
+    partes.append(tira_participacion(pasos, quienes))
     for q in quienes:
         partes.append('<article class="participante">')
         partes.append(f'<h3>{html.escape(q)}</h3>')
@@ -619,6 +838,36 @@ text-transform:uppercase;color:var(--ink-faint);margin-bottom:.6rem}
 .tramo{min-width:0;padding:.5rem .6rem;color:#fff;font-size:.78rem;
 white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .franja-cambios{margin:.45rem 0 0;font-size:.84rem;color:var(--ink-soft)}
+.senales{margin-top:2.25rem}
+.senales ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.senales li{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--rule-strong);
+border-radius:0 7px 7px 0;padding:.85rem 1.05rem;font-size:.93rem}
+.s-alerta{border-left-color:var(--warn)!important}
+.s-buena{border-left-color:var(--accent)!important}
+.hito-linea{stroke:var(--warn);stroke-width:1;stroke-dasharray:3 3;opacity:.8}
+.hito-marca{fill:var(--warn);font-size:9px;font-family:var(--mono);text-anchor:middle}
+.tira{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:1rem}
+.celda{width:2rem;height:2rem;border-radius:4px;color:#fff;font-size:.72rem;
+font-family:var(--mono);display:flex;align-items:center;justify-content:center}
+.leyenda-tira{margin-bottom:1.5rem}
+.escenario{border:1px solid var(--rule);border-radius:8px;background:var(--surface);margin-top:2rem}
+.escenario>summary{cursor:pointer;padding:.9rem 1.2rem;font-weight:600;font-size:.92rem;
+list-style:none;display:flex;justify-content:space-between;align-items:center}
+.escenario>summary::-webkit-details-marker{display:none}
+.escenario>summary::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:1.1rem}
+.escenario[open]>summary::after{content:"–"}
+.escenario>summary:hover{color:var(--accent)}
+.cuerpo-esc{padding:0 1.2rem 1.4rem;border-top:1px solid var(--rule)}
+.cuerpo-esc h3{font-family:var(--serif);font-weight:400;font-size:1.1rem;margin:1.5rem 0 .6rem}
+.cuerpo-esc h4{font-size:.95rem;margin:0 0 .3rem}
+.lista-datos{margin:.4rem 0;padding-left:1.15rem;font-size:.9rem;color:var(--ink-soft)}
+.lista-datos li{margin-bottom:.3rem}
+.ficha-agente{padding:.85rem 0;border-top:1px solid var(--rule)}
+.obj-agente{margin:0;font-size:.9rem;color:var(--ink-soft)}
+.config{border-collapse:collapse;width:100%;font-size:.89rem;margin-top:.4rem}
+.config th{text-align:left;font-weight:500;color:var(--ink-faint);padding:.35rem .8rem .35rem 0;
+white-space:nowrap;vertical-align:top}
+.config td{padding:.35rem 0;font-family:var(--mono);font-size:.85rem}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}
 @media (max-width:34rem){h1{font-size:1.7rem}main{padding-top:2rem}}
@@ -658,15 +907,9 @@ def main() -> int:
         except json.JSONDecodeError:
             pass
 
-    decisiones, premisa = [], ""
-    if args.escenario and args.escenario.is_file():
-        try:
-            esc = json.loads(args.escenario.read_text(encoding="utf-8"))
-            cfg = esc.get("config", esc)
-            decisiones = (cfg.get("game_master") or {}).get("critical_decision_points") or []
-            premisa = cfg.get("premise", "")
-        except (json.JSONDecodeError, AttributeError):
-            pass
+    esc = leer_escenario(args.escenario)
+    decisiones = esc.get("decisiones", [])
+    premisa = esc.get("premisa", "")
 
     texto_resumen = ""
     if args.resumen:
@@ -674,7 +917,7 @@ def main() -> int:
         texto_resumen = redactar_resumen(pasos, series, resumen, premisa)
 
     salida = args.salida or args.crudo.parent / "reporte.html"
-    salida.write_text(armar(pasos, series, franjas, resumen, decisiones, texto_resumen), encoding="utf-8")
+    salida.write_text(armar(pasos, series, franjas, resumen, decisiones, esc, texto_resumen), encoding="utf-8")
 
     print(f"reporte      : {salida}")
     print(f"turnos       : {len(pasos)}")
