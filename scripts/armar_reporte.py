@@ -483,13 +483,24 @@ def armar(pasos, series, franjas, resumen, decisiones, texto_resumen="") -> str:
         if distintas:
             partes.append('<p class="ayuda-sec">La consigna es la pregunta con la que se le '
                           'da la palabra a cada participante. Cuando es siempre la misma, todos '
-                          'responden al mismo estímulo.</p>')
+                          'responden al mismo estímulo; cuando cambia según lo que se viene '
+                          'discutiendo, a cada uno se le pide postura sobre algo concreto.</p>')
+            if len(distintas) == 1:
+                partes.append('<p class="ayuda-sec"><strong>Una sola consigna para los '
+                              f'{len(consignas)} turnos.</strong></p>')
+            else:
+                partes.append(f'<p class="ayuda-sec"><strong>{len(distintas)} consignas '
+                              f'distintas</strong> en {len(consignas)} turnos.</p>')
             partes.append('<ul class="consignas">')
-            for c in distintas[:6]:
+            for c in distintas[:8]:
                 veces = consignas.count(c)
                 partes.append(f'<li><span class="cuantas">{veces}×</span>'
                               f'<span>{html.escape(c)}</span></li>')
             partes.append("</ul>")
+            # Sin esta línea el corte era invisible y parecía que no hubo más
+            if len(distintas) > 8:
+                partes.append(f'<p class="franja-cambios">Y {len(distintas) - 8} consignas '
+                              f'más, distintas entre sí.</p>')
         if cierres:
             quiso = sum(1 for c in cierres if c.strip().lower().startswith(("s", "y")))
             partes.append(f'<p class="cierre-nota">Se preguntó en {len(cierres)} turnos si la '
