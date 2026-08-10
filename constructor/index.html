@@ -112,6 +112,14 @@
   .estado{flex:1;min-width:12rem;font-size:.88rem;color:var(--ink-soft)}
   .estado.mal{color:var(--danger)}
 
+  .b-volver{font-size:.88rem;border-radius:5px;border:1px solid var(--rule-strong);
+    background:var(--surface);color:var(--ink);padding:.45rem .85rem;text-decoration:none;
+    display:inline-flex;align-items:center}
+  .b-volver:hover{border-color:var(--accent);color:var(--accent)}
+  .instruccion{position:fixed;left:50%;transform:translateX(-50%);bottom:5.5rem;z-index:20;
+    background:var(--accent);color:var(--accent-ink);padding:.75rem 1.2rem;border-radius:7px;
+    font-size:.9rem;font-weight:600;max-width:calc(100vw - 2.5rem);text-align:center;
+    box-shadow:0 4px 16px rgba(0,0,0,.18)}
   a{color:var(--accent)}
   .pie{padding:2.5rem 0;color:var(--ink-faint);font-size:.88rem}
   @media (max-width:34rem){h1{font-size:1.75rem}.cabecera{padding:2rem 0 1.75rem}}
@@ -132,6 +140,7 @@
     <div class="acciones-tope">
       <button type="button" id="b-ejemplo">Cargar un ejemplo</button>
       <button type="button" id="b-limpiar">Empezar de cero</button>
+      <a class="b-volver" href="../">Ver las corridas</a>
     </div>
   </div>
 </header>
@@ -399,8 +408,8 @@
 <div class="barra">
   <div class="envoltura barra-caja">
     <div class="estado" id="estado">Completá el tema y sumá al menos dos participantes.</div>
-    <button type="button" id="b-copiar">Copiar</button>
-    <button type="button" class="b-principal" id="b-bajar">Bajar escenario</button>
+    <button type="button" id="b-bajar">Bajar archivo</button>
+    <button type="button" class="b-principal" id="b-enviar">Enviar a correr</button>
   </div>
 </div>
 
@@ -1009,7 +1018,7 @@ var CONTRIB = [
       ? "Listo: " + estado.agentes.length + " participantes, " + (parseInt($("pasos").value, 10) || 0) + " pasos."
       : "Falta " + f.join("; ") + ".";
     $("b-bajar").disabled = !listo;
-    $("b-copiar").disabled = !listo;
+    $("b-enviar").disabled = !listo;
     revisarModelos();
   }
 
@@ -1039,19 +1048,49 @@ var CONTRIB = [
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   });
 
-  $("b-copiar").addEventListener("click", function () {
-    var texto = JSON.stringify(construir(), null, 2), b = $("b-copiar");
-    function ok() { b.textContent = "Copiado"; setTimeout(function () { b.textContent = "Copiar"; }, 1800); }
+  /* Copia el escenario y abre el formulario. No se puede enviar solo: haría
+     falta una credencial de GitHub y en una página pública cualquiera podría
+     leerla y disparar corridas contra la cuota ajena. */
+  var URL_FORM = "https://github.com/sergiandat/concordia-sim-builder/issues/new" +
+                 "?template=correr-simulacion.yml";
+
+  function avisar(texto) {
+    var previo = document.getElementById("aviso-flotante");
+    if (previo) previo.parentNode.removeChild(previo);
+    var d = el("div", "instruccion", texto);
+    d.id = "aviso-flotante";
+    d.setAttribute("role", "status");
+    document.body.appendChild(d);
+    setTimeout(function () {
+      if (d.parentNode) d.parentNode.removeChild(d);
+    }, 9000);
+  }
+
+  function copiarTexto(texto, alTerminar) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(function () { alTerminar(true); },
+                                                function () { respaldo(); });
+    } else { respaldo(); }
     function respaldo() {
       var ta = document.createElement("textarea");
       ta.value = texto; ta.style.position = "fixed"; ta.style.opacity = "0";
       document.body.appendChild(ta); ta.select();
-      try { document.execCommand("copy"); ok(); } catch (e) { b.textContent = "No pude copiar"; }
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
       document.body.removeChild(ta);
+      alTerminar(ok);
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(texto).then(ok, respaldo);
-    } else respaldo();
+  }
+
+  $("b-enviar").addEventListener("click", function () {
+    copiarTexto(JSON.stringify(construir(), null, 2), function (ok) {
+      if (ok) {
+        avisar("Escenario copiado. Pegalo en el campo «Escenario» del formulario.");
+        window.open(URL_FORM, "_blank", "noopener");
+      } else {
+        avisar("No pude copiar automáticamente. Usá «Bajar archivo» y pegá su contenido.");
+      }
+    });
   });
 
   /* ---------- cableado ---------- */
