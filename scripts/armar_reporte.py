@@ -274,14 +274,33 @@ def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int, hitos=Non
     leyenda = ['<ul class="leyenda">']
     for i, (nombre, serie) in enumerate(sorted(series.items())):
         color = COLORES[i % len(COLORES)]
-        ini, fin = serie[0][1], serie[-1][1]
-        flecha = "subió" if fin > ini else ("bajó" if fin < ini else "sin cambio")
         leyenda.append(
             f'<li><span class="punto" style="background:{color}"></span>'
             f'<span class="leyenda-nombre">{html.escape(bonito(nombre))}</span>'
-            f'<span class="leyenda-dato">{ini:.0f} → {fin:.0f} · {flecha}</span></li>')
+            f'<span class="leyenda-dato">{html.escape(recorrido(serie))}</span></li>')
     leyenda.append("</ul>")
     return "".join(p) + "".join(leyenda)
+
+
+def recorrido(serie: list[tuple[int, float]]) -> str:
+    """
+    Describe la forma de la curva, no solo sus extremos. Un indicador que trepa
+    al máximo y después se derrumba cuenta algo muy distinto de uno que sube
+    despacio, y con «inicio → final» los dos se leen igual.
+    """
+    ini, fin = serie[0][1], serie[-1][1]
+    paso_alto, alto = max(serie, key=lambda x: x[1])
+    paso_bajo, bajo = min(serie, key=lambda x: x[1])
+
+    if alto > max(ini, fin):
+        return f"{ini:.0f} → pico {alto:.0f} en el turno {paso_alto} → {fin:.0f}"
+    if bajo < min(ini, fin):
+        return f"{ini:.0f} → cayó a {bajo:.0f} en el turno {paso_bajo} → {fin:.0f}"
+    if fin > ini:
+        return f"{ini:.0f} → {fin:.0f} · subió"
+    if fin < ini:
+        return f"{ini:.0f} → {fin:.0f} · bajó"
+    return f"{ini:.0f} · sin cambios"
 
 
 def bonito(clave: str) -> str:
@@ -339,11 +358,22 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
 
     for nombre, serie in sorted(series.items()):
         ini, fin = serie[0][1], serie[-1][1]
-        if fin >= 100 and "consenso" in nombre.lower():
+        paso_alto, alto = max(serie, key=lambda x: x[1])
+        es_consenso = "consenso" in nombre.lower()
+
+        if es_consenso and fin >= 100:
             obs.append(("alerta",
                         f"El consenso terminó en {fin:.0f}, el máximo posible. En una mesa "
                         "con intereses en conflicto eso suele indicar que los participantes "
                         "no sostuvieron sus posiciones, más que un acuerdo trabajado."))
+        elif es_consenso and alto >= 100 and fin < alto:
+            # Que trepe al techo y se derrumbe es la firma de una deliberación
+            # de verdad: hubo acuerdo aparente y algo lo rompió.
+            obs.append(("buena",
+                        f"El consenso llegó a {alto:.0f} en el turno {paso_alto} y después "
+                        f"cayó hasta {fin:.0f}. Un acuerdo que se arma y se rompe indica que "
+                        "apareció algo que los participantes no estaban dispuestos a aceptar; "
+                        f"conviene mirar qué pasó a partir del turno {paso_alto}."))
         elif fin == ini:
             obs.append(("neutra",
                         f"«{bonito(nombre)}» no se movió en toda la deliberación: quedó en "
@@ -650,6 +680,31 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="
             partes.append(f'<li class="s-{tipo}">{html.escape(texto)}</li>')
         partes.append("</ul></section>")
 
+    # --- por qué quedó incompleta
+    if resumen and resumen.get("completa") is False:
+        hechos = (resumen.get("pasos_completados") or 0)
+        pedidos = (resumen.get("pasos_pedidos") or 0)
+        sin_llegar = [d for d in (decisiones or []) if (d.get("step") or 0) > hechos]
+        partes.append('<div class="incompleta">')
+        partes.append('<h2>Por qué quedó incompleta</h2>')
+        partes.append(f'<p>Se ejecutaron {hechos} de los {pedidos} turnos previstos.</p>')
+        if sin_llegar:
+            partes.append('<p>No se llegó a estos momentos de decisión:</p><ul>')
+            for d in sin_llegar:
+                partes.append(f'<li><strong>Turno {d["step"]}:</strong> '
+                              f'{html.escape((d.get("event") or "")[:220])}</li>')
+            partes.append("</ul>")
+        motivo = (resumen.get("error") or "")
+        if "429" in motivo or "RESOURCE_EXHAUSTED" in motivo:
+            partes.append('<p class="motivo">Se cortó por agotamiento de la cuota diaria del '
+                          'modelo, no por un problema del escenario.</p>')
+        elif motivo:
+            partes.append(f'<p class="motivo">{html.escape(motivo[:300])}</p>')
+        partes.append('<p class="motivo">Lo que sigue es todo lo que alcanzó a ocurrir. '
+                      'Cualquier acuerdo que aparezca hay que leerlo como provisorio: no hubo '
+                      'un cierre formal posterior.</p>')
+        partes.append("</div>")
+
     # --- ficha del escenario
     ficha_esc = seccion_escenario(esc, quienes)
     if ficha_esc:
@@ -868,6 +923,13 @@ list-style:none;display:flex;justify-content:space-between;align-items:center}
 .config th{text-align:left;font-weight:500;color:var(--ink-faint);padding:.35rem .8rem .35rem 0;
 white-space:nowrap;vertical-align:top}
 .config td{padding:.35rem 0;font-family:var(--mono);font-size:.85rem}
+.incompleta{background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;
+padding:1.2rem 1.4rem;margin-top:2rem}
+.incompleta h2{border:none;padding:0;margin:0 0 .7rem;font-size:1.2rem;color:var(--warn)}
+.incompleta p{margin:0 0 .7rem;font-size:.93rem}
+.incompleta ul{margin:.3rem 0 .8rem;padding-left:1.2rem;font-size:.9rem}
+.incompleta li{margin-bottom:.4rem}
+.incompleta .motivo{color:var(--ink-soft);font-size:.89rem}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}
 @media (max-width:34rem){h1{font-size:1.7rem}main{padding-top:2rem}}
