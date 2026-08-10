@@ -5,262 +5,117 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Constructor de escenarios · Simulaciones</title>
 <style>
-  /* Paleta clara completa. Los bloques de tema de abajo solo redefinen tokens. */
   :root {
-    --ground:      #f7f7f5;
-    --surface:     #ffffff;
-    --surface-alt: #f1f2ef;
-    --ink:         #17191c;
-    --ink-soft:    #5b6168;
-    --ink-faint:   #878d94;
-    --rule:        #dfe0dc;
-    --rule-strong: #c9cbc5;
-    --accent:      #2d5f5d;
-    --accent-soft: #e4eeed;
-    --warn:        #8a6a1f;
-    --warn-soft:   #f8f1de;
-    --danger:      #8f3a2f;
-
-    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
-    --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --mono:  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --ground:#f7f7f5; --surface:#fff; --surface-alt:#f1f2ef; --ink:#17191c;
+    --ink-soft:#5b6168; --ink-faint:#878d94; --rule:#dfe0dc; --rule-strong:#c9cbc5;
+    --accent:#2d5f5d; --accent-ink:#fff; --warn:#8a6a1f; --warn-soft:#f8f1de; --danger:#8f3a2f;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --ground:      #131619;
-      --surface:     #1a1e22;
-      --surface-alt: #22272c;
-      --ink:         #e9ecee;
-      --ink-soft:    #9aa2aa;
-      --ink-faint:   #757d85;
-      --rule:        #2b3137;
-      --rule-strong: #3b434a;
-      --accent:      #6fb3ae;
-      --accent-soft: #1d2e2e;
-      --warn:        #d3a84e;
-      --warn-soft:   #2c2617;
-      --danger:      #d98070;
-    }
-  }
-  :root[data-theme="dark"] {
-    --ground:      #131619;
-    --surface:     #1a1e22;
-    --surface-alt: #22272c;
-    --ink:         #e9ecee;
-    --ink-soft:    #9aa2aa;
-    --ink-faint:   #757d85;
-    --rule:        #2b3137;
-    --rule-strong: #3b434a;
-    --accent:      #6fb3ae;
-    --accent-soft: #1d2e2e;
-    --warn:        #d3a84e;
-    --warn-soft:   #2c2617;
-    --danger:      #d98070;
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#131619; --surface:#1a1e22; --surface-alt:#22272c; --ink:#e9ecee;
+    --ink-soft:#9aa2aa; --ink-faint:#757d85; --rule:#2b3137; --rule-strong:#3b434a;
+    --accent:#6fb3ae; --accent-ink:#10201f; --warn:#d3a84e; --warn-soft:#2c2617; --danger:#d98070;
+  }}
+  :root[data-theme="dark"]{
+    --ground:#131619; --surface:#1a1e22; --surface-alt:#22272c; --ink:#e9ecee;
+    --ink-soft:#9aa2aa; --ink-faint:#757d85; --rule:#2b3137; --rule-strong:#3b434a;
+    --accent:#6fb3ae; --accent-ink:#10201f; --warn:#d3a84e; --warn-soft:#2c2617; --danger:#d98070;
   }
 
-  * { box-sizing: border-box; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+       font-size:15.5px;line-height:1.6;padding-bottom:7rem}
+  .envoltura{max-width:46rem;margin:0 auto;padding:0 1.25rem}
 
-  body {
-    margin: 0;
-    background: var(--ground);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 15.5px;
-    line-height: 1.6;
-    padding-bottom: 7rem;
-  }
+  header{border-bottom:1px solid var(--rule);background:var(--surface)}
+  .cabecera{padding:2.75rem 0 2.25rem}
+  .marca{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+         color:var(--accent);margin:0 0 .85rem}
+  h1{font-family:var(--serif);font-size:2.1rem;line-height:1.15;letter-spacing:-.01em;
+     font-weight:400;margin:0 0 .7rem;text-wrap:balance}
+  .bajada{color:var(--ink-soft);margin:0;max-width:34rem}
 
-  .envoltura { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem; }
+  section{padding:2.5rem 0;border-bottom:1px solid var(--rule)}
+  .titulo-seccion{display:flex;gap:.85rem;align-items:baseline;margin-bottom:.5rem}
+  .numero{font-family:var(--mono);font-size:.78rem;color:var(--accent);
+          border:1px solid var(--rule-strong);border-radius:3px;padding:.1rem .42rem;flex:none}
+  h2{font-family:var(--serif);font-size:1.32rem;font-weight:400;margin:0}
+  .ayuda{color:var(--ink-soft);font-size:.93rem;margin:0 0 1.5rem;max-width:36rem}
+  .ayuda:last-child{margin-bottom:0}
 
-  /* ---------- encabezado ---------- */
-  header { border-bottom: 1px solid var(--rule); background: var(--surface); }
-  .cabecera { padding: 2.75rem 0 2.25rem; }
-  .marca {
-    font-family: var(--mono);
-    font-size: .7rem;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 .85rem;
-  }
-  h1 {
-    font-family: var(--serif);
-    font-size: 2.1rem;
-    line-height: 1.15;
-    letter-spacing: -.01em;
-    font-weight: 400;
-    margin: 0 0 .7rem;
-    text-wrap: balance;
-  }
-  .bajada { color: var(--ink-soft); margin: 0; max-width: 34rem; }
+  .campo{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.15rem}
+  .campo:last-child{margin-bottom:0}
+  label{font-size:.8rem;font-weight:600;letter-spacing:.02em}
+  .pista{font-size:.84rem;color:var(--ink-faint);font-weight:400}
+  input,textarea,select{font-family:inherit;font-size:.95rem;color:var(--ink);
+    background:var(--surface);border:1px solid var(--rule-strong);border-radius:5px;
+    padding:.55rem .7rem;width:100%;line-height:1.5}
+  textarea{resize:vertical;min-height:5rem}
+  input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,
+  summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  input[type=number]{max-width:9rem;font-variant-numeric:tabular-nums}
+  input[type=checkbox]{width:auto;margin:0}
+  .fila-check{display:flex;gap:.6rem;align-items:flex-start;margin-bottom:1.15rem}
+  .fila-check label{font-weight:400;font-size:.93rem}
+  .par{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media (max-width:34rem){.par{grid-template-columns:1fr}}
 
-  /* ---------- secciones ---------- */
-  section { padding: 2.5rem 0; border-bottom: 1px solid var(--rule); }
-  .titulo-seccion { display: flex; gap: .85rem; align-items: baseline; margin-bottom: .5rem; }
-  .numero {
-    font-family: var(--mono);
-    font-size: .78rem;
-    color: var(--accent);
-    border: 1px solid var(--rule-strong);
-    border-radius: 3px;
-    padding: .1rem .42rem;
-    flex: none;
-  }
-  h2 {
-    font-family: var(--serif);
-    font-size: 1.32rem;
-    font-weight: 400;
-    letter-spacing: -.005em;
-    margin: 0;
-  }
-  .ayuda { color: var(--ink-soft); font-size: .93rem; margin: 0 0 1.5rem; max-width: 36rem; }
-  .ayuda:last-child { margin-bottom: 0; }
+  .ficha{background:var(--surface);border:1px solid var(--rule);border-radius:7px;
+         padding:1.15rem 1.25rem;margin-bottom:.85rem}
+  .ficha-cabeza{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:.9rem}
+  .ficha-rotulo{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;
+                text-transform:uppercase;color:var(--ink-faint)}
 
-  /* ---------- campos ---------- */
-  .campo { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.15rem; }
-  .campo:last-child { margin-bottom: 0; }
-  label {
-    font-size: .8rem;
-    font-weight: 600;
-    letter-spacing: .02em;
-  }
-  .pista { font-size: .84rem; color: var(--ink-faint); font-weight: 400; }
-  input, textarea, select {
-    font-family: inherit;
-    font-size: .95rem;
-    color: var(--ink);
-    background: var(--surface);
-    border: 1px solid var(--rule-strong);
-    border-radius: 5px;
-    padding: .55rem .7rem;
-    width: 100%;
-    line-height: 1.5;
-  }
-  textarea { resize: vertical; min-height: 5rem; }
-  input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
-  input[type="number"] { max-width: 8rem; font-variant-numeric: tabular-nums; }
+  button{font-family:inherit;font-size:.88rem;border-radius:5px;border:1px solid var(--rule-strong);
+         background:var(--surface);color:var(--ink);padding:.45rem .85rem;cursor:pointer}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .b-principal{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);
+               font-weight:600;padding:.6rem 1.15rem}
+  .b-principal:hover{opacity:.9;color:var(--accent-ink)}
+  .b-quitar{border:none;background:none;color:var(--ink-faint);padding:.2rem .4rem}
+  .b-quitar:hover{color:var(--danger)}
+  .b-sumar{border-style:dashed;width:100%;padding:.65rem;color:var(--ink-soft)}
+  .acciones-tope{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.5rem}
 
-  /* ---------- fichas ---------- */
-  .ficha {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: 7px;
-    padding: 1.15rem 1.25rem;
-    margin-bottom: .85rem;
-  }
-  .ficha-cabeza {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: .9rem;
-  }
-  .ficha-rotulo {
-    font-family: var(--mono);
-    font-size: .72rem;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--ink-faint);
-  }
+  details.avanzado{margin-top:1.5rem;border:1px solid var(--rule);border-radius:7px;
+                   background:var(--surface)}
+  details.avanzado>summary{cursor:pointer;padding:.8rem 1.1rem;font-size:.88rem;
+    font-weight:600;color:var(--ink-soft);list-style:none;display:flex;
+    justify-content:space-between;align-items:center;gap:1rem}
+  details.avanzado>summary::-webkit-details-marker{display:none}
+  details.avanzado>summary::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:1.1rem}
+  details.avanzado[open]>summary::after{content:"–"}
+  details.avanzado>summary:hover{color:var(--accent)}
+  .cuerpo-avanzado{padding:0 1.1rem 1.2rem;border-top:1px solid var(--rule)}
+  .cuerpo-avanzado>.ayuda{margin-top:1rem}
 
-  /* ---------- botones ---------- */
-  button {
-    font-family: inherit;
-    font-size: .88rem;
-    border-radius: 5px;
-    border: 1px solid var(--rule-strong);
-    background: var(--surface);
-    color: var(--ink);
-    padding: .45rem .85rem;
-    cursor: pointer;
-  }
-  button:hover { border-color: var(--accent); color: var(--accent); }
-  .b-principal {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--surface);
-    font-weight: 600;
-    padding: .6rem 1.15rem;
-  }
-  :root[data-theme="dark"] .b-principal,
-  .b-principal { color: #fff; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .b-principal { color: #10201f; }
-  }
-  :root[data-theme="dark"] .b-principal { color: #10201f; }
-  .b-principal:hover { opacity: .9; color: inherit; }
-  .b-quitar { border: none; background: none; color: var(--ink-faint); padding: .2rem .4rem; }
-  .b-quitar:hover { color: var(--danger); }
-  .b-sumar { border-style: dashed; width: 100%; padding: .65rem; color: var(--ink-soft); }
+  .turnos{background:var(--surface-alt);border:1px solid var(--rule);border-radius:7px;
+          padding:1.15rem 1.25rem;margin-top:1.5rem}
+  .turnos h3{font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+             margin:0 0 .9rem;font-family:var(--mono);font-weight:500}
+  .fila-turno{display:flex;gap:.75rem;align-items:baseline;padding:.3rem 0;
+              border-top:1px solid var(--rule);font-size:.89rem}
+  .fila-turno:first-of-type{border-top:none}
+  .quien{flex:1;min-width:0;overflow-wrap:anywhere}
+  .pasos{font-family:var(--mono);color:var(--ink-soft);font-variant-numeric:tabular-nums}
 
-  /* ---------- turnos ---------- */
-  .turnos {
-    background: var(--surface-alt);
-    border: 1px solid var(--rule);
-    border-radius: 7px;
-    padding: 1.15rem 1.25rem;
-    margin-top: 1.5rem;
-  }
-  .turnos h3 {
-    font-size: .74rem;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 .9rem;
-    font-family: var(--mono);
-    font-weight: 500;
-  }
-  .fila-turno {
-    display: flex;
-    gap: .75rem;
-    align-items: baseline;
-    padding: .3rem 0;
-    border-top: 1px solid var(--rule);
-    font-size: .89rem;
-  }
-  .fila-turno:first-of-type { border-top: none; }
-  .quien { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-  .pasos { font-family: var(--mono); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .aviso{border-left:3px solid var(--warn);background:var(--warn-soft);padding:.8rem 1rem;
+         border-radius:0 5px 5px 0;font-size:.9rem;margin-top:1rem}
+  .aviso strong{color:var(--warn)}
 
-  /* ---------- avisos ---------- */
-  .aviso {
-    border-left: 3px solid var(--warn);
-    background: var(--warn-soft);
-    padding: .8rem 1rem;
-    border-radius: 0 5px 5px 0;
-    font-size: .9rem;
-    margin-top: 1rem;
-  }
-  .aviso strong { color: var(--warn); }
+  .barra{position:fixed;bottom:0;left:0;right:0;background:var(--surface);
+         border-top:1px solid var(--rule-strong);padding:.9rem 0;z-index:10}
+  .barra-caja{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  .estado{flex:1;min-width:12rem;font-size:.88rem;color:var(--ink-soft)}
+  .estado.mal{color:var(--danger)}
 
-  /* ---------- barra final ---------- */
-  .barra {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--rule-strong);
-    padding: .9rem 0;
-    z-index: 10;
-  }
-  .barra-caja { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-  .estado { flex: 1; min-width: 12rem; font-size: .88rem; color: var(--ink-soft); }
-  .estado.mal { color: var(--danger); }
-
-  .acciones-tope { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.5rem; }
-
-  a { color: var(--accent); }
-  .pie { padding: 2.5rem 0; color: var(--ink-faint); font-size: .88rem; }
-
-  @media (max-width: 34rem) {
-    h1 { font-size: 1.75rem; }
-    .cabecera { padding: 2rem 0 1.75rem; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; animation: none !important; }
-  }
+  a{color:var(--accent)}
+  .pie{padding:2.5rem 0;color:var(--ink-faint);font-size:.88rem}
+  @media (max-width:34rem){h1{font-size:1.75rem}.cabecera{padding:2rem 0 1.75rem}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -270,8 +125,9 @@
     <p class="marca">Simulaciones de deliberación</p>
     <h1>Constructor de escenarios</h1>
     <p class="bajada">
-      Armá una mesa de trabajo: quiénes se sientan, qué defiende cada uno y
-      dónde hay que decidir. Al terminar bajás un archivo y lo enviás a correr.
+      Armá una mesa de trabajo: quiénes se sientan, qué defiende cada uno, qué
+      datos tienen sobre la mesa y dónde hay que decidir. Al terminar bajás un
+      archivo y lo enviás a correr.
     </p>
     <div class="acciones-tope">
       <button type="button" id="b-ejemplo">Cargar un ejemplo</button>
@@ -286,8 +142,7 @@
     <div class="titulo-seccion"><span class="numero">1</span><h2>El tema</h2></div>
     <p class="ayuda">
       Describí la situación que se discute: qué hay que resolver, con qué
-      restricciones y qué se espera de la mesa. Es lo que todos los
-      participantes saben al sentarse.
+      restricciones y qué se espera de la mesa.
     </p>
     <div class="campo">
       <label for="premisa">Situación a deliberar</label>
@@ -300,84 +155,244 @@
   </section>
 
   <section>
-    <div class="titulo-seccion"><span class="numero">2</span><h2>Quiénes participan</h2></div>
+    <div class="titulo-seccion"><span class="numero">2</span><h2>Los datos del caso</h2></div>
+    <p class="ayuda">
+      Cifras y hechos que todos conocen al sentarse: montos, plazos, qué dicen
+      los informes. Sin esto la mesa discute sin números. Escribí un dato por
+      línea.
+    </p>
+    <div class="campo">
+      <label for="datos">Datos compartidos</label>
+      <textarea id="datos" rows="7" placeholder="El presupuesto alcanza para financiar hasta seis proyectos de dieciocho meses.&#10;Solo pueden financiarse dos componentes de equipamiento.&#10;El informe indica que dos provincias concentran el sesenta y cinco por ciento de las capacidades."></textarea>
+    </div>
+    <div class="fila-check">
+      <input type="checkbox" id="antiadulacion" checked>
+      <label for="antiadulacion">
+        Sumar reglas contra el acuerdo fácil
+        <span class="pista">— pide que cada uno plantee un reparo antes de aceptar una propuesta. Sin esto suelen coincidir en la primera vuelta.</span>
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <div class="titulo-seccion"><span class="numero">3</span><h2>Quiénes participan</h2></div>
     <p class="ayuda">
       Cada participante defiende algo distinto. Cuanto más claro sea el
-      conflicto entre sus intereses, más interesante es la deliberación: si
-      todos quieren lo mismo, se ponen de acuerdo enseguida y no pasa nada.
+      conflicto entre sus intereses, más interesante es la deliberación.
     </p>
     <div id="lista-agentes"></div>
     <button type="button" class="b-sumar" id="b-sumar-agente">Sumar participante</button>
   </section>
 
   <section>
-    <div class="titulo-seccion"><span class="numero">3</span><h2>Cuánto dura</h2></div>
+    <div class="titulo-seccion"><span class="numero">4</span><h2>Cómo se da la palabra</h2></div>
     <p class="ayuda">
-      Habla uno por paso, siempre en el mismo orden. Para que alcancen a
-      responderse necesitás varias vueltas completas.
+      Con orden fijo habla uno por paso, siempre en la misma secuencia, y podés
+      calcular de antemano a quién le toca.
     </p>
-    <div class="campo">
-      <label for="pasos">Cantidad de pasos</label>
-      <input id="pasos" type="number" min="1" max="60" value="22">
+    <div class="par">
+      <div class="campo">
+        <label for="pasos">Cantidad de pasos</label>
+        <input id="pasos" type="number" min="1" max="200" value="22">
+      </div>
+      <div class="campo">
+        <label for="orden">Orden de la palabra</label>
+        <select id="orden"></select>
+      </div>
     </div>
+    <p class="ayuda" id="ayuda-orden"></p>
     <div class="turnos">
       <h3>Quién habla y cuándo</h3>
       <div id="detalle-turnos"></div>
     </div>
     <div id="aviso-vueltas"></div>
+    <div class="fila-check" style="margin-top:1.15rem">
+      <input type="checkbox" id="cierre-temprano">
+      <label for="cierre-temprano">
+        La mesa puede cerrar antes de agotar los pasos
+        <span class="pista">— si detecta que ya hay acuerdo. Dejalo sin marcar para que use todos los pasos.</span>
+      </label>
+    </div>
   </section>
 
   <section>
-    <div class="titulo-seccion"><span class="numero">4</span><h2>Qué se observa</h2></div>
+    <div class="titulo-seccion"><span class="numero">5</span><h2>Qué se observa</h2></div>
     <p class="ayuda">
-      Indicadores que se van moviendo con la discusión, de 0 a 100. Sirven para
-      ver el efecto de lo que se acuerda. Es opcional.
+      Indicadores que se mueven con la discusión. Podés medir grados de 0 a 100,
+      números con su propia escala, un resultado entre opciones cerradas, o algo
+      que simplemente pasa o no pasa.
     </p>
     <div id="lista-variables"></div>
     <button type="button" class="b-sumar" id="b-sumar-variable">Sumar indicador</button>
   </section>
 
   <section>
-    <div class="titulo-seccion"><span class="numero">5</span><h2>Dónde hay que decidir</h2></div>
+    <div class="titulo-seccion"><span class="numero">6</span><h2>Dónde hay que decidir</h2></div>
     <p class="ayuda">
-      Momentos en que la mesa tiene que resolver algo puntual, o en que aparece
-      una novedad que cambia el panorama. Elegí el paso mirando quién habla en
-      ese turno.
+      Momentos en que la mesa resuelve algo puntual o aparece una novedad.
+      Elegí el paso mirando quién habla en ese turno.
     </p>
     <div id="lista-decisiones"></div>
     <button type="button" class="b-sumar" id="b-sumar-decision">Sumar momento de decisión</button>
   </section>
 
   <section>
-    <div class="titulo-seccion"><span class="numero">6</span><h2>Qué modelo usa</h2></div>
+    <div class="titulo-seccion"><span class="numero">7</span><h2>Qué modelo usa</h2></div>
     <p class="ayuda">
       Conviene que la mesa use un modelo distinto al de los participantes: el
-      límite de uso se cuenta por modelo, así que repartir el trabajo entre dos
-      hace que la corrida vaya más rápido.
+      límite de uso se cuenta por modelo, así que repartir el trabajo hace que
+      la corrida vaya más rápido.
     </p>
-    <div class="campo">
-      <label for="modelo">Modelo de los participantes</label>
-      <select id="modelo">
-        <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite — el más rápido</option>
-        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-        <option value="gemini-3.5-flash">Gemini 3.5 Flash — más elaborado, más lento</option>
-      </select>
-    </div>
-    <div class="campo">
-      <label for="modelo-gm">Modelo de la mesa</label>
-      <select id="modelo-gm">
-        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-        <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
-        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-      </select>
+    <div class="par">
+      <div class="campo">
+        <label for="modelo">Modelo de los participantes</label>
+        <select id="modelo">
+          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite — el más rápido</option>
+          <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+          <option value="gemini-3.5-flash">Gemini 3.5 Flash — más elaborado, más lento</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="modelo-gm">Modelo de la mesa</label>
+        <select id="modelo-gm">
+          <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+          <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+        </select>
+      </div>
     </div>
     <div id="aviso-modelos"></div>
+
+    <details class="avanzado">
+      <summary>Ajustes del modelo</summary>
+      <div class="cuerpo-avanzado">
+        <p class="ayuda">
+          La temperatura controla cuánto se aparta de lo previsible: más baja da
+          respuestas más consistentes, más alta más variadas. Los participantes
+          usan un valor propio que el motor fija en cada acción, así que este
+          ajuste pesa sobre todo en la mesa.
+        </p>
+        <div class="par">
+          <div class="campo">
+            <label for="temp">Temperatura de los participantes <span class="pista">0 a 2</span></label>
+            <input id="temp" type="number" min="0" max="2" step="0.1" value="0.2">
+          </div>
+          <div class="campo">
+            <label for="temp-gm">Temperatura de la mesa</label>
+            <input id="temp-gm" type="number" min="0" max="2" step="0.1" value="0.1">
+          </div>
+        </div>
+        <div class="par">
+          <div class="campo">
+            <label for="tokens">Largo máximo de respuesta <span class="pista">en tokens</span></label>
+            <input id="tokens" type="number" min="256" max="65536" step="256" value="2000">
+          </div>
+          <div class="campo">
+            <label for="timeout">Espera máxima por respuesta <span class="pista">segundos</span></label>
+            <input id="timeout" type="number" min="30" max="900" step="10" value="300">
+          </div>
+        </div>
+        <div class="campo">
+          <label for="embedder">Modelo de memoria <span class="pista">cómo se indexan los recuerdos</span></label>
+          <input id="embedder" type="text" value="all-MiniLM-L6-v2">
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <div class="titulo-seccion"><span class="numero">8</span><h2>Opciones avanzadas</h2></div>
+    <p class="ayuda">
+      Nada de esto hace falta para una mesa que delibera. Está para escenarios
+      distintos: entrevistas, encuestas, juegos con pagos, mercados.
+    </p>
+
+    <details class="avanzado">
+      <summary>Tipo de mesa y motor</summary>
+      <div class="cuerpo-avanzado">
+        <div class="campo" style="margin-top:1rem">
+          <label for="gm-prefab">Tipo de mesa</label>
+          <select id="gm-prefab"></select>
+        </div>
+        <p class="ayuda" id="ayuda-gm-prefab"></p>
+        <div class="campo">
+          <label for="motor">Motor</label>
+          <select id="motor"></select>
+        </div>
+        <p class="ayuda" id="ayuda-motor"></p>
+        <div class="campo">
+          <label for="moderacion">Instrucciones para quien modera <span class="pista">opcional</span></label>
+          <textarea id="moderacion" rows="4" placeholder="Pedir propuestas concretas, registrar acuerdos y desacuerdos, no dar por acordado lo que nadie aceptó en voz alta."></textarea>
+        </div>
+        <div class="campo">
+          <label for="checkpoint">Guardar avance cada <span class="pista">pasos</span></label>
+          <input id="checkpoint" type="number" min="1" max="50" value="5">
+        </div>
+      </div>
+    </details>
+
+    <details class="avanzado">
+      <summary>Paso del tiempo</summary>
+      <div class="cuerpo-avanzado">
+        <p class="ayuda" style="margin-top:1rem">
+          Le da fecha y hora al relato. Sin esto, la simulación transcurre sin
+          marca temporal.
+        </p>
+        <div class="fila-check">
+          <input type="checkbox" id="usar-reloj">
+          <label for="usar-reloj">Llevar la cuenta del tiempo</label>
+        </div>
+        <div id="caja-reloj" hidden>
+          <div class="campo">
+            <label for="reloj-tipo">Cómo avanza</label>
+            <select id="reloj-tipo"></select>
+          </div>
+          <p class="ayuda" id="ayuda-reloj"></p>
+          <div class="par">
+            <div class="campo">
+              <label for="reloj-inicio">Empieza el</label>
+              <input id="reloj-inicio" type="text" placeholder="2026-08-05 09:00:00">
+            </div>
+            <div class="campo">
+              <label for="reloj-min">Minutos por paso</label>
+              <input id="reloj-min" type="number" min="1" max="10080" value="30">
+            </div>
+          </div>
+          <div class="campo">
+            <label for="reloj-desc">Cómo describir el tiempo <span class="pista">opcional</span></label>
+            <input id="reloj-desc" type="text" placeholder="Una jornada de trabajo">
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="avanzado">
+      <summary>Acciones disponibles</summary>
+      <div class="cuerpo-avanzado">
+        <p class="ayuda" style="margin-top:1rem">
+          Limita lo que pueden hacer: en vez de actuar libremente, eligen de una
+          lista. Útil para votaciones o juegos con jugadas definidas.
+        </p>
+        <div id="lista-acciones"></div>
+        <button type="button" class="b-sumar" id="b-sumar-accion">Sumar acción</button>
+      </div>
+    </details>
+
+    <details class="avanzado">
+      <summary>Componentes extra de la mesa</summary>
+      <div class="cuerpo-avanzado">
+        <p class="ayuda" style="margin-top:1rem">
+          Agregan reglas del mundo: que aparezcan hechos externos, que cada uno
+          se entere solo de lo que pasa donde está, y demás.
+        </p>
+        <div id="lista-contrib"></div>
+      </div>
+    </details>
   </section>
 
   <p class="pie">
-    Al enviar, la corrida arranca sola y tarda entre cuarenta minutos y una
-    hora. No hace falta esperar con la página abierta: llega un aviso con el
-    resultado cuando termina.
+    Al enviar, la corrida arranca sola. No hace falta esperar con la página
+    abierta: llega un aviso con el resultado cuando termina.
   </p>
 </main>
 
@@ -390,32 +405,162 @@
 </div>
 
 <script>
+/* Catálogos del motor. Se genera aparte para poder verificar contra el
+   esquema sin releer toda la página. */
+var PREFABS_AGENTE = [
+  ["basic__Entity",                "Estándar",              "Decide mirando la situación, su rol y su objetivo. Es el que conviene para casi todo."],
+  ["basic_with_plan__Entity",      "Con plan",              "Arma una estrategia y la sostiene entre turnos. Útil para quien conduce o negocia."],
+  ["conversational__Entity",       "Conversacional",        "Optimizado para diálogo; responde más corto y más al hilo."],
+  ["rational__Entity",             "Racional",              "Maximiza su beneficio esperado. Para escenarios de teoría de juegos."],
+  ["basic_scripted__Entity",       "Guionado",              "Sigue un texto fijo y se calla cuando se le acaba."],
+  ["context_aware_scripted__Entity","Guionado flexible",    "Sigue un guion pero lo adapta a lo que se dijo antes."],
+  ["minimal__Entity",              "Mínimo",                "Lo más liviano posible. Sirve para figurantes."],
+  ["puppet__Entity",               "Títere",                "Lo controla alguien desde afuera."],
+  ["basic_with_image__Entity",     "Con imágenes",          "Genera imágenes además de texto."],
+  ["fake_assistant_with_configurable_system_prompt__Entity", "Asistente", "Persona de asistente con instrucciones propias."]
+];
+
+var PREFABS_MESA = [
+  ["dialogic__GameMaster",                     "Conversación",        "Centrada en el diálogo. Es la que conviene para una mesa que delibera."],
+  ["generic__GameMaster",                      "General",             "Narrativa de propósito general, sirve para la mayoría de los casos."],
+  ["dialogic_and_dramaturgic__GameMaster",     "Conversación con escenas", "Diálogo organizado en escenas dramáticas."],
+  ["game_theoretic_and_dramaturgic__GameMaster","Juego con pagos",    "Matriz de pagos, puntajes y decisiones estratégicas."],
+  ["interviewer__GameMaster",                  "Entrevista guiada",   "Administra un cuestionario estructurado."],
+  ["open_ended_interviewer__GameMaster",       "Entrevista abierta",  "Preguntas libres, sin cuestionario fijo."],
+  ["marketplace__GameMaster",                  "Mercado",             "Compra, venta y tenencia de bienes."],
+  ["psychology_experiment__GameMaster",        "Experimento",         "Protocolo experimental para investigación."],
+  ["scripted__GameMaster",                     "Guionada",            "Sigue una secuencia narrativa predeterminada."],
+  ["situated__GameMaster",                     "Con lugar",           "Tiene en cuenta dónde ocurre cada cosa."],
+  ["situated_in_time_and_place__GameMaster",   "Con lugar y tiempo",  "Lugar más paso del tiempo."],
+  ["physically_situated_and_dramaturgic__GameMaster","Con entorno físico","Entorno físico y escenas dramáticas."],
+  ["async_social_media__GameMaster",           "Redes sociales",      "Foros y publicaciones asincrónicas."],
+  ["space_ship__GameMaster",                   "Nave espacial",       "Ubicaciones y estado de sistemas de una nave."],
+  ["formative_memories_initializer__GameMaster","Con biografías",     "Arma la historia previa de cada uno antes de empezar."]
+];
+
+var MOTORES = [
+  ["sequential",      "Por turnos",        "Habla uno por paso, en orden. Lo normal para una deliberación."],
+  ["simultaneous",    "Simultáneo",        "Todos actúan a la vez en cada paso."],
+  ["asynchronous",    "Asincrónico",       "Cada uno actúa cuando le toca, sin esperar a los demás."],
+  ["step_controller", "Paso a paso",       "Se frena en cada paso hasta que alguien lo destraba."],
+  ["interview",       "Entrevista",        "Formato de preguntas y respuestas."],
+  ["survey",          "Encuesta",          "Cada participante responde un cuestionario."]
+];
+
+var ORDENES = [
+  ["fixed",              "Fijo",           "Siempre en el mismo orden. Podés calcular quién habla en cada paso."],
+  ["random",             "Al azar",        "El orden cambia en cada vuelta."],
+  ["game_master_choice", "Lo elige la mesa","Quien modera decide a quién le da la palabra."]
+];
+
+var RELOJES = [
+  ["fixed_increment", "Avance fijo",     "Cada paso avanza siempre la misma cantidad de minutos."],
+  ["multi_interval",  "Avance variable", "Cada paso puede avanzar distinto, según reglas."],
+  ["generative",      "Lo decide el relato", "El tiempo avanza según lo que va pasando."]
+];
+
+var TIPOS_VAR = [
+  ["percentage",  "Porcentaje",  "De 0 a 100. Para medir grados: consenso, calidad, riesgo."],
+  ["numerical",   "Número",      "Cualquier número, con mínimo y máximo propios. Para montos o cantidades."],
+  ["categorical", "Opciones",    "Toma uno de varios valores cerrados. Para un resultado: aprobado, postergado."],
+  ["boolean",     "Sí o no",     "Solo verdadero o falso."]
+];
+
+var CONTRIB = [
+  ["death",                "Muerte",                 "Los participantes pueden morir durante el relato."],
+  ["gm_working_memory",    "Memoria de trabajo",     "La mesa recuerda mejor lo reciente."],
+  ["npc_event_generator",  "Eventos externos",       "Aparecen hechos del entorno que nadie decidió."],
+  ["location_based_filter","Filtro por lugar",       "Cada uno solo se entera de lo que pasa donde está."],
+  ["spaceship_system",     "Sistemas de nave",       "Estado y fallas de sistemas de una nave."]
+];
+
 (function () {
   "use strict";
 
-  var estado = { agentes: [], variables: [], decisiones: [] };
-  var idSiguiente = 1;
-
+  var estado = { agentes: [], variables: [], decisiones: [], acciones: [], contrib: [] };
+  var seq = 1;
   var $ = function (id) { return document.getElementById(id); };
 
-  function crearElemento(etiqueta, clase, texto) {
-    var el = document.createElement(etiqueta);
-    if (clase) el.className = clase;
-    if (texto != null) el.textContent = texto;
-    return el;
+  function el(t, c, txt) {
+    var e = document.createElement(t);
+    if (c) e.className = c;
+    if (txt != null) e.textContent = txt;
+    return e;
   }
 
-  /* Los agentes hablan por turno rotando en el orden de la lista: el paso s lo
-     habla el de índice (s-1) % cantidad. Mostrarlo es la única forma de que se
-     entienda por qué "5 pasos con 5 participantes" no alcanza para discutir. */
+  /* Rellena un <select> desde un catálogo [valor, rótulo, explicación] y
+     mantiene un párrafo de ayuda sincronizado con la opción elegida. */
+  function llenarSelect(sel, catalogo, cajaAyuda, alCambiar) {
+    catalogo.forEach(function (o) {
+      var op = document.createElement("option");
+      op.value = o[0];
+      op.textContent = o[1];
+      sel.appendChild(op);
+    });
+    function refrescar() {
+      if (cajaAyuda) {
+        var f = catalogo.filter(function (o) { return o[0] === sel.value; })[0];
+        cajaAyuda.textContent = f ? f[2] : "";
+      }
+      if (alCambiar) alCambiar();
+    }
+    sel.addEventListener("change", refrescar);
+    refrescar();
+  }
+
+  function campo(etiqueta, pista, nodo) {
+    var caja = el("div", "campo");
+    var lab = el("label", null, etiqueta);
+    if (pista) lab.appendChild(el("span", "pista", "  " + pista));
+    var id = "c" + (seq++);
+    nodo.id = id; lab.htmlFor = id;
+    caja.appendChild(lab); caja.appendChild(nodo);
+    return caja;
+  }
+
+  function entrada(tipo, valor, ph, alCambiar) {
+    var i = document.createElement("input");
+    i.type = tipo; i.value = valor == null ? "" : valor;
+    if (ph) i.placeholder = ph;
+    i.addEventListener("input", function () { alCambiar(i.value); });
+    return i;
+  }
+
+  function area(filas, valor, ph, alCambiar) {
+    var t = document.createElement("textarea");
+    t.rows = filas; t.value = valor || ""; if (ph) t.placeholder = ph;
+    t.addEventListener("input", function () { alCambiar(t.value); });
+    return t;
+  }
+
+  function selectDe(catalogo, valor, alCambiar) {
+    var s = document.createElement("select");
+    catalogo.forEach(function (o) {
+      var op = document.createElement("option");
+      op.value = o[0]; op.textContent = o[1];
+      s.appendChild(op);
+    });
+    s.value = valor || catalogo[0][0];
+    s.addEventListener("change", function () { alCambiar(s.value); });
+    return s;
+  }
+
+  function cabezaFicha(rotulo, alQuitar) {
+    var c = el("div", "ficha-cabeza");
+    c.appendChild(el("span", "ficha-rotulo", rotulo));
+    var b = el("button", "b-quitar", "Quitar");
+    b.type = "button";
+    b.addEventListener("click", alQuitar);
+    c.appendChild(b);
+    return c;
+  }
+
+  /* ---------- turnos ---------- */
   function pasosDe(indice) {
-    var total = estado.agentes.length;
-    var pasos = [];
+    var total = estado.agentes.length, pasos = [];
     var max = parseInt($("pasos").value, 10) || 0;
     if (!total) return pasos;
-    for (var s = 1; s <= max; s++) {
-      if ((s - 1) % total === indice) pasos.push(s);
-    }
+    for (var s = 1; s <= max; s++) if ((s - 1) % total === indice) pasos.push(s);
     return pasos;
   }
 
@@ -425,80 +570,121 @@
     return estado.agentes[(paso - 1) % total];
   }
 
-  function nombreDe(agente, indice) {
-    var n = (agente.nombre || "").trim();
-    return n || "Participante " + (indice + 1);
+  function nombreDe(a, i) {
+    return (a.nombre || "").trim() || "Participante " + (i + 1);
+  }
+
+  function dibujarTurnos() {
+    var cont = $("detalle-turnos");
+    cont.textContent = "";
+    var fijo = $("orden").value === "fixed";
+    var max = parseInt($("pasos").value, 10) || 0;
+
+    if (!estado.agentes.length) {
+      cont.appendChild(el("p", "ayuda", "Sumá participantes para ver el orden de la palabra."));
+      $("aviso-vueltas").textContent = "";
+      return;
+    }
+    if (!fijo) {
+      cont.appendChild(el("p", "ayuda",
+        "Con este orden no se puede saber de antemano quién habla en cada paso."));
+    } else {
+      estado.agentes.forEach(function (a, i) {
+        var f = el("div", "fila-turno");
+        f.appendChild(el("span", "quien", nombreDe(a, i)));
+        var p = pasosDe(i);
+        f.appendChild(el("span", "pasos", p.length ? "pasos " + p.join(", ") : "no llega a hablar"));
+        cont.appendChild(f);
+      });
+    }
+
+    var caja = $("aviso-vueltas");
+    caja.textContent = "";
+    var n = estado.agentes.length;
+    var vueltas = Math.floor(max / n);
+    if (vueltas === 0) {
+      caja.appendChild(aviso("No alcanza para todos. ",
+        "Con " + n + " participantes y " + max + " pasos, algunos no llegan a hablar. " +
+        "Necesitás al menos " + n + " pasos."));
+    } else if (vueltas === 1) {
+      caja.appendChild(aviso("Cada uno habla una sola vez. ",
+        "Nadie alcanza a responderle a nadie: van a ser " + n + " discursos sueltos, " +
+        "no una discusión. Para que haya ida y vuelta subí a " + (n * 4) + " pasos o más."));
+    } else if (vueltas === 2) {
+      caja.appendChild(aviso("Dos vueltas. ",
+        "Alcanza para una réplica, pero es justo para llegar a un acuerdo trabajado. " +
+        "Con " + (n * 4) + " pasos tenés cuatro vueltas."));
+    }
+  }
+
+  function aviso(fuerte, resto) {
+    var d = el("div", "aviso");
+    d.appendChild(el("strong", null, fuerte));
+    d.appendChild(document.createTextNode(resto));
+    return d;
   }
 
   /* ---------- participantes ---------- */
   function dibujarAgentes() {
     var cont = $("lista-agentes");
     cont.textContent = "";
-
     estado.agentes.forEach(function (ag, i) {
-      var ficha = crearElemento("div", "ficha");
+      var f = el("div", "ficha");
+      f.appendChild(cabezaFicha("Participante " + (i + 1), function () {
+        estado.agentes.splice(i, 1); dibujarAgentes(); dibujarTurnos(); dibujarDecisiones(); actualizar();
+      }));
 
-      var cabeza = crearElemento("div", "ficha-cabeza");
-      cabeza.appendChild(crearElemento("span", "ficha-rotulo", "Participante " + (i + 1)));
-      var quitar = crearElemento("button", "b-quitar", "Quitar");
-      quitar.type = "button";
-      quitar.addEventListener("click", function () {
-        estado.agentes.splice(i, 1);
-        dibujarAgentes(); actualizar();
+      f.appendChild(campo("Nombre y rol", null,
+        entrada("text", ag.nombre, "Laura Benítez — Dirección de Estudios", function (v) {
+          ag.nombre = v; dibujarTurnos(); dibujarDecisiones(); actualizar();
+        })));
+
+      f.appendChild(campo("Qué busca", "en una frase, desde su rol",
+        area(3, ag.objetivo, "Que la convocatoria se diseñe con evidencia sobre las capacidades de cada provincia.",
+          function (v) { ag.objetivo = v; actualizar(); })));
+
+      f.appendChild(campo("Qué sabe y qué le preocupa", "una idea por línea",
+        area(5, ag.memorias, "Desconfía de los rankings simples porque refuerzan desigualdades.\nQuiere que las razones de cada decisión queden documentadas.",
+          function (v) { ag.memorias = v; actualizar(); })));
+
+      var det = el("details", "avanzado");
+      var sum = el("summary", null, "Más opciones de este participante");
+      det.appendChild(sum);
+      var cuerpo = el("div", "cuerpo-avanzado");
+
+      var ayudaP = el("p", "ayuda");
+      var selP = selectDe(PREFABS_AGENTE, ag.prefab, function (v) {
+        ag.prefab = v;
+        var d = PREFABS_AGENTE.filter(function (o) { return o[0] === v; })[0];
+        ayudaP.textContent = d ? d[2] : "";
       });
-      cabeza.appendChild(quitar);
-      ficha.appendChild(cabeza);
+      var dIni = PREFABS_AGENTE.filter(function (o) { return o[0] === (ag.prefab || "basic__Entity"); })[0];
+      ayudaP.textContent = dIni ? dIni[2] : "";
+      cuerpo.appendChild(campo("Tipo de participante", null, selP));
+      cuerpo.appendChild(ayudaP);
 
-      ficha.appendChild(campoTexto("Nombre y rol", "Laura Benítez — Dirección de Estudios",
-        ag.nombre, function (v) { ag.nombre = v; actualizar(); dibujarTurnos(); dibujarDecisiones(); }));
+      cuerpo.appendChild(campo("Contexto propio", "solo lo sabe él; opcional",
+        area(3, ag.contexto, "Viene de una reunión donde le pidieron no ceder en este punto.",
+          function (v) { ag.contexto = v; })));
 
-      ficha.appendChild(campoArea("Qué busca", 3,
-        "Que la convocatoria se diseñe con evidencia sobre las capacidades de cada provincia.",
-        ag.objetivo, function (v) { ag.objetivo = v; actualizar(); },
-        "en una frase, desde su rol"));
+      var chk = el("div", "fila-check");
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!ag.azar;
+      cb.addEventListener("change", function () { ag.azar = cb.checked; });
+      var lab = el("label", null, "Mezclar el orden de sus opciones");
+      lab.appendChild(el("span", "pista", " — evita que siempre elija la primera de la lista."));
+      var idc = "c" + (seq++); cb.id = idc; lab.htmlFor = idc;
+      chk.appendChild(cb); chk.appendChild(lab);
+      cuerpo.appendChild(chk);
 
-      ficha.appendChild(campoArea("Qué sabe y qué le preocupa", 5,
-        "Una idea por línea.\nDesconfía de los rankings simples porque refuerzan desigualdades.\nQuiere que las razones de cada decisión queden documentadas.",
-        ag.memorias, function (v) { ag.memorias = v; actualizar(); },
-        "una idea por línea"));
-
-      cont.appendChild(ficha);
+      det.appendChild(cuerpo);
+      f.appendChild(det);
+      cont.appendChild(f);
     });
 
     if (!estado.agentes.length) {
-      var vacio = crearElemento("p", "ayuda", "Todavía no hay nadie en la mesa.");
-      cont.appendChild(vacio);
+      cont.appendChild(el("p", "ayuda", "Todavía no hay nadie en la mesa."));
     }
-  }
-
-  function campoTexto(etiqueta, placeholder, valor, alCambiar, pista) {
-    var caja = crearElemento("div", "campo");
-    var lab = crearElemento("label", null, etiqueta);
-    if (pista) lab.appendChild(crearElemento("span", "pista", "  " + pista));
-    var inp = document.createElement("input");
-    inp.type = "text";
-    inp.placeholder = placeholder;
-    inp.value = valor || "";
-    inp.addEventListener("input", function () { alCambiar(inp.value); });
-    var id = "c" + (idSiguiente++);
-    inp.id = id; lab.htmlFor = id;
-    caja.appendChild(lab); caja.appendChild(inp);
-    return caja;
-  }
-
-  function campoArea(etiqueta, filas, placeholder, valor, alCambiar, pista) {
-    var caja = crearElemento("div", "campo");
-    var lab = crearElemento("label", null, etiqueta);
-    if (pista) lab.appendChild(crearElemento("span", "pista", "  " + pista));
-    var ta = document.createElement("textarea");
-    ta.rows = filas;
-    ta.placeholder = placeholder;
-    ta.value = valor || "";
-    ta.addEventListener("input", function () { alCambiar(ta.value); });
-    var id = "c" + (idSiguiente++);
-    ta.id = id; lab.htmlFor = id;
-    caja.appendChild(lab); caja.appendChild(ta);
-    return caja;
   }
 
   /* ---------- indicadores ---------- */
@@ -506,37 +692,58 @@
     var cont = $("lista-variables");
     cont.textContent = "";
     estado.variables.forEach(function (v, i) {
-      var ficha = crearElemento("div", "ficha");
-      var cabeza = crearElemento("div", "ficha-cabeza");
-      cabeza.appendChild(crearElemento("span", "ficha-rotulo", "Indicador " + (i + 1)));
-      var quitar = crearElemento("button", "b-quitar", "Quitar");
-      quitar.type = "button";
-      quitar.addEventListener("click", function () {
-        estado.variables.splice(i, 1); dibujarVariables(); actualizar();
-      });
-      cabeza.appendChild(quitar);
-      ficha.appendChild(cabeza);
+      var f = el("div", "ficha");
+      f.appendChild(cabezaFicha("Indicador " + (i + 1), function () {
+        estado.variables.splice(i, 1); dibujarVariables();
+      }));
 
-      ficha.appendChild(campoTexto("Nombre", "Nivel de consenso", v.nombre,
-        function (x) { v.nombre = x; actualizar(); }));
-      ficha.appendChild(campoTexto("Qué mide", "Grado de acuerdo explícito entre los participantes.",
-        v.descripcion, function (x) { v.descripcion = x; actualizar(); }));
-      ficha.appendChild(campoTexto("Cuándo sube y cuándo baja",
-        "Sube solo ante aceptación explícita; una objeción sin resolver lo frena.",
-        v.regla, function (x) { v.regla = x; actualizar(); }));
+      f.appendChild(campo("Nombre", null,
+        entrada("text", v.nombre, "Nivel de consenso", function (x) { v.nombre = x; })));
+      f.appendChild(campo("Qué mide", null,
+        entrada("text", v.descripcion, "Grado de acuerdo explícito entre los participantes.",
+          function (x) { v.descripcion = x; })));
 
-      var caja = crearElemento("div", "campo");
-      var lab = crearElemento("label", null, "Valor inicial");
-      lab.appendChild(crearElemento("span", "pista", "  de 0 a 100"));
-      var inp = document.createElement("input");
-      inp.type = "number"; inp.min = 0; inp.max = 100;
-      inp.value = v.inicial != null ? v.inicial : 50;
-      inp.addEventListener("input", function () { v.inicial = inp.value; });
-      var id = "c" + (idSiguiente++); inp.id = id; lab.htmlFor = id;
-      caja.appendChild(lab); caja.appendChild(inp);
-      ficha.appendChild(caja);
+      var extra = el("div");
+      var ayudaT = el("p", "ayuda");
+      var selT = selectDe(TIPOS_VAR, v.tipo, function (x) { v.tipo = x; pintarExtra(); });
+      f.appendChild(campo("Tipo", null, selT));
+      f.appendChild(ayudaT);
+      f.appendChild(extra);
 
-      cont.appendChild(ficha);
+      function pintarExtra() {
+        var t = v.tipo || "percentage";
+        var d = TIPOS_VAR.filter(function (o) { return o[0] === t; })[0];
+        ayudaT.textContent = d ? d[2] : "";
+        extra.textContent = "";
+        if (t === "percentage") {
+          extra.appendChild(campo("Valor inicial", "0 a 100",
+            entrada("number", v.inicial == null ? 50 : v.inicial, null, function (x) { v.inicial = x; })));
+        } else if (t === "numerical") {
+          var par = el("div", "par");
+          par.appendChild(campo("Mínimo", null, entrada("number", v.min == null ? 0 : v.min, null, function (x) { v.min = x; })));
+          par.appendChild(campo("Máximo", null, entrada("number", v.max == null ? 100 : v.max, null, function (x) { v.max = x; })));
+          extra.appendChild(par);
+          extra.appendChild(campo("Valor inicial", null,
+            entrada("number", v.inicial == null ? 0 : v.inicial, null, function (x) { v.inicial = x; })));
+        } else if (t === "categorical") {
+          extra.appendChild(campo("Valores posibles", "uno por línea",
+            area(4, v.opciones, "pendiente\naprobado\nreformular\npostergar",
+              function (x) { v.opciones = x; })));
+          extra.appendChild(campo("Valor inicial", "tiene que ser uno de los de arriba",
+            entrada("text", v.inicial, "pendiente", function (x) { v.inicial = x; })));
+        } else {
+          extra.appendChild(campo("Empieza en", null,
+            selectDe([["false", "No"], ["true", "Sí"]], String(v.inicial) === "true" ? "true" : "false",
+              function (x) { v.inicial = x; })));
+        }
+      }
+      pintarExtra();
+
+      f.appendChild(campo("Cuándo cambia", null,
+        entrada("text", v.regla, "Sube solo ante aceptación explícita; una objeción sin resolver lo frena.",
+          function (x) { v.regla = x; })));
+
+      cont.appendChild(f);
     });
   }
 
@@ -545,132 +752,106 @@
     var cont = $("lista-decisiones");
     cont.textContent = "";
     estado.decisiones.forEach(function (d, i) {
-      var ficha = crearElemento("div", "ficha");
-      var cabeza = crearElemento("div", "ficha-cabeza");
-      cabeza.appendChild(crearElemento("span", "ficha-rotulo", "Momento " + (i + 1)));
-      var quitar = crearElemento("button", "b-quitar", "Quitar");
-      quitar.type = "button";
-      quitar.addEventListener("click", function () {
-        estado.decisiones.splice(i, 1); dibujarDecisiones(); actualizar();
-      });
-      cabeza.appendChild(quitar);
-      ficha.appendChild(cabeza);
+      var f = el("div", "ficha");
+      f.appendChild(cabezaFicha("Momento " + (i + 1), function () {
+        estado.decisiones.splice(i, 1); dibujarDecisiones();
+      }));
 
-      var caja = crearElemento("div", "campo");
-      var lab = crearElemento("label", null, "En qué paso");
-      var inp = document.createElement("input");
-      inp.type = "number"; inp.min = 1;
-      inp.value = d.paso || 1;
-      var quien = crearElemento("span", "pista");
-      function refrescarQuien() {
+      var quien = el("span", "pista");
+      var inp = entrada("number", d.paso || 1, null, function (x) { d.paso = x; refrescar(); });
+      function refrescar() {
+        if ($("orden").value !== "fixed") { quien.textContent = "  (el orden no es fijo)"; return; }
         var ag = quienHablaEn(parseInt(inp.value, 10));
-        var idx = estado.agentes.indexOf(ag);
-        quien.textContent = ag ? "  en ese turno habla " + nombreDe(ag, idx) : "";
+        quien.textContent = ag ? "  en ese turno habla " + nombreDe(ag, estado.agentes.indexOf(ag)) : "";
       }
-      inp.addEventListener("input", function () { d.paso = inp.value; refrescarQuien(); });
-      lab.appendChild(quien);
-      refrescarQuien();
-      var id = "c" + (idSiguiente++); inp.id = id; lab.htmlFor = id;
-      caja.appendChild(lab); caja.appendChild(inp);
-      ficha.appendChild(caja);
+      var c = campo("En qué paso", null, inp);
+      c.querySelector("label").appendChild(quien);
+      refrescar();
+      f.appendChild(c);
 
-      ficha.appendChild(campoArea("Qué pasa en ese momento", 4,
-        "El presupuesto se reduce un veinte por ciento. La mesa debe decidir cómo absorberlo: menos proyectos, montos más chicos, o exigir aportes de contraparte.",
-        d.texto, function (x) { d.texto = x; actualizar(); },
-        "contalo como si lo anunciara quien modera"));
+      f.appendChild(campo("Qué pasa en ese momento", "contalo como si lo anunciara quien modera",
+        area(4, d.texto, "El presupuesto se reduce un veinte por ciento. La mesa debe decidir cómo absorberlo.",
+          function (x) { d.texto = x; })));
 
-      cont.appendChild(ficha);
+      cont.appendChild(f);
     });
   }
 
-  /* ---------- turnos y avisos ---------- */
-  function dibujarTurnos() {
-    var cont = $("detalle-turnos");
+  /* ---------- acciones disponibles ---------- */
+  function dibujarAcciones() {
+    var cont = $("lista-acciones");
     cont.textContent = "";
-    var max = parseInt($("pasos").value, 10) || 0;
+    estado.acciones.forEach(function (a, i) {
+      var f = el("div", "ficha");
+      f.appendChild(cabezaFicha("Acción " + (i + 1), function () {
+        estado.acciones.splice(i, 1); dibujarAcciones();
+      }));
+      f.appendChild(campo("Nombre", null, entrada("text", a.nombre, "Votar a favor", function (x) { a.nombre = x; })));
+      f.appendChild(campo("Qué significa", null,
+        entrada("text", a.descripcion, "Apoya la propuesta tal como está redactada.", function (x) { a.descripcion = x; })));
+      f.appendChild(campo("Quiénes pueden usarla", "un nombre por línea; vacío = todos",
+        area(2, a.quienes, "", function (x) { a.quienes = x; })));
+      f.appendChild(campo("Cuándo está disponible", "opcional",
+        entrada("text", a.condicion, "Solo después de que se lea el dictamen.", function (x) { a.condicion = x; })));
+      cont.appendChild(f);
+    });
+  }
 
-    if (!estado.agentes.length) {
-      cont.appendChild(crearElemento("p", "ayuda", "Sumá participantes para ver el orden de la palabra."));
-      return;
-    }
-
-    estado.agentes.forEach(function (ag, i) {
-      var fila = crearElemento("div", "fila-turno");
-      fila.appendChild(crearElemento("span", "quien", nombreDe(ag, i)));
-      var pasos = pasosDe(i);
-      fila.appendChild(crearElemento("span", "pasos",
-        pasos.length ? "pasos " + pasos.join(", ") : "no llega a hablar"));
+  /* ---------- componentes extra ---------- */
+  function dibujarContrib() {
+    var cont = $("lista-contrib");
+    cont.textContent = "";
+    CONTRIB.forEach(function (c) {
+      var fila = el("div", "fila-check");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = estado.contrib.indexOf(c[0]) >= 0;
+      cb.addEventListener("change", function () {
+        var p = estado.contrib.indexOf(c[0]);
+        if (cb.checked && p < 0) estado.contrib.push(c[0]);
+        if (!cb.checked && p >= 0) estado.contrib.splice(p, 1);
+      });
+      var lab = el("label", null, c[1]);
+      lab.appendChild(el("span", "pista", " — " + c[2]));
+      var id = "c" + (seq++); cb.id = id; lab.htmlFor = id;
+      fila.appendChild(cb); fila.appendChild(lab);
       cont.appendChild(fila);
     });
-
-    var caja = $("aviso-vueltas");
-    caja.textContent = "";
-    var vueltas = estado.agentes.length ? Math.floor(max / estado.agentes.length) : 0;
-
-    if (vueltas === 0 && estado.agentes.length) {
-      caja.appendChild(avisoTexto("No alcanza para todos. ",
-        "Con " + estado.agentes.length + " participantes y " + max +
-        " pasos, algunos no llegan a hablar. Necesitás al menos " +
-        estado.agentes.length + " pasos."));
-    } else if (vueltas === 1) {
-      caja.appendChild(avisoTexto("Cada uno habla una sola vez. ",
-        "Nadie alcanza a responderle a nadie: van a ser " + estado.agentes.length +
-        " discursos sueltos, no una discusión. Para que haya ida y vuelta " +
-        "subí a " + (estado.agentes.length * 4) + " pasos o más."));
-    } else if (vueltas === 2) {
-      caja.appendChild(avisoTexto("Dos vueltas. ",
-        "Alcanza para una réplica, pero es justo para llegar a un acuerdo " +
-        "trabajado. Con " + (estado.agentes.length * 4) + " pasos tenés cuatro vueltas."));
-    }
-  }
-
-  function avisoTexto(fuerte, resto) {
-    var d = crearElemento("div", "aviso");
-    d.appendChild(crearElemento("strong", null, fuerte));
-    d.appendChild(document.createTextNode(resto));
-    return d;
-  }
-
-  function revisarModelos() {
-    var caja = $("aviso-modelos");
-    caja.textContent = "";
-    if ($("modelo").value === $("modelo-gm").value) {
-      caja.appendChild(avisoTexto("Mismo modelo en los dos lugares. ",
-        "Comparten el mismo límite de uso, así que la corrida va a ser " +
-        "bastante más lenta. Elegí uno distinto para la mesa."));
-    }
   }
 
   /* ---------- armado del archivo ---------- */
   function sinAcentos(s) {
-    // Escapes explícitos: el rango de diacríticos combinantes escrito con los
-    // caracteres literales se rompe sin aviso si el archivo se recodifica.
     return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
   function idDesde(nombre, i) {
     var base = sinAcentos((nombre || "").toLowerCase())
       .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-    return base || ("participante_" + (i + 1));
+    return base || ("elemento_" + (i + 1));
   }
 
-  function lineas(texto) {
-    return (texto || "").split("\n").map(function (l) { return l.trim(); })
+  function lineas(t) {
+    return (t || "").split("\n").map(function (l) { return l.trim(); })
       .filter(function (l) { return l.length > 0; });
+  }
+
+  function num(id, porDefecto) {
+    var v = parseFloat($(id).value);
+    return isNaN(v) ? porDefecto : v;
   }
 
   function construir() {
     var max = parseInt($("pasos").value, 10) || 1;
 
-    var agentes = estado.agentes.map(function (ag, i) {
+    var agentes = estado.agentes.map(function (a, i) {
       return {
-        id: idDesde(ag.nombre, i),
-        name: nombreDe(ag, i),
-        prefab: "basic__Entity",
-        goal: (ag.objetivo || "").trim(),
-        memories: lineas(ag.memorias),
+        id: idDesde(a.nombre, i),
+        name: nombreDe(a, i),
+        prefab: a.prefab || "basic__Entity",
+        goal: (a.objetivo || "").trim(),
+        memories: lineas(a.memorias),
         components: null,
-        randomize_choices: false,
+        randomize_choices: !!a.azar,
         available_actions: null,
         nested_simulation: null
       };
@@ -678,156 +859,219 @@
 
     var variables = estado.variables
       .filter(function (v) { return (v.nombre || "").trim(); })
-      .map(function (v) {
-        return {
-          name: idDesde(v.nombre, 0),
-          variable_type: "percentage",
+      .map(function (v, i) {
+        var t = v.tipo || "percentage";
+        var o = {
+          name: idDesde(v.nombre, i),
+          variable_type: t,
           description: (v.descripcion || "").trim(),
-          default_value: Math.max(0, Math.min(100, parseInt(v.inicial, 10) || 50)),
-          min_value: 0,
-          max_value: 100,
-          allowed_values: null,
-          update_rule: (v.regla || "").trim()
+          min_value: null, max_value: null, allowed_values: null,
+          update_rule: (v.regla || "").trim() || null
+        };
+        if (t === "percentage") {
+          o.min_value = 0; o.max_value = 100;
+          o.default_value = Math.max(0, Math.min(100, parseInt(v.inicial, 10) || 0));
+        } else if (t === "numerical") {
+          o.min_value = parseFloat(v.min); o.max_value = parseFloat(v.max);
+          if (isNaN(o.min_value)) o.min_value = null;
+          if (isNaN(o.max_value)) o.max_value = null;
+          o.default_value = parseFloat(v.inicial);
+          if (isNaN(o.default_value)) o.default_value = 0;
+        } else if (t === "categorical") {
+          o.allowed_values = lineas(v.opciones);
+          o.default_value = (v.inicial || "").trim() || (o.allowed_values[0] || "pendiente");
+        } else {
+          o.default_value = String(v.inicial) === "true";
+        }
+        return o;
+      });
+
+    /* El motor lee dp['event'] al armar la premisa. Generarlo acá evita el
+       error que antes aparecía recién a mitad de la corrida. */
+    var decisiones = estado.decisiones
+      .filter(function (d) { return (d.texto || "").trim(); })
+      .map(function (d) { return { step: parseInt(d.paso, 10) || 1, event: d.texto.trim() }; })
+      .sort(function (a, b) { return a.step - b.step; });
+
+    var datos = lineas($("datos").value);
+    if ($("antiadulacion").checked) {
+      datos = datos.concat([
+        "Adherir a una propuesta sin haber planteado antes una objeción o una condición no es una posición aceptable en esta mesa.",
+        "Quien modera debe repreguntar cuando alguien exprese acuerdo sin señalar ningún reparo desde su rol.",
+        "Un acuerdo alcanzado en la primera vuelta, sin objeciones registradas, debe tratarse como provisorio."
+      ]);
+    }
+
+    var contexto = {};
+    estado.agentes.forEach(function (a, i) {
+      if ((a.contexto || "").trim()) contexto[nombreDe(a, i)] = a.contexto.trim();
+    });
+
+    var acciones = estado.acciones
+      .filter(function (a) { return (a.nombre || "").trim(); })
+      .map(function (a) {
+        return {
+          name: a.nombre.trim(),
+          description: (a.descripcion || "").trim(),
+          available_to: lineas(a.quienes).length ? lineas(a.quienes) : null,
+          condition: (a.condicion || "").trim() || null
         };
       });
 
-    /* El motor lee la clave 'event' de cada momento de decisión. Armarla acá
-       evita el error que aparecía recién a mitad de la corrida cuando el
-       archivo se escribía a mano con otro nombre de campo. */
-    var decisiones = estado.decisiones
-      .filter(function (d) { return (d.texto || "").trim(); })
-      .map(function (d) {
-        return { step: parseInt(d.paso, 10) || 1, event: (d.texto || "").trim() };
-      })
-      .sort(function (a, b) { return a.step - b.step; });
+    var parametros = {};
+    if (($("moderacion").value || "").trim()) {
+      parametros.moderation_instructions = $("moderacion").value.trim();
+    }
 
-    var comunes = [
-      "Adherir a una propuesta sin haber planteado antes una objeción o una condición no es una posición aceptable en esta mesa.",
-      "Quien modera debe repreguntar cuando alguien exprese acuerdo sin señalar ningún reparo desde su rol.",
-      "Un acuerdo alcanzado en la primera vuelta, sin objeciones registradas, debe tratarse como provisorio."
-    ];
+    var config = {
+      premise: ($("premisa").value || "").trim(),
+      max_steps: max,
+      engine_type: $("motor").value,
+      agents: agentes,
+      game_master: {
+        prefab: $("gm-prefab").value,
+        name: ($("gm-nombre").value || "Mesa de trabajo").trim(),
+        acting_order: $("orden").value,
+        parameters: parametros,
+        grounded_variables: variables.length ? variables : null,
+        critical_decision_points: decisiones.length ? decisiones : null,
+        contrib_components: estado.contrib.length
+          ? estado.contrib.map(function (c) { return { component_id: c, params: {} }; })
+          : null,
+        allow_early_termination: $("cierre-temprano").checked
+      },
+      shared_memories: datos,
+      player_specific_context: Object.keys(contexto).length ? contexto : null,
+      player_specific_memories: null,
+      checkpoint_interval: parseInt($("checkpoint").value, 10) || 5,
+      available_actions: acciones.length ? acciones : null,
+      clock: null
+    };
+
+    if ($("usar-reloj").checked) {
+      config.clock = {
+        clock_type: $("reloj-tipo").value,
+        start_time: ($("reloj-inicio").value || "").trim() || null,
+        increment_minutes: parseInt($("reloj-min").value, 10) || 30,
+        variable_increment_rules: null,
+        clock_description: ($("reloj-desc").value || "").trim() || null
+      };
+    }
+
+    var comun = {
+      provider: "gemini",
+      embedder_model: ($("embedder").value || "all-MiniLM-L6-v2").trim(),
+      max_tokens: parseInt($("tokens").value, 10) || 2000,
+      request_timeout: parseInt($("timeout").value, 10) || 300
+    };
 
     return {
-      config: {
-        premise: ($("premisa").value || "").trim(),
-        max_steps: max,
-        engine_type: "sequential",
-        agents: agentes,
-        game_master: {
-          prefab: "dialogic__GameMaster",
-          name: ($("gm-nombre").value || "Mesa de trabajo").trim(),
-          acting_order: "fixed",
-          parameters: {},
-          grounded_variables: variables.length ? variables : null,
-          critical_decision_points: decisiones.length ? decisiones : null,
-          contrib_components: null,
-          allow_early_termination: false
-        },
-        shared_memories: comunes,
-        player_specific_context: null,
-        player_specific_memories: null,
-        checkpoint_interval: 5,
-        available_actions: null
-      },
-      llm_settings: {
-        provider: "gemini",
-        model_name: $("modelo").value,
-        embedder_model: "all-MiniLM-L6-v2",
-        temperature: 0.2,
-        max_tokens: 2000,
-        request_timeout: 300
-      },
-      gm_llm_settings: {
-        provider: "gemini",
-        model_name: $("modelo-gm").value,
-        embedder_model: "all-MiniLM-L6-v2",
-        temperature: 0.1,
-        max_tokens: 2000,
-        request_timeout: 300
-      }
+      config: config,
+      llm_settings: Object.assign({}, comun, {
+        model_name: $("modelo").value, temperature: num("temp", 0.2)
+      }),
+      gm_llm_settings: Object.assign({}, comun, {
+        model_name: $("modelo-gm").value, temperature: num("temp-gm", 0.1)
+      })
     };
   }
 
+  /* ---------- validación ---------- */
   function problemas() {
-    var faltan = [];
-    if (!($("premisa").value || "").trim()) faltan.push("describir el tema");
-    if (estado.agentes.length < 2) faltan.push("sumar al menos dos participantes");
-    var sinNombre = estado.agentes.filter(function (a) { return !(a.nombre || "").trim(); }).length;
-    if (sinNombre) faltan.push("ponerle nombre a " + (sinNombre === 1 ? "un participante" : sinNombre + " participantes"));
-    var sinObjetivo = estado.agentes.filter(function (a) { return !(a.objetivo || "").trim(); }).length;
-    if (sinObjetivo) faltan.push("decir qué busca " + (sinObjetivo === 1 ? "un participante" : sinObjetivo + " de ellos"));
-    return faltan;
+    var f = [];
+    if (!($("premisa").value || "").trim()) f.push("describir el tema");
+    if (estado.agentes.length < 2) f.push("sumar al menos dos participantes");
+    var sn = estado.agentes.filter(function (a) { return !(a.nombre || "").trim(); }).length;
+    if (sn) f.push("ponerle nombre a " + (sn === 1 ? "un participante" : sn + " participantes"));
+    var so = estado.agentes.filter(function (a) { return !(a.objetivo || "").trim(); }).length;
+    if (so) f.push("decir qué busca " + (so === 1 ? "un participante" : so + " de ellos"));
+    var mal = estado.variables.filter(function (v) {
+      return (v.tipo === "categorical") && (v.nombre || "").trim() && lineas(v.opciones).length < 2;
+    }).length;
+    if (mal) f.push("darle al menos dos valores posibles a " + (mal === 1 ? "un indicador" : mal + " indicadores"));
+    return f;
   }
 
   function actualizar() {
-    var faltan = problemas();
-    var caja = $("estado");
-    var listo = faltan.length === 0;
-
+    var f = problemas(), listo = f.length === 0, caja = $("estado");
     caja.className = "estado" + (listo ? "" : " mal");
-    if (listo) {
-      var n = estado.agentes.length;
-      caja.textContent = "Listo: " + n + " participantes, " +
-        (parseInt($("pasos").value, 10) || 0) + " pasos.";
-    } else {
-      caja.textContent = "Falta " + faltan.join("; ") + ".";
-    }
+    caja.textContent = listo
+      ? "Listo: " + estado.agentes.length + " participantes, " + (parseInt($("pasos").value, 10) || 0) + " pasos."
+      : "Falta " + f.join("; ") + ".";
     $("b-bajar").disabled = !listo;
     $("b-copiar").disabled = !listo;
     revisarModelos();
   }
 
-  /* ---------- acciones ---------- */
+  function revisarModelos() {
+    var c = $("aviso-modelos");
+    c.textContent = "";
+    if ($("modelo").value === $("modelo-gm").value) {
+      c.appendChild(aviso("Mismo modelo en los dos lugares. ",
+        "Comparten el mismo límite de uso, así que la corrida va a ser bastante " +
+        "más lenta. Elegí uno distinto para la mesa."));
+    }
+  }
+
+  /* ---------- descarga ---------- */
   function nombreArchivo() {
-    var base = sinAcentos(($("gm-nombre").value || "escenario").toLowerCase())
+    var b = sinAcentos(($("gm-nombre").value || "escenario").toLowerCase())
       .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-    return (base || "escenario") + ".json";
+    return (b || "escenario") + ".json";
   }
 
   $("b-bajar").addEventListener("click", function () {
-    var texto = JSON.stringify(construir(), null, 2);
-    var blob = new Blob([texto], { type: "application/json" });
+    var blob = new Blob([JSON.stringify(construir(), null, 2)], { type: "application/json" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
-    a.href = url;
-    a.download = nombreArchivo();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = nombreArchivo();
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   });
 
   $("b-copiar").addEventListener("click", function () {
-    var texto = JSON.stringify(construir(), null, 2);
-    var b = $("b-copiar");
+    var texto = JSON.stringify(construir(), null, 2), b = $("b-copiar");
     function ok() { b.textContent = "Copiado"; setTimeout(function () { b.textContent = "Copiar"; }, 1800); }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(texto).then(ok, respaldo);
-    } else { respaldo(); }
     function respaldo() {
       var ta = document.createElement("textarea");
-      ta.value = texto;
-      ta.style.position = "fixed"; ta.style.opacity = "0";
+      ta.value = texto; ta.style.position = "fixed"; ta.style.opacity = "0";
       document.body.appendChild(ta); ta.select();
       try { document.execCommand("copy"); ok(); } catch (e) { b.textContent = "No pude copiar"; }
       document.body.removeChild(ta);
     }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(ok, respaldo);
+    } else respaldo();
+  });
+
+  /* ---------- cableado ---------- */
+  llenarSelect($("orden"), ORDENES, $("ayuda-orden"), function () {
+    dibujarTurnos(); dibujarDecisiones();
+  });
+  llenarSelect($("motor"), MOTORES, $("ayuda-motor"));
+  llenarSelect($("gm-prefab"), PREFABS_MESA, $("ayuda-gm-prefab"));
+  llenarSelect($("reloj-tipo"), RELOJES, $("ayuda-reloj"));
+
+  $("usar-reloj").addEventListener("change", function () {
+    $("caja-reloj").hidden = !$("usar-reloj").checked;
   });
 
   $("b-sumar-agente").addEventListener("click", function () {
-    estado.agentes.push({ nombre: "", objetivo: "", memorias: "" });
+    estado.agentes.push({ nombre: "", objetivo: "", memorias: "", prefab: "basic__Entity", contexto: "", azar: false });
     dibujarAgentes(); dibujarTurnos(); actualizar();
   });
   $("b-sumar-variable").addEventListener("click", function () {
-    estado.variables.push({ nombre: "", descripcion: "", regla: "", inicial: 50 });
+    estado.variables.push({ nombre: "", descripcion: "", regla: "", tipo: "percentage", inicial: 50 });
     dibujarVariables();
   });
   $("b-sumar-decision").addEventListener("click", function () {
-    estado.decisiones.push({ paso: 1, texto: "" });
-    dibujarDecisiones();
+    estado.decisiones.push({ paso: 1, texto: "" }); dibujarDecisiones();
+  });
+  $("b-sumar-accion").addEventListener("click", function () {
+    estado.acciones.push({ nombre: "", descripcion: "", quienes: "", condicion: "" }); dibujarAcciones();
   });
 
-  ["premisa", "gm-nombre"].forEach(function (id) {
+  ["premisa", "gm-nombre", "datos"].forEach(function (id) {
     $(id).addEventListener("input", actualizar);
   });
   $("pasos").addEventListener("input", function () { dibujarTurnos(); dibujarDecisiones(); actualizar(); });
@@ -835,12 +1079,28 @@
   $("modelo-gm").addEventListener("change", revisarModelos);
 
   $("b-limpiar").addEventListener("click", function () {
-    estado = { agentes: [], variables: [], decisiones: [] };
-    $("premisa").value = ""; $("gm-nombre").value = ""; $("pasos").value = 22;
+    estado = { agentes: [], variables: [], decisiones: [], acciones: [], contrib: [] };
+    ["premisa", "gm-nombre", "datos", "moderacion", "reloj-desc"].forEach(function (i) { $(i).value = ""; });
+    $("pasos").value = 22;
+    $("usar-reloj").checked = false;
+    $("caja-reloj").hidden = true;
+    $("cierre-temprano").checked = false;
     dibujarTodo();
   });
 
-  $("b-ejemplo").addEventListener("click", function () {
+  $("b-ejemplo").addEventListener("click", cargarEjemplo);
+
+  function dibujarTodo() {
+    dibujarAgentes(); dibujarVariables(); dibujarDecisiones();
+    dibujarAcciones(); dibujarContrib(); dibujarTurnos(); actualizar();
+  }
+
+  /* Ejemplo completo. Los momentos de decisión caen en turnos elegidos a
+     propósito: con cinco participantes y orden fijo, quien conduce (la segunda
+     de la lista) habla en los pasos 2, 7, 12, 17 y 22. Por eso el recorte va
+     en el 17 y el cierre en el 22 — así propone, los demás objetan entre medio,
+     y recién después cierra. */
+  function cargarEjemplo() {
     $("premisa").value =
       "La Secretaría de Innovación debe diseñar una convocatoria regional para " +
       "financiar proyectos sobre estrés hídrico y adaptación productiva. El " +
@@ -851,47 +1111,76 @@
       "definir cómo se reparten los recursos y aprobar, reformular o postergar " +
       "la convocatoria.";
     $("gm-nombre").value = "Mesa Interinstitucional de Diseño";
-    $("pasos").value = 20;
-    estado.agentes = [
-      { nombre: "Laura Benítez — Dirección de Estudios",
-        objetivo: "Que la convocatoria se diseñe con evidencia sobre capacidades y brechas, sin convertir los datos en un ranking automático.",
-        memorias: "Produce los indicadores con los que se evalúan las políticas de ciencia y tecnología.\nSabe que las capacidades consolidadas están concentradas en pocas provincias.\nDesconfía de los rankings simples porque refuerzan concentraciones históricas.\nQuiere que las razones de cada inclusión o exclusión queden documentadas." },
-      { nombre: "Mariana Roldán — Secretaría",
-        objetivo: "Aprobar un diseño defendible en público, ejecutable con recursos limitados y con resultados visibles en seis meses.",
-        memorias: "Tiene la responsabilidad final de aprobar, reformular o postergar.\nDebe justificar públicamente el uso de recursos escasos.\nTeme que los cupos rígidos por provincia bajen la calidad promedio.\nTambién teme que una competencia abierta concentre todo en los de siempre." },
-      { nombre: "Martín Salvatierra — Comité de Evaluación",
-        objetivo: "Asegurar que lo que se financie tenga calidad científica, método consistente y capacidad real de ejecución.",
-        memorias: "Considera que federalizar no puede justificar proyectos débiles.\nCuestiona los consorcios armados solo para cumplir un requisito formal.\nExige cronogramas realistas y responsabilidades definidas.\nPrefiere financiar pocos proyectos sólidos antes que repartir montos insuficientes." },
-      { nombre: "Verónica Cruz — Consejo Federal",
-        objetivo: "Conseguir que todas las provincias tengan oportunidades reales de liderazgo y no solo de ejecución.",
-        memorias: "Representa a las provincias con menos capacidades consolidadas.\nRechaza que las incorporen únicamente como lugar donde se ejecuta el trabajo.\nAcepta estándares mínimos, pero pide acompañamiento para formular proyectos.\nPrefiere un fondo mixto antes que cupos completamente rígidos." },
-      { nombre: "Sergio Ledesma — Cámara de Productores",
-        objetivo: "Que se financien soluciones aplicables y accesibles, probadas en condiciones productivas reales.",
-        memorias: "Participó en proyectos que dieron buenos diagnósticos y pocas soluciones usables.\nExige que los usuarios participen desde la formulación y no al final.\nDesconfía de tecnologías caras o difíciles de mantener.\nConsidera que exigir aportes de contraparte deja afuera a los productores chicos." }
-    ];
-    estado.variables = [
-      { nombre: "Calidad científica", descripcion: "Solidez metodológica esperada del diseño.",
-        regla: "Sube con estándares claros y evaluación rigurosa; baja si las reglas dejan pasar propuestas débiles.", inicial: 50 },
-      { nombre: "Federalización efectiva", descripcion: "Capacidad del diseño para repartir oportunidades y liderazgo.",
-        regla: "Sube con reservas territoriales y apoyo a capacidades emergentes; baja con concentración.", inicial: 40 },
-      { nombre: "Nivel de consenso", descripcion: "Grado de acuerdo explícito entre los participantes.",
-        regla: "Sube solo ante aceptación explícita; una objeción sin resolver impide considerar que haya consenso.", inicial: 25 }
-    ];
-    estado.decisiones = [
-      { paso: 5, texto: "La mesa debe definir cómo se reparten los recursos: competencia abierta, un proyecto por provincia, o un fondo mixto con reserva territorial. Hay que registrar quién apoya y quién objeta cada opción." },
-      { paso: 15, texto: "El presupuesto disponible se reduce un veinte por ciento. Quien conduce debe formular una propuesta explícita de cómo absorber el recorte y decir si aprueba, reformula o posterga." },
-      { paso: 20, texto: "Tras escuchar las objeciones, quien conduce debe formular la decisión final y aclarar qué objeciones aceptó, cuáles rechazó y por qué." }
-    ];
-    dibujarTodo();
-  });
+    $("datos").value = [
+      "El presupuesto inicial permite financiar hasta seis proyectos durante dieciocho meses.",
+      "Los proyectos deben mostrar resultados verificables dentro de los primeros seis meses.",
+      "Solo pueden financiarse dos componentes importantes de infraestructura o equipamiento.",
+      "El informe de capacidades indica que dos provincias concentran el sesenta y cinco por ciento de las capacidades consolidadas.",
+      "Las provincias con menor concentración tienen demandas relevantes pero equipos fragmentados.",
+      "Los datos del informe orientan la decisión, pero deben ser verificados por las instituciones.",
+      "Ninguna decisión se considera acordada hasta que quien conduce la formule y los demás puedan objetarla."
+    ].join("\n");
+    $("pasos").value = 22;
+    $("orden").value = "fixed";
+    $("moderacion").value =
+      "Pedir propuestas concretas, registrar acuerdos y desacuerdos, y no dar " +
+      "por acordado nada que no haya sido aceptado explícitamente.";
 
-  function dibujarTodo() {
-    dibujarAgentes(); dibujarVariables(); dibujarDecisiones();
-    dibujarTurnos(); actualizar();
+    estado.agentes = [
+      { nombre: "Laura Benítez — Dirección de Estudios", prefab: "basic__Entity",
+        objetivo: "Que la convocatoria se diseñe con evidencia sobre capacidades y brechas, sin convertir los datos en un ranking automático.",
+        memorias: "Produce los indicadores con los que se evalúan las políticas de ciencia y tecnología.\nSabe que las capacidades consolidadas están concentradas en pocas provincias.\nDesconfía de los rankings simples porque refuerzan concentraciones históricas.\nQuiere que las razones de cada inclusión o exclusión queden documentadas.",
+        contexto: "", azar: false },
+      { nombre: "Mariana Roldán — Secretaría", prefab: "basic_with_plan__Entity",
+        objetivo: "Aprobar un diseño defendible en público, ejecutable con recursos limitados y con resultados visibles en seis meses.",
+        memorias: "Tiene la responsabilidad final de aprobar, reformular o postergar.\nDebe justificar públicamente el uso de recursos escasos.\nTeme que los cupos rígidos por provincia bajen la calidad promedio.\nTambién teme que una competencia abierta concentre todo en los de siempre.",
+        contexto: "Le pidieron que la convocatoria salga este trimestre, sin excepciones.", azar: false },
+      { nombre: "Martín Salvatierra — Comité de Evaluación", prefab: "basic__Entity",
+        objetivo: "Asegurar que lo que se financie tenga calidad científica, método consistente y capacidad real de ejecución.",
+        memorias: "Considera que federalizar no puede justificar proyectos débiles.\nCuestiona los consorcios armados solo para cumplir un requisito formal.\nExige cronogramas realistas y responsabilidades definidas.\nPrefiere financiar pocos proyectos sólidos antes que repartir montos insuficientes.",
+        contexto: "", azar: false },
+      { nombre: "Verónica Cruz — Consejo Federal", prefab: "basic__Entity",
+        objetivo: "Conseguir que todas las provincias tengan oportunidades reales de liderazgo y no solo de ejecución.",
+        memorias: "Representa a las provincias con menos capacidades consolidadas.\nRechaza que las incorporen únicamente como lugar donde se ejecuta el trabajo.\nAcepta estándares mínimos, pero pide acompañamiento para formular proyectos.\nPrefiere un fondo mixto antes que cupos completamente rígidos.",
+        contexto: "", azar: false },
+      { nombre: "Sergio Ledesma — Cámara de Productores", prefab: "basic__Entity",
+        objetivo: "Que se financien soluciones aplicables y accesibles, probadas en condiciones productivas reales.",
+        memorias: "Participó en proyectos que dieron buenos diagnósticos y pocas soluciones usables.\nExige que los usuarios participen desde la formulación y no al final.\nDesconfía de tecnologías caras o difíciles de mantener.\nConsidera que exigir aportes de contraparte deja afuera a los productores chicos.",
+        contexto: "", azar: false }
+    ];
+
+    estado.variables = [
+      { nombre: "Calidad científica", tipo: "percentage", inicial: 50,
+        descripcion: "Solidez metodológica esperada del diseño.",
+        regla: "Sube con estándares claros y evaluación rigurosa; baja si las reglas dejan pasar propuestas débiles." },
+      { nombre: "Federalización efectiva", tipo: "percentage", inicial: 40,
+        descripcion: "Capacidad del diseño para repartir oportunidades y liderazgo.",
+        regla: "Sube con reservas territoriales y apoyo a capacidades emergentes; baja con concentración." },
+      { nombre: "Nivel de consenso", tipo: "percentage", inicial: 25,
+        descripcion: "Grado de acuerdo explícito entre los participantes.",
+        regla: "Sube solo ante aceptación explícita; una objeción sin resolver impide considerar que haya consenso." },
+      { nombre: "Diseño final", tipo: "categorical", inicial: "pendiente",
+        opciones: "pendiente\ncompetencia_abierta\nun_proyecto_por_provincia\nfondo_mixto\nredes_interprovinciales\nreformular\npostergar",
+        descripcion: "Modelo de convocatoria que finalmente se acuerda.",
+        regla: "Solo se fija cuando quien conduce formula la decisión final." }
+    ];
+
+    estado.decisiones = [
+      { paso: 5, texto: "La mesa debe definir cómo se reparten los recursos: competencia abierta, un proyecto por provincia, fondo mixto con reserva territorial, o redes interprovinciales obligatorias. Hay que registrar quién apoya y quién objeta cada opción." },
+      { paso: 10, texto: "La mesa debe definir cuántos proyectos financia y con qué escala. Quien representa al comité de evaluación debe decir si la opción elegida permite calidad suficiente, y quien representa a los productores si permite adopción real." },
+      { paso: 17, texto: "El presupuesto total se reduce un veinte por ciento, con efecto sobre todo lo acordado hasta acá. Quien conduce debe formular en este turno una propuesta explícita de decisión y decir cómo absorbe el recorte." },
+      { paso: 22, texto: "Tras escuchar las objeciones de los turnos anteriores, quien conduce debe formular la decisión final y definitiva, y declarar qué objeciones aceptó, cuáles rechazó y por qué." }
+    ];
+
+    estado.acciones = [];
+    estado.contrib = [];
+    dibujarTodo();
   }
 
+  globalThis.__api = { construir: construir, estado: estado, pasosDe: pasosDe, dibujarTodo: dibujarTodo };
   dibujarTodo();
 })();
+
 </script>
 </body>
 </html>
