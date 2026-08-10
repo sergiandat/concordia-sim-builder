@@ -111,10 +111,22 @@ def leer_mesa(bloque: dict) -> dict:
     pedido = re.sub(r"\s*(For example|Por ejemplo)[,:].*$", "", pedido, flags=re.S).strip()
     pedido = re.sub(r"\s+", " ", pedido)
 
+    # A cada participante le escribe una observación distinta, redactada desde
+    # su punto de vista. Es la parte del ciclo donde el narrador sí interviene.
+    observaciones = {}
+    mo = bloque.get("make_observation")
+    if isinstance(mo, dict):
+        for quien, comp in mo.items():
+            if isinstance(comp, dict):
+                t = decision_de(comp)
+                if t:
+                    observaciones[quien] = t
+
     return {
         "termina": decision_de(bloque.get("terminate")),
         "siguiente": decision_de(bloque.get("next_acting")),
         "consigna": pedido[:400],
+        "observaciones": observaciones,
     }
 
 
@@ -696,6 +708,73 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str) -> dict:
     }
 
 
+ETAPAS = [
+    ("Elige", "el narrador decide a quién le toca hablar"),
+    ("Pregunta", "le hace una consigna, distinta según el momento"),
+    ("Responde", "el participante dice o hace algo"),
+    ("Registra", "el narrador lo convierte en un hecho ocurrido"),
+    ("Reparte", "le cuenta a cada uno lo que pasó, desde su lugar"),
+]
+
+
+def parecido(a: str, b: str) -> float:
+    """Cuánto se parecen dos textos, ignorando espacios."""
+    import difflib
+    na = re.sub(r"\s+", " ", a or "").strip()
+    nb = re.sub(r"\s+", " ", b or "").strip()
+    if not na or not nb:
+        return 0.0
+    return difflib.SequenceMatcher(None, na, nb).ratio()
+
+
+def ciclo(pasos) -> str:
+    """
+    El orden de un turno no se deduce leyendo la transcripción, y sin él no se
+    entiende quién puede introducir un hecho en el mundo. Se dibuja el ciclo y
+    se mide, sobre esta corrida, cuánto interviene realmente el narrador.
+    """
+    p = ['<div class="ciclo">']
+    for i, (titulo, detalle) in enumerate(ETAPAS):
+        p.append('<div class="etapa">')
+        p.append(f'<span class="etapa-n">{i + 1}</span>')
+        p.append(f'<p class="etapa-t">{titulo}</p>')
+        p.append(f'<p class="etapa-d">{detalle}</p>')
+        p.append("</div>")
+        if i < len(ETAPAS) - 1:
+            p.append('<div class="flecha" aria-hidden="true">→</div>')
+    p.append("</div>")
+
+    # Paso 4: ¿el narrador transforma lo dicho, o lo copia tal cual?
+    comparables = [x for x in pasos if x["dicho"] and x["evento"]]
+    if comparables:
+        calcados = sum(1 for x in comparables if parecido(x["dicho"], x["evento"]) > 0.95)
+        if calcados == len(comparables):
+            p.append('<div class="nota-ciclo aviso-ciclo">'
+                     f'<strong>En los {len(comparables)} turnos, el hecho registrado quedó '
+                     'idéntico a lo que dijo el participante.</strong> El narrador no filtró '
+                     'ni reformuló nada en el paso 4: lo que alguien escribe pasa a ser un '
+                     'hecho del mundo tal cual. Por eso pueden aparecer sucesos que nadie '
+                     'configuró —una falla, una carta, un informe— y quedan como ocurridos.'
+                     "</div>")
+        elif calcados:
+            p.append(f'<div class="nota-ciclo">El narrador dejó el texto tal cual en '
+                     f'{calcados} de {len(comparables)} turnos y lo reformuló en el resto.</div>')
+
+    # Paso 5: ¿le escribe algo distinto a cada uno?
+    con_obs = [x for x in pasos if (x.get("mesa") or {}).get("observaciones")]
+    if con_obs:
+        textos = list(con_obs[0]["mesa"]["observaciones"].values())
+        distintas = len(textos) > 1 and any(
+            parecido(textos[0], t) < 0.95 for t in textos[1:])
+        p.append('<div class="nota-ciclo">'
+                 + (f'A cada participante le escribió una observación distinta, redactada '
+                    'desde su punto de vista: no todos se enteran de lo mismo de la misma '
+                    'manera.' if distintas
+                    else "A todos les mandó la misma observación.")
+                 + "</div>")
+    return "".join(p)
+
+
 def marca(clase: str) -> str:
     """
     Distingue de dónde sale cada cosa. Un número medido y uno que el modelo
@@ -755,7 +834,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
 
     partes.append('<nav class="navega"><a href="#resultado">Resultado</a>'
                   '<a href="#acuerdos">Acuerdos</a><a href="#evolucion">Evolución</a><a href="#participantes">Participantes</a>'
-                  '<a href="#deliberacion">Deliberación</a><a href="#tecnica">Ficha técnica</a></nav>')
+                  '<a href="#ciclo">Cómo funciona</a><a href="#deliberacion">Deliberación</a><a href="#tecnica">Ficha técnica</a></nav>')
     partes.append("</div></header>")
 
     partes.append('<main class="ancho">')
@@ -902,9 +981,17 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
     partes.append("</section>")
 
     # --------------------------------------------------- 8. la deliberación
+    partes.append('<section id="ciclo"><h2>Cómo transcurre un turno</h2>')
+    partes.append('<p class="ayuda-sec">La discusión no es una charla libre: cada turno sigue '
+                  'siempre la misma secuencia, y quién puede introducir un hecho en el mundo '
+                  'depende de ella.</p>')
+    partes.append(ciclo(pasos))
+    partes.append("</section>")
+
     partes.append('<section id="deliberacion"><h2>La deliberación</h2>')
-    partes.append('<p class="ayuda-sec">Cada turno se abre para ver lo que se dijo completo. '
-                  "Lo que aparece es textual: no está resumido ni interpretado.</p>")
+    partes.append('<p class="ayuda-sec">Cada turno se abre y muestra la secuencia completa: '
+                  "qué se le preguntó, qué respondió y qué se enteraron los demás. "
+                  "Los textos son literales, sin resumir.</p>")
     for p in pasos:
         hito = por_paso.get(p["n"])
         if hito:
@@ -916,11 +1003,38 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
         partes.append('<summary><span class="paso">' + str(p["n"]) + "</span>"
                       f'<span class="orador">{html.escape(p["quien"])}</span>'
                       f'<span class="adelanto">{html.escape(adelanto)}…</span></summary>')
+        mesa = p.get("mesa") or {}
         partes.append('<div class="cuerpo-turno">')
-        partes.append(f'<div class="dicho">{parrafos(dicho)}</div>')
+
+        if mesa.get("consigna"):
+            partes.append('<div class="etapa-turno"><span class="et">Se le preguntó</span>'
+                          f'<p class="consigna">{html.escape(mesa["consigna"])}</p></div>')
+
+        partes.append('<div class="etapa-turno"><span class="et">Respondió</span>'
+                      f'<div class="dicho">{parrafos(dicho)}</div></div>')
+
+        # Si el hecho registrado difiere de lo dicho, el narrador intervino y
+        # conviene poder verlo; si es igual, decirlo evita repetir el texto.
+        if p["evento"] and p["dicho"]:
+            if parecido(p["dicho"], p["evento"]) > 0.95:
+                partes.append('<div class="etapa-turno"><span class="et">Quedó registrado</span>'
+                              '<p class="igual">Tal cual, sin cambios del narrador.</p></div>')
+            else:
+                partes.append('<div class="etapa-turno"><span class="et">Quedó registrado</span>'
+                              f'<div class="dicho">{parrafos(p["evento"])}</div></div>')
+
+        obs = mesa.get("observaciones") or {}
+        if obs:
+            partes.append('<details class="interno"><summary>Qué se enteró cada uno '
+                          f'({len(obs)} participantes)</summary><div>')
+            for quien, texto in obs.items():
+                partes.append(f'<p class="quien-obs">{html.escape(quien)}</p>')
+                partes.append(f'<div class="obs">{parrafos(texto)}</div>')
+            partes.append("</div></details>")
+
         if p["situacion"]:
-            partes.append('<details class="interno"><summary>Cómo veía la situación</summary>'
-                          f'<div>{parrafos(p["situacion"])}</div></details>')
+            partes.append('<details class="interno"><summary>Cómo veía la situación quien '
+                          f'habló</summary><div>{parrafos(p["situacion"])}</div></details>')
         partes.append("</div></details>")
     partes.append("</section>")
 
@@ -1157,6 +1271,28 @@ margin:0 0 .8rem}
 .columna ul{margin:0;padding-left:1.15rem;font-size:.92rem}
 .columna li{margin-bottom:.55rem}
 .columna li:last-child{margin-bottom:0}
+.ciclo{display:flex;align-items:stretch;gap:.5rem;overflow-x:auto;padding:.3rem 0 1rem}
+.etapa{flex:1;min-width:9rem;background:var(--surface);border:1px solid var(--rule);
+border-radius:8px;padding:.85rem .9rem}
+.etapa-n{font-family:var(--mono);font-size:.7rem;color:var(--acuerdo);border:1px solid var(--rule-strong);
+border-radius:3px;padding:.05rem .35rem}
+.etapa-t{margin:.5rem 0 .2rem;font-weight:600;font-size:.92rem}
+.etapa-d{margin:0;font-size:.83rem;color:var(--ink-soft);line-height:1.45}
+.flecha{display:flex;align-items:center;color:var(--ink-faint);font-size:1.1rem;flex:none}
+.nota-ciclo{margin-top:.9rem;padding:.85rem 1.05rem;background:var(--surface-alt);
+border-radius:7px;font-size:.91rem;color:var(--ink-soft);max-width:52rem}
+.aviso-ciclo{background:var(--pendiente-suave);border-left:3px solid var(--pendiente);
+color:var(--ink);border-radius:0 7px 7px 0}
+.etapa-turno{padding-top:1rem}
+.et{font-family:var(--mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;
+color:var(--ink-faint)}
+.etapa-turno .consigna{margin:.4rem 0 0;padding-left:.7rem;border-left:2px solid var(--rule-strong);
+color:var(--ink-soft);font-size:.88rem;font-style:italic;max-width:44rem}
+.igual{margin:.4rem 0 0;font-size:.88rem;color:var(--ink-faint)}
+.quien-obs{margin:.9rem 0 .2rem;font-size:.82rem;font-weight:600}
+.obs{font-size:.9rem;color:var(--ink-soft);max-width:44rem}
+.obs p{margin:0 0 .5rem}
+@media (max-width:44rem){.flecha{display:none}.ciclo{flex-direction:column}}
 a{color:var(--acuerdo)}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}
