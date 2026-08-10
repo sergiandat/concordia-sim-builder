@@ -46,7 +46,7 @@ def limpiar_dicho(texto: str, quien: str) -> str:
 
 
 def leer_pasos(crudo) -> list[dict]:
-    """Un registro por paso: quién habló, qué dijo, y qué resolvió la mesa."""
+    """Un registro por paso: quién habló, qué dijo, y qué resolvió el narrador."""
     pasos = []
     for bruto in crudo:
         if not isinstance(bruto, dict):
@@ -336,7 +336,7 @@ NOMBRES_MESA = {
     "interviewer__GameMaster": "entrevista guiada",
     "marketplace__GameMaster": "mercado",
 }
-NOMBRES_ORDEN = {"fixed": "fijo", "random": "al azar", "game_master_choice": "lo elige la mesa"}
+NOMBRES_ORDEN = {"fixed": "fijo", "random": "al azar", "game_master_choice": "lo elige el narrador"}
 NOMBRES_MOTOR = {"sequential": "por turnos", "simultaneous": "simultáneo",
                  "asynchronous": "asincrónico", "interview": "entrevista", "survey": "encuesta"}
 
@@ -409,7 +409,7 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
             if fuera:
                 obs.append(("alerta",
                             f"«{bonito(nombre)}» tomó el valor «{fuera[0]}», que no está entre "
-                            "los que definiste. La mesa no verifica esa lista, así que conviene "
+                            "los que definiste. El narrador no verifica esa lista, así que conviene "
                             "leer el valor como texto libre."))
         # Que no cambie solo es un problema si se quedó en su valor de partida:
         # sostener un valor ya decidido es lo esperable, no una señal de nada.
@@ -498,13 +498,13 @@ def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
             p.append("</div>")
 
     filas = [
-        ("Tipo de mesa", NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab", "—"))),
+        ("Tipo de narrador", NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab", "—"))),
         ("Orden de la palabra", NOMBRES_ORDEN.get(esc.get("orden", ""), esc.get("orden", "—"))),
         ("Motor", NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor", "—"))),
         ("Turnos pedidos", esc.get("pasos") or "—"),
         ("Puede cerrar antes", "sí" if esc.get("cierre") else "no"),
         ("Modelo de participantes", esc.get("modelo") or "—"),
-        ("Modelo de la mesa", esc.get("modelo_gm") or "—"),
+        ("Modelo del narrador", esc.get("modelo_gm") or "—"),
     ]
     p.append("<h3>Configuración</h3><table class='config'><tbody>")
     for k, v in filas:
@@ -704,8 +704,8 @@ def marca(clase: str) -> str:
     """
     textos = {
         "medido": ("▪", "Medido", "Sale del registro de la corrida."),
-        "estimado": ("▫", "Estimado por la mesa",
-                     "Lo asignó el modelo que modera, interpretando la deliberación. "
+        "estimado": ("▫", "Estimado por el narrador",
+                     "Lo asignó el narrador, interpretando la deliberación. "
                      "No es una medición."),
         "inferido": ("◇", "Inferido",
                      "Lo dedujo un modelo al leer la transcripción."),
@@ -874,7 +874,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
     # ------------------------------------------------------- 6. evolución
     if series or franjas:
         partes.append('<section id="evolucion"><h2>Cómo evolucionó</h2>')
-        partes.append(f'<p class="ayuda-sec">{marca("estimado")} Los valores los asigna la mesa '
+        partes.append(f'<p class="ayuda-sec">{marca("estimado")} Los valores los asigna el narrador '
                       "interpretando lo que se dijo; no son mediciones de nada observado. "
                       "Las líneas punteadas marcan los momentos de decisión previstos.</p>")
         if series:
@@ -938,7 +938,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
                 distintas.append(c)
         partes.append('<details class="escenario"><summary>Con qué consigna se dio la palabra'
                       "</summary><div class='cuerpo-esc'>")
-        partes.append('<p class="ayuda-sec">La consigna es la pregunta que la mesa le hace a '
+        partes.append('<p class="ayuda-sec">La consigna es la pregunta que el narrador le hace a '
                       "quien va a hablar. Cuando no cambia, todos responden al mismo estímulo. "
                       "Van en el idioma en que las genera el motor.</p>")
         if len(distintas) == 1:
@@ -968,7 +968,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
                   "<div class='cuerpo-esc'><ul class='lista-datos'>"
                   f"<li>{marca('medido')} sale del registro de la corrida: turnos, quién habló, "
                   "cuándo se cortó.</li>"
-                  f"<li>{marca('estimado')} lo asignó la mesa interpretando la deliberación. "
+                  f"<li>{marca('estimado')} lo asignó el narrador interpretando la deliberación. "
                   "Son juicios de un modelo, no mediciones.</li>"
                   f"<li>{marca('inferido')} lo dedujo un modelo leyendo la transcripción "
                   "después de terminada la corrida.</li></ul></div></details>")
