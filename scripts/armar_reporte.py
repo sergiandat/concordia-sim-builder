@@ -572,7 +572,17 @@ INDICADORES (valor inicial y final)
 LA DELIBERACIÓN, TURNO POR TURNO
 {transcripcion}
 
-Escribí un resumen en castellano rioplatense, de cuatro a seis párrafos, que cubra:
+Devolvé un JSON con exactamente esta forma, sin texto alrededor ni bloques de código:
+
+{{
+  "resumen": "cuatro a seis párrafos corridos, separados por \\n\\n",
+  "acuerdos": ["punto sobre el que hubo acuerdo explícito", "..."],
+  "pendientes": ["cuestión que quedó sin resolver", "..."]
+}}
+
+En "acuerdos" poné solo lo que fue aceptado explícitamente por los participantes, no lo que alguien propuso y nadie contestó. En "pendientes" poné lo que se planteó y quedó sin respuesta, lo que se objetó sin resolverse, y lo que el escenario pedía decidir y no se decidió. Cada entrada, una frase corta y concreta. Si no hubo acuerdos explícitos, devolvé la lista vacía.
+
+El campo "resumen" tiene que cubrir:
 1. Qué se discutió y qué se resolvió, si es que se resolvió algo.
 2. Qué defendió cada participante y si su posición cambió a lo largo de los turnos.
 3. Dónde hubo desacuerdo real y dónde hubo adhesión sin reparos. Sé específico: si alguien aceptó una propuesta sin objetar nada, decilo y señalá en qué turno.
@@ -612,16 +622,20 @@ def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180) -> 
     return "".join(p.get("text", "") for p in partes).strip()
 
 
-def redactar_resumen(pasos, series, resumen_datos, premisa: str) -> str:
+def analizar_con_modelo(pasos, series, resumen_datos, premisa: str) -> dict:
     """
-    Resumen ejecutivo con el modelo. Devuelve cadena vacía si algo falla: el
-    reporte tiene que salir igual, porque el resto no depende de esto.
+    Resumen, acuerdos y pendientes en UNA sola llamada. Se piden juntos a
+    propósito: la cuota diaria del plan gratuito es de 500 llamadas por modelo,
+    así que tres pedidos separados costarían el triple sin agregar nada.
+
+    Devuelve {} si algo falla: el reporte tiene que salir igual, porque el resto
+    no depende de esto.
     """
     import os
     clave = os.getenv("GEMINI_API_KEY", "").strip()
     if not clave:
-        print("  resumen omitido: falta GEMINI_API_KEY")
-        return ""
+        print("  análisis omitido: falta GEMINI_API_KEY")
+        return {}
 
     objetivos, orden = {}, []
     for p in pasos:
@@ -648,11 +662,38 @@ def redactar_resumen(pasos, series, resumen_datos, premisa: str) -> str:
     crudo_nombre = (resumen_datos or {}).get("modelo_gm") or (resumen_datos or {}).get("modelo") or ""
     modelo = crudo_nombre.split("/")[-1].strip() or "gemini-3.5-flash-lite"
     try:
-        return pedir_a_gemini(prompt, modelo, clave)
+        bruto = pedir_a_gemini(prompt, modelo, clave)
     except Exception as e:
         detalle = getattr(e, "reason", None) or e
-        print(f"  resumen omitido: {type(e).__name__}: {str(detalle)[:160]}")
-        return ""
+        print(f"  análisis omitido: {type(e).__name__}: {str(detalle)[:160]}")
+        return {}
+
+    # El modelo suele envolver el JSON en un bloque de código pese a pedirle
+    # que no lo haga; si aun así no se puede parsear, se usa como resumen suelto.
+    limpio = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", bruto.strip())
+    d = None
+    try:
+        d = json.loads(limpio)
+    except json.JSONDecodeError:
+        m = re.search(r"\{.*\}", limpio, re.S)
+        if m:
+            try:
+                d = json.loads(m.group(0))
+            except json.JSONDecodeError:
+                d = None
+
+    # Si contestó en prosa en vez de JSON, el texto sirve igual como resumen.
+    # Descartarlo sería tirar una llamada que ya se pagó de la cuota diaria.
+    if not isinstance(d, dict) or not d:
+        if bruto.strip():
+            print("  el análisis no vino como JSON; se usa el texto como resumen")
+            return {"resumen": bruto.strip(), "acuerdos": [], "pendientes": []}
+        return {}
+    return {
+        "resumen": str(d.get("resumen") or "").strip(),
+        "acuerdos": [str(x).strip() for x in (d.get("acuerdos") or []) if str(x).strip()],
+        "pendientes": [str(x).strip() for x in (d.get("pendientes") or []) if str(x).strip()],
+    }
 
 
 def marca(clase: str) -> str:
@@ -674,8 +715,10 @@ def marca(clase: str) -> str:
             f'{simbolo} {html.escape(rotulo)}</span>')
 
 
-def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="") -> str:
+def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) -> str:
     esc = esc or {}
+    analisis = analisis or {}
+    texto_resumen = analisis.get("resumen", "")
     quienes = []
     for p in pasos:
         if p["quien"] not in quienes:
@@ -711,7 +754,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="
                   + ("Simulación completa" if completa else "Simulación incompleta") + "</p>")
 
     partes.append('<nav class="navega"><a href="#resultado">Resultado</a>'
-                  '<a href="#evolucion">Evolución</a><a href="#participantes">Participantes</a>'
+                  '<a href="#acuerdos">Acuerdos</a><a href="#evolucion">Evolución</a><a href="#participantes">Participantes</a>'
                   '<a href="#deliberacion">Deliberación</a><a href="#tecnica">Ficha técnica</a></nav>')
     partes.append("</div></header>")
 
@@ -805,6 +848,28 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="
         partes.append(f'<p class="marca-ia">{marca("inferido")}</p>')
         partes.append(parrafos(texto_resumen))
         partes.append("</section>")
+
+    # --------------------------------------------- 5b. acuerdos y pendientes
+    acuerdos = analisis.get("acuerdos") or []
+    pendientes = analisis.get("pendientes") or []
+    if acuerdos or pendientes:
+        partes.append('<section id="acuerdos"><h2>Acuerdos y cuestiones pendientes</h2>')
+        partes.append(f'<p class="ayuda-sec">{marca("inferido")} Lo extrajo un modelo leyendo '
+                      'la transcripción. En «acuerdos» va solo lo que alguien aceptó de forma '
+                      'explícita, no lo que se propuso y nadie respondió.</p>')
+        partes.append('<div class="dos-columnas">')
+        for titulo, items, clase in (("Acuerdos alcanzados", acuerdos, "col-acuerdo"),
+                                     ("Quedó sin resolver", pendientes, "col-pendiente")):
+            partes.append(f'<div class="columna {clase}"><h3>{titulo}</h3>')
+            if items:
+                partes.append("<ul>")
+                for x in items:
+                    partes.append(f"<li>{html.escape(x)}</li>")
+                partes.append("</ul>")
+            else:
+                partes.append('<p class="vacio">Ninguno registrado.</p>')
+            partes.append("</div>")
+        partes.append("</div></section>")
 
     # ------------------------------------------------------- 6. evolución
     if series or franjas:
@@ -1079,6 +1144,19 @@ white-space:nowrap;vertical-align:top}
 border-radius:6px;padding:.65rem .85rem;font-size:.88rem}
 .cuantas{font-family:var(--mono);color:var(--acuerdo);flex:none;font-variant-numeric:tabular-nums}
 
+.dos-columnas{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media (max-width:44rem){.dos-columnas{grid-template-columns:1fr}}
+.columna{background:var(--surface);border:1px solid var(--rule);border-radius:9px;
+padding:1.1rem 1.3rem}
+.columna h3{font-size:.8rem;letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);
+margin:0 0 .8rem}
+.col-acuerdo{border-top:3px solid var(--acuerdo)}
+.col-acuerdo h3{color:var(--acuerdo)}
+.col-pendiente{border-top:3px solid var(--pendiente)}
+.col-pendiente h3{color:var(--pendiente)}
+.columna ul{margin:0;padding-left:1.15rem;font-size:.92rem}
+.columna li{margin-bottom:.55rem}
+.columna li:last-child{margin-bottom:0}
 a{color:var(--acuerdo)}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}
@@ -1126,20 +1204,22 @@ def main() -> int:
     decisiones = esc.get("decisiones", [])
     premisa = esc.get("premisa", "")
 
-    texto_resumen = ""
+    analisis = {}
     if args.resumen:
-        print("  redactando el resumen...")
-        texto_resumen = redactar_resumen(pasos, series, resumen, premisa)
+        print("  pidiendo resumen, acuerdos y pendientes...")
+        analisis = analizar_con_modelo(pasos, series, resumen, premisa)
 
     salida = args.salida or args.crudo.parent / "reporte.html"
-    salida.write_text(armar(pasos, series, franjas, resumen, decisiones, esc, texto_resumen), encoding="utf-8")
+    salida.write_text(armar(pasos, series, franjas, resumen, decisiones, esc, analisis), encoding="utf-8")
 
     print(f"reporte      : {salida}")
     print(f"turnos       : {len(pasos)}")
     print(f"participantes: {len({p['quien'] for p in pasos})}")
     print(f"indicadores  : {len(series)}" + (f" ({', '.join(sorted(series))})" if series else ""))
     print(f"decisiones   : {len(decisiones)}")
-    print(f"resumen      : {'si' if texto_resumen else 'no'}")
+    print(f"resumen      : {'si' if analisis.get('resumen') else 'no'}")
+    print(f"acuerdos     : {len(analisis.get('acuerdos') or [])}"
+          f" · pendientes: {len(analisis.get('pendientes') or [])}")
 
     if args.csv:
         ruta_csv = salida.with_suffix(".csv")
