@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulaciones deliberativas</title>
+<style>
+:root{--ground:#f7f7f5;--surface:#fff;--surface-alt:#f1f2ef;--ink:#17191c;--ink-soft:#5b6168;
+--ink-faint:#878d94;--rule:#dfe0dc;--rule-strong:#c9cbc5;
+--acuerdo:#2d5f5d;--pendiente:#8a6a1f;--bloqueo:#8f3a2f;--evento:#3d6b8a;
+--acuerdo-suave:#e4eeed;--pendiente-suave:#f8f1de;--bloqueo-suave:#f7e8e5;
+--serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--ground:#131619;--surface:#1a1e22;--surface-alt:#22272c;--ink:#e9ecee;--ink-soft:#9aa2aa;
+--ink-faint:#757d85;--rule:#2b3137;--rule-strong:#3b434a;
+--acuerdo:#6fb3ae;--pendiente:#d3a84e;--bloqueo:#d98070;--evento:#7aa8c8;
+--acuerdo-suave:#1d2e2e;--pendiente-suave:#2c2617;--bloqueo-suave:#2e1f1c}}
+:root[data-theme="dark"]{--ground:#131619;--surface:#1a1e22;--surface-alt:#22272c;--ink:#e9ecee;
+--ink-soft:#9aa2aa;--ink-faint:#757d85;--rule:#2b3137;--rule-strong:#3b434a;
+--acuerdo:#6fb3ae;--pendiente:#d3a84e;--bloqueo:#d98070;--evento:#7aa8c8;
+--acuerdo-suave:#1d2e2e;--pendiente-suave:#2c2617;--bloqueo-suave:#2e1f1c}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+font-size:15.5px;line-height:1.6}
+.ancho{max-width:56rem;margin:0 auto;padding:0 1.5rem}
+
+header{background:var(--surface);border-bottom:1px solid var(--rule);padding:3rem 0 2.5rem}
+.marca{font-family:var(--mono);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;
+color:var(--acuerdo);margin:0 0 .8rem}
+h1{font-family:var(--serif);font-weight:400;font-size:2.2rem;line-height:1.15;margin:0 0 .7rem;
+letter-spacing:-.01em;text-wrap:balance}
+.bajada{color:var(--ink-soft);margin:0 0 1.8rem;max-width:34rem}
+.b-grande{display:inline-block;background:var(--acuerdo);color:var(--surface);
+text-decoration:none;font-weight:600;font-size:1rem;padding:.8rem 1.6rem;border-radius:7px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .b-grande{color:#10201f}}
+:root[data-theme="dark"] .b-grande{color:#10201f}
+.b-grande:hover{opacity:.9}
+
+main{padding:2.75rem 0 5rem}
+.fila-titulo{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+flex-wrap:wrap;margin-bottom:1.2rem}
+h2{font-family:var(--serif);font-weight:400;font-size:1.4rem;margin:0}
+.b-chico{font-family:inherit;font-size:.85rem;background:var(--surface);color:var(--ink-soft);
+border:1px solid var(--rule-strong);border-radius:5px;padding:.35rem .8rem;cursor:pointer}
+.b-chico:hover{border-color:var(--acuerdo);color:var(--acuerdo)}
+.b-chico:disabled{opacity:.5;cursor:progress}
+
+.lista{display:flex;flex-direction:column;gap:.7rem}
+.corrida{display:flex;align-items:center;gap:1.1rem;background:var(--surface);
+border:1px solid var(--rule);border-radius:9px;padding:1rem 1.2rem;text-decoration:none;
+color:inherit}
+a.corrida:hover{border-color:var(--acuerdo)}
+.num{font-family:var(--mono);font-size:.8rem;color:var(--ink-faint);flex:none;
+border:1px solid var(--rule-strong);border-radius:4px;padding:.15rem .45rem}
+.centro{flex:1;min-width:0}
+.titulo-corrida{margin:0 0 .2rem;font-size:.98rem;font-weight:600;overflow-wrap:anywhere}
+.meta{margin:0;font-size:.84rem;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.estado{flex:none;font-size:.78rem;font-weight:600;padding:.25rem .7rem;border-radius:99px;
+white-space:nowrap}
+.e-lista{background:var(--acuerdo-suave);color:var(--acuerdo)}
+.e-parcial{background:var(--pendiente-suave);color:var(--pendiente)}
+.e-curso{background:var(--surface-alt);color:var(--ink-soft)}
+
+.aviso{background:var(--surface-alt);border:1px solid var(--rule);border-radius:9px;
+padding:1.1rem 1.3rem;color:var(--ink-soft);font-size:.93rem}
+.como{margin-top:3.5rem}
+.pasos{list-style:none;margin:0;padding:0;counter-reset:p;display:flex;flex-direction:column;gap:.9rem}
+.pasos li{display:flex;gap:.9rem;align-items:flex-start;counter-increment:p}
+.pasos li::before{content:counter(p);font-family:var(--mono);font-size:.75rem;color:var(--acuerdo);
+border:1px solid var(--rule-strong);border-radius:4px;padding:.1rem .45rem;flex:none;margin-top:.15rem}
+.pasos p{margin:0;font-size:.94rem}
+.pasos .sub{color:var(--ink-faint);font-size:.87rem;margin-top:.15rem}
+a{color:var(--acuerdo)}
+.pie{margin-top:3.5rem;padding-top:1.3rem;border-top:1px solid var(--rule);
+color:var(--ink-faint);font-size:.87rem}
+@media (max-width:34rem){h1{font-size:1.8rem}header{padding:2rem 0 1.75rem}
+.corrida{flex-wrap:wrap}.estado{order:3}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ancho">
+    <p class="marca">Simulaciones deliberativas</p>
+    <h1>Mesas de trabajo simuladas</h1>
+    <p class="bajada">
+      Armá una mesa con varios participantes que defienden intereses distintos,
+      mandala a correr y leé cómo se desarrolló la discusión.
+    </p>
+    <a class="b-grande" href="constructor/">Armar una simulación</a>
+  </div>
+</header>
+
+<main class="ancho">
+  <div class="fila-titulo">
+    <h2>Corridas</h2>
+    <button type="button" class="b-chico" id="b-refrescar">Actualizar</button>
+  </div>
+  <div id="lista" class="lista">
+    <div class="aviso">Buscando corridas…</div>
+  </div>
+
+  <section class="como">
+    <h2>Cómo funciona</h2>
+    <ol class="pasos" style="margin-top:1.2rem">
+      <li><div><p>Armás la mesa en el constructor: quiénes se sientan, qué defiende cada uno
+        y qué datos hay sobre la mesa.</p></div></li>
+      <li><div><p>Apretás <strong>Enviar a correr</strong> y pegás el escenario en el formulario.</p>
+        <p class="sub">Hace falta una cuenta de GitHub, que es gratuita.</p></div></li>
+      <li><div><p>Cerrás todo y te vas.</p>
+        <p class="sub">La corrida sigue sola y tarda entre cuarenta minutos y una hora.</p></div></li>
+      <li><div><p>Cuando termina te llega un aviso, y la corrida aparece acá arriba con el
+        link a su informe.</p></div></li>
+    </ol>
+  </section>
+
+  <p class="pie">
+    Cada participante habla por turno, uno por paso. Con cinco participantes hacen falta
+    unos veinte pasos para que alcancen a responderse entre ellos.
+  </p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var REPO = "sergiandat/concordia-sim-builder";
+
+  function el(t, c, txt) {
+    var e = document.createElement(t);
+    if (c) e.className = c;
+    if (txt != null) e.textContent = txt;
+    return e;
+  }
+
+  function fecha(iso) {
+    try {
+      return new Date(iso).toLocaleDateString("es-AR",
+        { day: "numeric", month: "short", year: "numeric" });
+    } catch (e) { return ""; }
+  }
+
+  /* El estado sale del resumen.json que deja cada corrida al publicar. Se
+     consulta en el mismo sitio, así que no gasta el cupo de la API de GitHub
+     ni hace falta pedir permiso a nadie. */
+  function buscarResumen(numero) {
+    return fetch("resultados/" + numero + "/resumen.json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+  }
+
+  function tarjeta(issue, resumen) {
+    var listo = !!resumen;
+    var completa = listo && resumen.completa !== false;
+    var nodo = el(listo ? "a" : "div", "corrida");
+    if (listo) nodo.href = "resultados/" + issue.number + "/reporte.html";
+
+    nodo.appendChild(el("span", "num", "#" + issue.number));
+
+    var centro = el("div", "centro");
+    var titulo = (issue.title || "").replace(/^Simulación:\s*/i, "").trim();
+    centro.appendChild(el("p", "titulo-corrida", titulo || "Sin título"));
+
+    var partes = [fecha(issue.created_at)];
+    if (listo) {
+      partes.push(resumen.pasos_completados + " de " + resumen.pasos_pedidos + " turnos");
+      if (resumen.duracion_min != null) partes.push(resumen.duracion_min + " min");
+      if (resumen.agentes) partes.push(resumen.agentes.length + " participantes");
+    }
+    centro.appendChild(el("p", "meta", partes.filter(Boolean).join(" · ")));
+    nodo.appendChild(centro);
+
+    var texto = listo ? (completa ? "Lista" : "Incompleta") : "En curso";
+    var clase = listo ? (completa ? "e-lista" : "e-parcial") : "e-curso";
+    nodo.appendChild(el("span", "estado " + clase, texto));
+    return nodo;
+  }
+
+  function pintar(issues, resumenes) {
+    var lista = document.getElementById("lista");
+    lista.textContent = "";
+    if (!issues.length) {
+      var v = el("div", "aviso");
+      v.appendChild(document.createTextNode("Todavía no hay ninguna corrida. "));
+      var a = el("a", null, "Armá la primera");
+      a.href = "constructor/";
+      v.appendChild(a);
+      v.appendChild(document.createTextNode("."));
+      lista.appendChild(v);
+      return;
+    }
+    issues.forEach(function (issue, i) {
+      lista.appendChild(tarjeta(issue, resumenes[i]));
+    });
+  }
+
+  function cargar() {
+    var boton = document.getElementById("b-refrescar");
+    boton.disabled = true;
+    boton.textContent = "Actualizando…";
+
+    fetch("https://api.github.com/repos/" + REPO +
+          "/issues?labels=simulacion&state=all&per_page=50")
+      .then(function (r) {
+        if (!r.ok) throw new Error("La lista no está disponible (" + r.status + ")");
+        return r.json();
+      })
+      .then(function (issues) {
+        issues = issues.filter(function (i) { return !i.pull_request; });
+        return Promise.all(issues.map(function (i) { return buscarResumen(i.number); }))
+          .then(function (resumenes) { pintar(issues, resumenes); });
+      })
+      .catch(function (e) {
+        var lista = document.getElementById("lista");
+        lista.textContent = "";
+        var d = el("div", "aviso");
+        d.appendChild(document.createTextNode("No pude traer la lista de corridas. " + e.message + " "));
+        var a = el("a", null, "Verlas en GitHub");
+        a.href = "https://github.com/" + REPO + "/issues?q=label:simulacion";
+        d.appendChild(a);
+        d.appendChild(document.createTextNode("."));
+        lista.appendChild(d);
+      })
+      .then(function () {
+        boton.disabled = false;
+        boton.textContent = "Actualizar";
+      });
+  }
+
+  document.getElementById("b-refrescar").addEventListener("click", cargar);
+  cargar();
+})();
+</script>
+</body>
+</html>
