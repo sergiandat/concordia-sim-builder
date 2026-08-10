@@ -230,11 +230,21 @@ def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int, hitos=Non
     ancho, alto = an - izq - der, al - arr - aba
 
     todos = [v for s in series.values() for _, v in s]
-    lo, hi = min(todos), max(todos)
-    if hi == lo:
-        hi, lo = hi + 1, lo - 1
-    margen = (hi - lo) * 0.1
-    lo, hi = lo - margen, hi + margen
+    lo_dato, hi_dato = min(todos), max(todos)
+
+    # Escala fija de 0 a 100 cuando los indicadores son porcentajes. Ajustar el
+    # eje a los datos —como se hacía antes— exagera visualmente los cambios y
+    # llena el eje de números sin sentido: para valores de 30 a 100 el eje
+    # arrancaba en 23 y terminaba en 107.
+    if 0 <= lo_dato and hi_dato <= 100:
+        lo, hi = 0.0, 100.0
+        marcas = [0, 25, 50, 75, 100]
+    else:
+        if hi_dato == lo_dato:
+            hi_dato, lo_dato = hi_dato + 1, lo_dato - 1
+        margen = (hi_dato - lo_dato) * 0.1
+        lo, hi = lo_dato - margen, hi_dato + margen
+        marcas = [lo + (hi - lo) * i / 4 for i in range(5)]
 
     def x(paso):
         return izq + (ancho * (paso - 1) / max(1, max_paso - 1))
@@ -244,8 +254,7 @@ def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int, hitos=Non
 
     p = [f'<svg viewBox="0 0 {an} {al}" role="img" aria-label="Indicadores a lo largo de la deliberación">']
 
-    for i in range(5):  # rejilla horizontal
-        v = lo + (hi - lo) * i / 4
+    for v in marcas:  # rejilla horizontal
         yy = y(v)
         p.append(f'<line x1="{izq}" y1="{yy:.1f}" x2="{an-der}" y2="{yy:.1f}" class="rejilla"/>')
         p.append(f'<text x="{izq-8}" y="{yy+4:.1f}" class="eje-y">{v:.0f}</text>')
@@ -304,7 +313,18 @@ def recorrido(serie: list[tuple[int, float]]) -> str:
 
 
 def bonito(clave: str) -> str:
+    """
+    Nombre legible a partir del identificador. Los acentos no se pueden
+    recuperar: si el escenario definió «diseno_final», acá sale sin la eñe.
+    El constructor ya los conserva, así que esto solo afecta a los viejos.
+    """
     return clave.replace("_", " ").strip().capitalize()
+
+
+def valor_bonito(v: str) -> str:
+    """Un valor de estado como «fondo_mixto_con_reserva» se lee mal tal cual."""
+    t = str(v).replace("_", " ").strip()
+    return t[:1].upper() + t[1:] if t else t
 
 
 # ---------------------------------------------------------------- escenario
@@ -635,9 +655,27 @@ def redactar_resumen(pasos, series, resumen_datos, premisa: str) -> str:
         return ""
 
 
+def marca(clase: str) -> str:
+    """
+    Distingue de dónde sale cada cosa. Un número medido y uno que el modelo
+    estimó interpretando la charla no valen lo mismo, y en un informe de
+    políticas confundirlos es peor que no mostrarlos.
+    """
+    textos = {
+        "medido": ("▪", "Medido", "Sale del registro de la corrida."),
+        "estimado": ("▫", "Estimado por la mesa",
+                     "Lo asignó el modelo que modera, interpretando la deliberación. "
+                     "No es una medición."),
+        "inferido": ("◇", "Inferido",
+                     "Lo dedujo un modelo al leer la transcripción."),
+    }
+    simbolo, rotulo, ayuda = textos[clase]
+    return (f'<span class="proc p-{clase}" title="{html.escape(ayuda)}">'
+            f'{simbolo} {html.escape(rotulo)}</span>')
+
+
 def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="") -> str:
     esc = esc or {}
-    titulo = "Acta de la deliberación"
     quienes = []
     for p in pasos:
         if p["quien"] not in quienes:
@@ -651,78 +689,131 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="
             objetivos[p["quien"]] = p["objetivo"]
 
     por_paso = {d["step"]: d.get("event", "") for d in (decisiones or [])}
-
-    def ficha(rot, val):
-        return (f'<div class="dato"><dt>{html.escape(rot)}</dt>'
-                f'<dd>{html.escape(str(val))}</dd></div>')
-
-    partes = [CABEZA, f"<h1>{titulo}</h1>"]
-
-    # --- resumen de la corrida
-    partes.append('<dl class="datos">')
-    partes.append(ficha("Participantes", len(quienes)))
-    partes.append(ficha("Turnos", max_paso))
-    if resumen:
-        if resumen.get("duracion_min") is not None:
-            partes.append(ficha("Duración", f'{resumen["duracion_min"]} minutos'))
-        if resumen.get("completa") is not None:
-            partes.append(ficha("Estado", "Completa" if resumen["completa"] else "Incompleta"))
-    partes.append("</dl>")
-
-    # --- senales calculadas: que mirar
+    completa = not (resumen and resumen.get("completa") is False)
     obs = senales(pasos, series, franjas, esc, resumen)
+
+    partes = [CABEZA]
+
+    # ---------------------------------------------------------- 1. identidad
+    nombre_esc = esc.get("mesa_nombre") or "Simulación deliberativa"
+    partes.append('<header class="tapa"><div class="ancho">')
+    partes.append('<p class="marca-doc">Informe de simulación deliberativa</p>')
+    partes.append(f"<h1>{html.escape(nombre_esc)}</h1>")
+
+    linea = [f"{len(quienes)} participantes", f"{max_paso} turnos"]
+    if resumen and resumen.get("duracion_min") is not None:
+        linea.append(f"{resumen['duracion_min']} min")
+    if resumen and resumen.get("terminada"):
+        linea.append(str(resumen["terminada"])[:10])
+    partes.append(f'<p class="linea-datos">{" · ".join(html.escape(x) for x in linea)}</p>')
+
+    partes.append('<p class="chapa ' + ("ok" if completa else "aviso") + '">'
+                  + ("Simulación completa" if completa else "Simulación incompleta") + "</p>")
+
+    partes.append('<nav class="navega"><a href="#resultado">Resultado</a>'
+                  '<a href="#evolucion">Evolución</a><a href="#participantes">Participantes</a>'
+                  '<a href="#deliberacion">Deliberación</a><a href="#tecnica">Ficha técnica</a></nav>')
+    partes.append("</div></header>")
+
+    partes.append('<main class="ancho">')
+
+    # ------------------------------------------------- 2. resultado y estado
+    partes.append('<section id="resultado"><h2>Qué resultó</h2>')
+    partes.append('<div class="tarjetas">')
+
+    definidas = {v.get("name"): v for v in esc.get("variables", [])}
+    mostradas = set()
+
+    for nombre, serie in sorted(franjas.items()):
+        mostradas.add(nombre)
+        partes.append('<div class="tarjeta">')
+        partes.append(f'<p class="t-rotulo">{html.escape(bonito(nombre))}</p>')
+        partes.append(f'<p class="t-valor">{html.escape(valor_bonito(serie[-1][1]))}</p>')
+        partes.append(f'<p class="t-pie">{marca("estimado")}</p>')
+        partes.append("</div>")
+
+    for nombre, serie in sorted(series.items()):
+        if "consenso" not in nombre.lower():
+            continue
+        mostradas.add(nombre)
+        alto = max(v for _, v in serie)
+        partes.append('<div class="tarjeta">')
+        partes.append(f'<p class="t-rotulo">{html.escape(bonito(nombre))}</p>')
+        partes.append(f'<p class="t-valor">{serie[-1][1]:.0f}<span class="t-sobre">/100</span></p>')
+        if alto > serie[-1][1]:
+            partes.append(f'<p class="t-nota">llegó a {alto:.0f} y bajó</p>')
+        partes.append(f'<p class="t-pie">{marca("estimado")}</p>')
+        partes.append("</div>")
+
+    partes.append('<div class="tarjeta">')
+    partes.append('<p class="t-rotulo">Decisión definitiva</p>')
+    if completa:
+        partes.append('<p class="t-valor chico">Se completaron todos los turnos</p>')
+    else:
+        partes.append('<p class="t-valor chico aviso-txt">Pendiente</p>')
+        partes.append('<p class="t-nota">la corrida no llegó al cierre</p>')
+    partes.append(f'<p class="t-pie">{marca("medido")}</p>')
+    partes.append("</div>")
+    partes.append("</div>")
+
+    # Lo que el escenario no midió se dice, en vez de completarlo
+    faltantes = [v for v in ("estado de aprobación", "viabilidad de implementación")]
+    if not any("estado" in n.lower() or "implement" in n.lower()
+               for n in list(series) + list(franjas)):
+        partes.append('<p class="sin-medir">Este escenario no definió indicadores para '
+                      f'{" ni ".join(faltantes)}, así que el informe no puede decir si lo '
+                      'acordado quedó aprobado ni si es aplicable. Para que aparezcan, hay '
+                      'que definirlos como indicadores antes de correr.</p>')
+    partes.append("</section>")
+
+    # ------------------------------------------- 3. por qué quedó incompleta
+    if not completa:
+        hechos = resumen.get("pasos_completados") or 0
+        pedidos = resumen.get("pasos_pedidos") or 0
+        sin_llegar = [d for d in (decisiones or []) if (d.get("step") or 0) > hechos]
+        partes.append('<section class="incompleta"><h2>Por qué quedó incompleta</h2>')
+        partes.append(f'<p>Se ejecutaron {hechos} de los {pedidos} turnos previstos.</p>')
+        if sin_llegar:
+            partes.append("<p>No se llegó a estos momentos de decisión:</p><ul>")
+            for d in sin_llegar:
+                partes.append(f'<li><strong>Turno {d["step"]}:</strong> '
+                              f'{html.escape((d.get("event") or "")[:220])}</li>')
+            partes.append("</ul>")
+        motivo = resumen.get("error") or ""
+        if "429" in motivo or "RESOURCE_EXHAUSTED" in motivo:
+            partes.append('<p class="motivo">Se cortó por agotarse la cuota diaria del modelo, '
+                          "no por un problema del escenario.</p>")
+        elif motivo:
+            partes.append(f'<p class="motivo">{html.escape(motivo[:300])}</p>')
+        partes.append('<p class="motivo">Cualquier acuerdo que aparezca hay que leerlo como '
+                      "provisorio: no hubo un cierre formal posterior.</p>")
+        partes.append("</section>")
+
+    # ------------------------------------------------------- 4. qué mirar
     if obs:
         partes.append('<section class="senales"><h2>Qué mirar de esta corrida</h2>')
-        partes.append('<p class="ayuda-sec">Observaciones calculadas sobre el resultado, '
-                      'sin intervención de ningún modelo.</p>')
+        partes.append(f'<p class="ayuda-sec">{marca("medido")} Observaciones calculadas sobre '
+                      "el registro, sin intervención de ningún modelo.</p>")
         partes.append("<ul>")
         for tipo, texto in obs:
             partes.append(f'<li class="s-{tipo}">{html.escape(texto)}</li>')
         partes.append("</ul></section>")
 
-    # --- por qué quedó incompleta
-    if resumen and resumen.get("completa") is False:
-        hechos = (resumen.get("pasos_completados") or 0)
-        pedidos = (resumen.get("pasos_pedidos") or 0)
-        sin_llegar = [d for d in (decisiones or []) if (d.get("step") or 0) > hechos]
-        partes.append('<div class="incompleta">')
-        partes.append('<h2>Por qué quedó incompleta</h2>')
-        partes.append(f'<p>Se ejecutaron {hechos} de los {pedidos} turnos previstos.</p>')
-        if sin_llegar:
-            partes.append('<p>No se llegó a estos momentos de decisión:</p><ul>')
-            for d in sin_llegar:
-                partes.append(f'<li><strong>Turno {d["step"]}:</strong> '
-                              f'{html.escape((d.get("event") or "")[:220])}</li>')
-            partes.append("</ul>")
-        motivo = (resumen.get("error") or "")
-        if "429" in motivo or "RESOURCE_EXHAUSTED" in motivo:
-            partes.append('<p class="motivo">Se cortó por agotamiento de la cuota diaria del '
-                          'modelo, no por un problema del escenario.</p>')
-        elif motivo:
-            partes.append(f'<p class="motivo">{html.escape(motivo[:300])}</p>')
-        partes.append('<p class="motivo">Lo que sigue es todo lo que alcanzó a ocurrir. '
-                      'Cualquier acuerdo que aparezca hay que leerlo como provisorio: no hubo '
-                      'un cierre formal posterior.</p>')
-        partes.append("</div>")
-
-    # --- ficha del escenario
-    ficha_esc = seccion_escenario(esc, quienes)
-    if ficha_esc:
-        partes.append(ficha_esc)
-
-    # --- resumen redactado por el modelo
+    # ---------------------------------------------------------- 5. resumen
     if texto_resumen:
-        partes.append('<div class="resumen">')
-        partes.append('<p class="marca-ia">Resumen generado automáticamente</p>')
-        partes.append("<h2>En pocas palabras</h2>")
+        partes.append('<section class="resumen"><h2>En pocas palabras</h2>')
+        partes.append(f'<p class="marca-ia">{marca("inferido")}</p>')
         partes.append(parrafos(texto_resumen))
-        partes.append("</div>")
+        partes.append("</section>")
 
-    # --- indicadores
+    # ------------------------------------------------------- 6. evolución
     if series or franjas:
-        partes.append('<section><h2>Cómo evolucionaron los indicadores</h2>')
+        partes.append('<section id="evolucion"><h2>Cómo evolucionó</h2>')
+        partes.append(f'<p class="ayuda-sec">{marca("estimado")} Los valores los asigna la mesa '
+                      "interpretando lo que se dijo; no son mediciones de nada observado. "
+                      "Las líneas punteadas marcan los momentos de decisión previstos.</p>")
         if series:
-            hitos = [d.get('step') for d in (decisiones or []) if d.get('step')]
+            hitos = [d.get("step") for d in (decisiones or []) if d.get("step")]
             partes.append('<div class="grafico">' + grafico(series, max_paso, hitos) + "</div>")
         if franjas:
             partes.append('<div class="grafico franjas">')
@@ -731,82 +822,95 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="
             partes.append("</div>")
         partes.append("</section>")
 
-    # --- quiénes participaron
-    partes.append('<section><h2>Quiénes participaron</h2>')
+    # --------------------------------------------------- 7. participantes
+    partes.append('<section id="participantes"><h2>Quiénes participaron</h2>')
     partes.append('<p class="ayuda-sec">Cada casilla es un turno, coloreada según quién habló.</p>')
     partes.append(tira_participacion(pasos, quienes))
     for q in quienes:
         partes.append('<article class="participante">')
-        partes.append(f'<h3>{html.escape(q)}</h3>')
-        partes.append(f'<p class="veces">Habló {veces[q]} '
-                      f'{"vez" if veces[q] == 1 else "veces"}</p>')
+        partes.append(f"<h3>{html.escape(q)}</h3>")
+        partes.append(f'<p class="veces">{veces[q]} '
+                      f'{"turno" if veces[q] == 1 else "turnos"}</p>')
         if objetivos.get(q):
             partes.append(f'<p class="objetivo">{html.escape(objetivos[q])}</p>')
         partes.append("</article>")
     partes.append("</section>")
 
-    # --- cómo condujo la mesa
+    # --------------------------------------------------- 8. la deliberación
+    partes.append('<section id="deliberacion"><h2>La deliberación</h2>')
+    partes.append('<p class="ayuda-sec">Cada turno se abre para ver lo que se dijo completo. '
+                  "Lo que aparece es textual: no está resumido ni interpretado.</p>")
+    for p in pasos:
+        hito = por_paso.get(p["n"])
+        if hito:
+            partes.append('<div class="hito"><span class="hito-rotulo">Momento de decisión '
+                          f'· turno {p["n"]}</span><p>{html.escape(hito)}</p></div>')
+        dicho = p["dicho"] or p["evento"]
+        adelanto = re.sub(r"\s+", " ", re.sub(r"\*\*|__", "", dicho))[:150]
+        partes.append('<details class="turno">')
+        partes.append('<summary><span class="paso">' + str(p["n"]) + "</span>"
+                      f'<span class="orador">{html.escape(p["quien"])}</span>'
+                      f'<span class="adelanto">{html.escape(adelanto)}…</span></summary>')
+        partes.append('<div class="cuerpo-turno">')
+        partes.append(f'<div class="dicho">{parrafos(dicho)}</div>')
+        if p["situacion"]:
+            partes.append('<details class="interno"><summary>Cómo veía la situación</summary>'
+                          f'<div>{parrafos(p["situacion"])}</div></details>')
+        partes.append("</div></details>")
+    partes.append("</section>")
+
+    # ------------------------------------------------------ 9. ficha técnica
+    partes.append('<section id="tecnica"><h2>Ficha técnica</h2>')
+    ficha_esc = seccion_escenario(esc, quienes)
+    if ficha_esc:
+        partes.append(ficha_esc)
+
     consignas = [p["mesa"]["consigna"] for p in pasos if p.get("mesa", {}).get("consigna")]
-    cierres = [p["mesa"]["termina"] for p in pasos if p.get("mesa", {}).get("termina")]
-    if consignas or cierres:
-        partes.append('<section><h2>Cómo condujo la mesa</h2>')
+    if consignas:
         distintas = []
         for c in consignas:
             if c not in distintas:
                 distintas.append(c)
-        if distintas:
-            partes.append('<p class="ayuda-sec">La consigna es la pregunta con la que se le '
-                          'da la palabra a cada participante. Cuando es siempre la misma, todos '
-                          'responden al mismo estímulo; cuando cambia según lo que se viene '
-                          'discutiendo, a cada uno se le pide postura sobre algo concreto.</p>')
-            if len(distintas) == 1:
-                partes.append('<p class="ayuda-sec"><strong>Una sola consigna para los '
-                              f'{len(consignas)} turnos.</strong></p>')
-            else:
-                partes.append(f'<p class="ayuda-sec"><strong>{len(distintas)} consignas '
-                              f'distintas</strong> en {len(consignas)} turnos.</p>')
-            partes.append('<ul class="consignas">')
-            for c in distintas[:8]:
-                veces = consignas.count(c)
-                partes.append(f'<li><span class="cuantas">{veces}×</span>'
-                              f'<span>{html.escape(c)}</span></li>')
-            partes.append("</ul>")
-            # Sin esta línea el corte era invisible y parecía que no hubo más
-            if len(distintas) > 8:
-                partes.append(f'<p class="franja-cambios">Y {len(distintas) - 8} consignas '
-                              f'más, distintas entre sí.</p>')
+        partes.append('<details class="escenario"><summary>Con qué consigna se dio la palabra'
+                      "</summary><div class='cuerpo-esc'>")
+        partes.append('<p class="ayuda-sec">La consigna es la pregunta que la mesa le hace a '
+                      "quien va a hablar. Cuando no cambia, todos responden al mismo estímulo. "
+                      "Van en el idioma en que las genera el motor.</p>")
+        if len(distintas) == 1:
+            partes.append(f'<p><strong>Una sola consigna para los {len(consignas)} '
+                          "turnos.</strong></p>")
+        else:
+            partes.append(f"<p><strong>{len(distintas)} consignas distintas</strong> en "
+                          f"{len(consignas)} turnos.</p>")
+        partes.append('<ul class="consignas">')
+        for c in distintas[:8]:
+            partes.append(f'<li><span class="cuantas">{consignas.count(c)}×</span>'
+                          f"<span>{html.escape(c)}</span></li>")
+        partes.append("</ul>")
+        if len(distintas) > 8:
+            partes.append(f'<p class="franja-cambios">Y {len(distintas) - 8} más, distintas '
+                          "entre sí.</p>")
+        cierres = [p["mesa"]["termina"] for p in pasos if p.get("mesa", {}).get("termina")]
         if cierres:
             quiso = sum(1 for c in cierres if c.strip().lower().startswith(("s", "y")))
-            partes.append(f'<p class="cierre-nota">Se preguntó en {len(cierres)} turnos si la '
-                          f'deliberación había terminado. '
-                          + (f'En {quiso} respondió que sí.' if quiso
-                             else 'Siempre respondió que no, así que se usaron todos los turnos.')
-                          + "</p>")
-        partes.append("</section>")
+            partes.append(f'<p class="franja-cambios">Se preguntó en {len(cierres)} turnos si '
+                          "la deliberación había terminado. "
+                          + (f"En {quiso} respondió que sí." if quiso
+                             else "Siempre respondió que no.") + "</p>")
+        partes.append("</div></details>")
 
-    # --- la deliberación
-    partes.append('<section><h2>La deliberación</h2>')
-    for p in pasos:
-        marca = por_paso.get(p["n"])
-        if marca:
-            partes.append('<div class="hito"><span class="hito-rotulo">Momento de decisión</span>'
-                          f'<p>{html.escape(marca)}</p></div>')
-        partes.append('<article class="turno">')
-        partes.append(f'<header><span class="paso">{p["n"]}</span>'
-                      f'<span class="orador">{html.escape(p["quien"])}</span></header>')
-        mesa = p.get("mesa") or {}
-        if mesa.get("consigna"):
-            partes.append(f'<p class="consigna">{html.escape(mesa["consigna"])}</p>')
-        partes.append(f'<div class="dicho">{parrafos(p["dicho"] or p["evento"])}</div>')
-        if p["situacion"]:
-            partes.append('<details class="interno"><summary>Cómo veía la situación</summary>'
-                          f'<div>{parrafos(p["situacion"])}</div></details>')
-        partes.append("</article>")
+    partes.append('<details class="escenario"><summary>Cómo leer este informe</summary>'
+                  "<div class='cuerpo-esc'><ul class='lista-datos'>"
+                  f"<li>{marca('medido')} sale del registro de la corrida: turnos, quién habló, "
+                  "cuándo se cortó.</li>"
+                  f"<li>{marca('estimado')} lo asignó la mesa interpretando la deliberación. "
+                  "Son juicios de un modelo, no mediciones.</li>"
+                  f"<li>{marca('inferido')} lo dedujo un modelo leyendo la transcripción "
+                  "después de terminada la corrida.</li></ul></div></details>")
     partes.append("</section>")
 
-    partes.append('<footer class="pie">Generado a partir del registro de la '
-                  'simulación. Cada turno reproduce lo que dijo el participante, '
-                  'sin resumir ni interpretar.</footer>')
+    partes.append('<footer class="pie">Generado a partir del registro de la simulación. '
+                  "La transcripción reproduce lo que dijo cada participante, sin resumir.</footer>")
     partes.append("</main></body></html>")
     return "".join(partes)
 
@@ -814,127 +918,176 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, texto_resumen="
 CABEZA = """<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Acta de la deliberación</title>
+<title>Informe de simulación deliberativa</title>
 <style>
 :root{--ground:#f7f7f5;--surface:#fff;--surface-alt:#f1f2ef;--ink:#17191c;--ink-soft:#5b6168;
---ink-faint:#878d94;--rule:#dfe0dc;--rule-strong:#c9cbc5;--accent:#2d5f5d;--warn:#8a6a1f;
+--ink-faint:#878d94;--rule:#dfe0dc;--rule-strong:#c9cbc5;
+--acuerdo:#2d5f5d;--pendiente:#8a6a1f;--bloqueo:#8f3a2f;--estimado:#6b4a7a;--evento:#3d6b8a;
+--acuerdo-suave:#e4eeed;--pendiente-suave:#f8f1de;--bloqueo-suave:#f7e8e5;
 --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
 --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
 --ground:#131619;--surface:#1a1e22;--surface-alt:#22272c;--ink:#e9ecee;--ink-soft:#9aa2aa;
---ink-faint:#757d85;--rule:#2b3137;--rule-strong:#3b434a;--accent:#6fb3ae;--warn:#d3a84e}}
+--ink-faint:#757d85;--rule:#2b3137;--rule-strong:#3b434a;
+--acuerdo:#6fb3ae;--pendiente:#d3a84e;--bloqueo:#d98070;--estimado:#b394c4;--evento:#7aa8c8;
+--acuerdo-suave:#1d2e2e;--pendiente-suave:#2c2617;--bloqueo-suave:#2e1f1c}}
 :root[data-theme="dark"]{--ground:#131619;--surface:#1a1e22;--surface-alt:#22272c;--ink:#e9ecee;
---ink-soft:#9aa2aa;--ink-faint:#757d85;--rule:#2b3137;--rule-strong:#3b434a;--accent:#6fb3ae;--warn:#d3a84e}
+--ink-soft:#9aa2aa;--ink-faint:#757d85;--rule:#2b3137;--rule-strong:#3b434a;
+--acuerdo:#6fb3ae;--pendiente:#d3a84e;--bloqueo:#d98070;--estimado:#b394c4;--evento:#7aa8c8;
+--acuerdo-suave:#1d2e2e;--pendiente-suave:#2c2617;--bloqueo-suave:#2e1f1c}
 *{box-sizing:border-box}
 body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
-font-size:16px;line-height:1.65}
-main{max-width:44rem;margin:0 auto;padding:3rem 1.25rem 5rem}
-h1{font-family:var(--serif);font-weight:400;font-size:2.15rem;line-height:1.15;
-margin:0 0 1.75rem;text-wrap:balance;letter-spacing:-.01em}
-h2{font-family:var(--serif);font-weight:400;font-size:1.4rem;margin:0 0 1.25rem;
+font-size:15.5px;line-height:1.6}
+.ancho{max-width:70rem;margin:0 auto;padding:0 1.5rem}
+main.ancho{padding-bottom:5rem}
+
+.tapa{background:var(--surface);border-bottom:1px solid var(--rule);padding:2.5rem 0 0}
+.marca-doc{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+color:var(--acuerdo);margin:0 0 .7rem}
+h1{font-family:var(--serif);font-weight:400;font-size:2.1rem;line-height:1.15;margin:0 0 .6rem;
+letter-spacing:-.01em;text-wrap:balance;max-width:36rem}
+.linea-datos{margin:0 0 .9rem;color:var(--ink-soft);font-size:.93rem;font-variant-numeric:tabular-nums}
+.chapa{display:inline-block;margin:0 0 1.5rem;padding:.3rem .8rem;border-radius:99px;
+font-size:.82rem;font-weight:600}
+.chapa.ok{background:var(--acuerdo-suave);color:var(--acuerdo)}
+.chapa.aviso{background:var(--pendiente-suave);color:var(--pendiente)}
+.navega{display:flex;gap:1.4rem;flex-wrap:wrap;border-top:1px solid var(--rule);padding:.9rem 0}
+.navega a{color:var(--ink-soft);text-decoration:none;font-size:.88rem}
+.navega a:hover{color:var(--acuerdo)}
+
+section{margin-top:3rem}
+h2{font-family:var(--serif);font-weight:400;font-size:1.4rem;margin:0 0 1rem;
 padding-bottom:.5rem;border-bottom:1px solid var(--rule)}
 h3{font-size:1rem;margin:0 0 .25rem}
-section{margin-top:3.25rem}
-.datos{display:flex;flex-wrap:wrap;gap:1.75rem;margin:0;padding:1.15rem 1.3rem;
-background:var(--surface);border:1px solid var(--rule);border-radius:8px}
-.dato dt{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);
-font-family:var(--mono)}
-.dato dd{margin:.15rem 0 0;font-size:1.15rem;font-variant-numeric:tabular-nums}
-.grafico{background:var(--surface);border:1px solid var(--rule);border-radius:8px;
-padding:1.1rem 1.2rem;overflow-x:auto}
-svg{display:block;width:100%;min-width:34rem;height:auto}
+.ayuda-sec{margin:0 0 1.2rem;color:var(--ink-soft);font-size:.92rem;max-width:52rem}
+
+.proc{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
+padding:.1rem .4rem;border-radius:3px;white-space:nowrap}
+.p-medido{background:var(--acuerdo-suave);color:var(--acuerdo)}
+.p-estimado{background:transparent;color:var(--estimado);border:1px solid var(--estimado)}
+.p-inferido{background:transparent;color:var(--ink-faint);border:1px dashed var(--rule-strong)}
+
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem}
+.tarjeta{background:var(--surface);border:1px solid var(--rule);border-radius:9px;padding:1.1rem 1.25rem}
+.t-rotulo{margin:0 0 .45rem;font-size:.78rem;letter-spacing:.07em;text-transform:uppercase;
+color:var(--ink-faint);font-family:var(--mono)}
+.t-valor{margin:0;font-size:1.6rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.t-valor.chico{font-size:1.05rem;line-height:1.4}
+.t-sobre{font-size:.9rem;color:var(--ink-faint)}
+.aviso-txt{color:var(--pendiente)}
+.t-nota{margin:.35rem 0 0;font-size:.85rem;color:var(--ink-soft)}
+.t-pie{margin:.7rem 0 0}
+.sin-medir{margin:1.1rem 0 0;padding:.85rem 1.05rem;background:var(--surface-alt);
+border-radius:7px;font-size:.9rem;color:var(--ink-soft);max-width:52rem}
+
+.incompleta{background:var(--pendiente-suave);border:1px solid var(--pendiente);
+border-radius:9px;padding:1.3rem 1.5rem}
+.incompleta h2{border:none;padding:0;margin:0 0 .7rem;font-size:1.25rem;color:var(--pendiente)}
+.incompleta p{margin:0 0 .7rem;font-size:.93rem;max-width:52rem}
+.incompleta ul{margin:.3rem 0 .8rem;padding-left:1.2rem;font-size:.9rem;max-width:52rem}
+.incompleta li{margin-bottom:.4rem}
+.incompleta .motivo{color:var(--ink-soft);font-size:.89rem}
+
+.senales ul{list-style:none;margin:0;padding:0;display:grid;
+grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));gap:.7rem}
+.senales li{background:var(--surface);border:1px solid var(--rule);
+border-left:3px solid var(--rule-strong);border-radius:0 7px 7px 0;padding:.85rem 1.05rem;font-size:.92rem}
+.s-alerta{border-left-color:var(--bloqueo)!important}
+.s-buena{border-left-color:var(--acuerdo)!important}
+.s-neutra{border-left-color:var(--ink-faint)!important}
+
+.resumen{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--estimado);
+border-radius:0 9px 9px 0;padding:1.3rem 1.6rem}
+.resumen h2{border:none;padding:0;margin:0 0 .5rem;font-size:1.25rem}
+.resumen p{margin:0 0 .85rem;max-width:44rem}
+.resumen p:last-child{margin-bottom:0}
+.marca-ia{margin:0 0 .9rem!important}
+
+.grafico{background:var(--surface);border:1px solid var(--rule);border-radius:9px;
+padding:1.2rem 1.3rem;overflow-x:auto}
+.franjas{margin-top:1rem;display:flex;flex-direction:column;gap:1.3rem}
+svg{display:block;width:100%;min-width:32rem;height:auto}
 .rejilla{stroke:var(--rule);stroke-width:1}
 .eje-y,.eje-x{fill:var(--ink-faint);font-size:11px;font-family:var(--mono)}
 .eje-y{text-anchor:end}.eje-x{text-anchor:middle}
-.leyenda{list-style:none;margin:1rem 0 0;padding:0;display:flex;flex-direction:column;gap:.4rem}
+.hito-linea{stroke:var(--evento);stroke-width:1;stroke-dasharray:3 3;opacity:.85}
+.hito-marca{fill:var(--evento);font-size:9px;font-family:var(--mono);text-anchor:middle}
+.leyenda{list-style:none;margin:1.1rem 0 0;padding:0;display:flex;flex-direction:column;gap:.42rem}
 .leyenda li{display:flex;align-items:center;gap:.6rem;font-size:.88rem}
 .punto{width:.7rem;height:.7rem;border-radius:2px;flex:none}
 .leyenda-nombre{flex:1;min-width:0}
 .leyenda-dato{font-family:var(--mono);color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.participante{padding:.9rem 0;border-top:1px solid var(--rule)}
-.participante:first-of-type{border-top:none}
-.veces{margin:0;font-size:.82rem;color:var(--ink-faint);font-family:var(--mono)}
-.objetivo{margin:.5rem 0 0;color:var(--ink-soft);font-size:.94rem}
-.turno{background:var(--surface);border:1px solid var(--rule);border-radius:8px;
-padding:1.2rem 1.35rem;margin-bottom:1rem}
-.turno header{display:flex;align-items:center;gap:.7rem;margin-bottom:.7rem}
-.paso{font-family:var(--mono);font-size:.75rem;color:var(--accent);
-border:1px solid var(--rule-strong);border-radius:3px;padding:.08rem .4rem;flex:none}
-.orador{font-weight:600;font-size:.92rem}
-.dicho p{margin:0 0 .8rem}.dicho p:last-child{margin-bottom:0}
-.vacio{color:var(--ink-faint)}
-.interno{margin-top:.9rem;border-top:1px solid var(--rule);padding-top:.7rem}
-.interno summary{cursor:pointer;font-size:.82rem;color:var(--ink-faint);font-family:var(--mono)}
-.interno summary:hover{color:var(--accent)}
-.interno>div{margin-top:.6rem;font-size:.92rem;color:var(--ink-soft)}
-.hito{border-left:3px solid var(--warn);background:var(--surface-alt);
-padding:.85rem 1.1rem;border-radius:0 6px 6px 0;margin:1.6rem 0 1rem}
-.hito-rotulo{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;
-text-transform:uppercase;color:var(--warn)}
-.hito p{margin:.4rem 0 0;font-size:.93rem}
-.consigna{margin:0 0 .8rem;padding-left:.7rem;border-left:2px solid var(--rule-strong);
-color:var(--ink-faint);font-size:.83rem;font-style:italic}
-.ayuda-sec{margin:0 0 1rem;color:var(--ink-soft);font-size:.93rem}
-.consignas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.55rem}
-.consignas li{display:flex;gap:.75rem;align-items:baseline;background:var(--surface);
-border:1px solid var(--rule);border-radius:6px;padding:.7rem .9rem;font-size:.9rem}
-.cuantas{font-family:var(--mono);color:var(--accent);flex:none;font-variant-numeric:tabular-nums}
-.cierre-nota{margin:1.1rem 0 0;color:var(--ink-soft);font-size:.9rem}
-.resumen{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);
-border-radius:0 8px 8px 0;padding:1.3rem 1.5rem;margin-bottom:2rem}
-.resumen h2{border:none;margin-bottom:.8rem;padding:0;font-size:1.25rem}
-.resumen p{margin:0 0 .85rem}.resumen p:last-child{margin-bottom:0}
-.resumen .marca-ia{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;
-text-transform:uppercase;color:var(--ink-faint);margin-bottom:.6rem}
-.franjas{display:flex;flex-direction:column;gap:1.2rem;margin-top:1rem}
 .franja-nombre{font-size:.86rem;font-weight:600;margin-bottom:.45rem}
 .franja-barra{display:flex;gap:2px;border-radius:5px;overflow:hidden}
-.tramo{min-width:0;padding:.5rem .6rem;color:#fff;font-size:.78rem;
-white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tramo{min-width:0;padding:.5rem .6rem;color:#fff;font-size:.78rem;white-space:nowrap;
+overflow:hidden;text-overflow:ellipsis}
 .franja-cambios{margin:.45rem 0 0;font-size:.84rem;color:var(--ink-soft)}
-.senales{margin-top:2.25rem}
-.senales ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
-.senales li{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--rule-strong);
-border-radius:0 7px 7px 0;padding:.85rem 1.05rem;font-size:.93rem}
-.s-alerta{border-left-color:var(--warn)!important}
-.s-buena{border-left-color:var(--accent)!important}
-.hito-linea{stroke:var(--warn);stroke-width:1;stroke-dasharray:3 3;opacity:.8}
-.hito-marca{fill:var(--warn);font-size:9px;font-family:var(--mono);text-anchor:middle}
+
 .tira{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:1rem}
-.celda{width:2rem;height:2rem;border-radius:4px;color:#fff;font-size:.72rem;
-font-family:var(--mono);display:flex;align-items:center;justify-content:center}
-.leyenda-tira{margin-bottom:1.5rem}
-.escenario{border:1px solid var(--rule);border-radius:8px;background:var(--surface);margin-top:2rem}
+.celda{width:2rem;height:2rem;border-radius:4px;color:#fff;font-size:.72rem;font-family:var(--mono);
+display:flex;align-items:center;justify-content:center}
+.leyenda-tira{margin-bottom:1.8rem}
+.participante{padding:.9rem 0;border-top:1px solid var(--rule);max-width:52rem}
+.veces{margin:0;font-size:.82rem;color:var(--ink-faint);font-family:var(--mono)}
+.objetivo{margin:.5rem 0 0;color:var(--ink-soft);font-size:.94rem}
+
+.turno{background:var(--surface);border:1px solid var(--rule);border-radius:8px;margin-bottom:.6rem}
+.turno>summary{cursor:pointer;padding:.85rem 1.1rem;display:flex;align-items:center;gap:.75rem;
+list-style:none}
+.turno>summary::-webkit-details-marker{display:none}
+.turno>summary:hover .orador{color:var(--acuerdo)}
+.paso{font-family:var(--mono);font-size:.75rem;color:var(--acuerdo);border:1px solid var(--rule-strong);
+border-radius:3px;padding:.08rem .4rem;flex:none}
+.orador{font-weight:600;font-size:.9rem;flex:none}
+.adelanto{color:var(--ink-faint);font-size:.86rem;overflow:hidden;text-overflow:ellipsis;
+white-space:nowrap;min-width:0}
+.cuerpo-turno{padding:0 1.2rem 1.2rem;border-top:1px solid var(--rule)}
+.dicho{max-width:44rem;padding-top:1rem}
+.dicho p{margin:0 0 .8rem}.dicho p:last-child{margin-bottom:0}
+.vacio{color:var(--ink-faint)}
+.interno{margin-top:1rem;border-top:1px solid var(--rule);padding-top:.7rem;max-width:44rem}
+.interno summary{cursor:pointer;font-size:.82rem;color:var(--ink-faint);font-family:var(--mono)}
+.interno summary:hover{color:var(--acuerdo)}
+.interno>div{margin-top:.6rem;font-size:.92rem;color:var(--ink-soft)}
+.hito{border-left:3px solid var(--evento);background:var(--surface-alt);padding:.85rem 1.1rem;
+border-radius:0 7px 7px 0;margin:1.8rem 0 .9rem;max-width:52rem}
+.hito-rotulo{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+color:var(--evento)}
+.hito p{margin:.4rem 0 0;font-size:.93rem}
+
+.escenario{border:1px solid var(--rule);border-radius:9px;background:var(--surface);margin-bottom:.8rem}
 .escenario>summary{cursor:pointer;padding:.9rem 1.2rem;font-weight:600;font-size:.92rem;
-list-style:none;display:flex;justify-content:space-between;align-items:center}
+list-style:none;display:flex;justify-content:space-between;align-items:center;gap:1rem}
 .escenario>summary::-webkit-details-marker{display:none}
-.escenario>summary::after{content:"+";font-family:var(--mono);color:var(--accent);font-size:1.1rem}
+.escenario>summary::after{content:"+";font-family:var(--mono);color:var(--acuerdo);font-size:1.1rem}
 .escenario[open]>summary::after{content:"–"}
-.escenario>summary:hover{color:var(--accent)}
-.cuerpo-esc{padding:0 1.2rem 1.4rem;border-top:1px solid var(--rule)}
+.escenario>summary:hover{color:var(--acuerdo)}
+.cuerpo-esc{padding:0 1.2rem 1.4rem;border-top:1px solid var(--rule);max-width:52rem}
 .cuerpo-esc h3{font-family:var(--serif);font-weight:400;font-size:1.1rem;margin:1.5rem 0 .6rem}
 .cuerpo-esc h4{font-size:.95rem;margin:0 0 .3rem}
 .lista-datos{margin:.4rem 0;padding-left:1.15rem;font-size:.9rem;color:var(--ink-soft)}
-.lista-datos li{margin-bottom:.3rem}
+.lista-datos li{margin-bottom:.45rem}
 .ficha-agente{padding:.85rem 0;border-top:1px solid var(--rule)}
 .obj-agente{margin:0;font-size:.9rem;color:var(--ink-soft)}
 .config{border-collapse:collapse;width:100%;font-size:.89rem;margin-top:.4rem}
 .config th{text-align:left;font-weight:500;color:var(--ink-faint);padding:.35rem .8rem .35rem 0;
 white-space:nowrap;vertical-align:top}
 .config td{padding:.35rem 0;font-family:var(--mono);font-size:.85rem}
-.incompleta{background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;
-padding:1.2rem 1.4rem;margin-top:2rem}
-.incompleta h2{border:none;padding:0;margin:0 0 .7rem;font-size:1.2rem;color:var(--warn)}
-.incompleta p{margin:0 0 .7rem;font-size:.93rem}
-.incompleta ul{margin:.3rem 0 .8rem;padding-left:1.2rem;font-size:.9rem}
-.incompleta li{margin-bottom:.4rem}
-.incompleta .motivo{color:var(--ink-soft);font-size:.89rem}
+.consignas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.consignas li{display:flex;gap:.75rem;align-items:baseline;background:var(--surface-alt);
+border-radius:6px;padding:.65rem .85rem;font-size:.88rem}
+.cuantas{font-family:var(--mono);color:var(--acuerdo);flex:none;font-variant-numeric:tabular-nums}
+
+a{color:var(--acuerdo)}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}
-@media (max-width:34rem){h1{font-size:1.7rem}main{padding-top:2rem}}
-</style></head><body><main>
+@media (max-width:40rem){h1{font-size:1.7rem}.tapa{padding-top:1.75rem}
+.adelanto{display:none}.tarjetas{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body>
 """
+
 
 
 def main() -> int:
