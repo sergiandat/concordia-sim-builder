@@ -109,6 +109,19 @@ jobs:
           TOKENIZERS_PARALLELISM: 'false'
         run: python scripts/run_headless.py escenario.json -o salida/
 
+      - name: Armar el reporte legible
+        if: always()
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        # Sin `continue-on-error` una falla acá tiraría abajo una corrida que ya
+        # terminó bien; el log crudo y el de Concordia se publican igual.
+        continue-on-error: true
+        run: |
+          python scripts/armar_reporte.py salida/raw_log.json \
+            -o salida/reporte.html \
+            --escenario escenario.json \
+            --resumen --csv
+
       - name: Publicar los resultados
         id: publicar
         env:
@@ -162,8 +175,18 @@ jobs:
                 detalle = '\n\n' + puntos.join('\n');
               } catch (e) { /* el resumen es opcional */ }
 
-              cuerpo = `## Listo\n\n**[Ver la deliberación](${url})**${detalle}\n\n` +
-                `<sub>Los datos en crudo están en [raw_log.json](${url}raw_log.json). ` +
+              // El reporte es lo que se lee; el log de Concordia y el JSON crudo
+              // quedan para quien quiera el detalle completo.
+              const hayReporte = fs.existsSync('salida/reporte.html');
+              const principal = hayReporte ? `${url}reporte.html` : url;
+              const otros = [
+                hayReporte ? `[el registro completo](${url})` : null,
+                fs.existsSync('salida/reporte.csv') ? `[los datos en planilla](${url}reporte.csv)` : null,
+                `[el JSON crudo](${url}raw_log.json)`,
+              ].filter(Boolean).join(', ');
+
+              cuerpo = `## Listo\n\n**[Ver la deliberación](${principal})**${detalle}\n\n` +
+                `<sub>También podés mirar ${otros}. ` +
                 `Si el link todavía no abre, esperá un minuto: GitHub tarda un poco en publicar.</sub>`;
             } else {
               cuerpo = `## No pude terminar\n\nLa corrida falló. ` +
