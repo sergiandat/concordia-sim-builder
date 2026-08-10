@@ -824,6 +824,16 @@ var CONTRIB = [
     return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
+  /* Para los indicadores se conservan los acentos: el nombre se muestra tal
+     cual en el informe, y «Diseno final» en vez de «Diseño final» queda mal.
+     Los nombres de los participantes ya viajan con acentos por todo el motor
+     sin problema, así que el riesgo es bajo. */
+  function idIndicador(nombre, i) {
+    var base = (nombre || "").toLowerCase().trim()
+      .replace(/\s+/g, "_").replace(/[^\wáéíóúñü]/g, "").replace(/^_+|_+$/g, "");
+    return base || ("indicador_" + (i + 1));
+  }
+
   function idDesde(nombre, i) {
     var base = sinAcentos((nombre || "").toLowerCase())
       .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
@@ -862,7 +872,7 @@ var CONTRIB = [
       .map(function (v, i) {
         var t = v.tipo || "percentage";
         var o = {
-          name: idDesde(v.nombre, i),
+          name: idIndicador(v.nombre, i),
           variable_type: t,
           description: (v.descripcion || "").trim(),
           min_value: null, max_value: null, allowed_values: null,
