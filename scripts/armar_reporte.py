@@ -121,13 +121,20 @@ def leer_mesa(bloque: dict) -> dict:
 PAT_VARS = re.compile(r"\[VARIABLES:\s*([^\]]{1,600})\]")
 
 
-def leer_indicadores(crudo) -> dict[str, list[tuple[int, float]]]:
+def leer_indicadores(crudo) -> tuple[dict[str, list[tuple[int, float]]],
+                                     dict[str, list[tuple[int, str]]]]:
     """
-    Serie por indicador. Los valores viajan dentro del contexto que ve cada
-    participante, así que se toma el último anuncio de cada paso; los ejemplos
-    de la plantilla (name1=value1) se descartan.
+    Devuelve dos conjuntos: los indicadores numéricos, que van al gráfico de
+    líneas, y los de estado —categóricos y sí/no—, que se muestran como una
+    franja. Estos últimos suelen ser los que registran qué se decidió, así que
+    dejarlos afuera del reporte, como pasaba antes, escondía el resultado.
+
+    Los valores viajan dentro del contexto que ve cada participante; se toma el
+    último anuncio de cada paso y se descartan los ejemplos de la plantilla.
     """
-    por_paso: dict[int, dict[str, float]] = {}
+    numericos: dict[int, dict[str, float]] = {}
+    estados: dict[int, dict[str, str]] = {}
+
     for bruto in crudo:
         if not isinstance(bruto, dict):
             continue
@@ -143,16 +150,68 @@ def leer_indicadores(crudo) -> dict[str, list[tuple[int, float]]]:
                 nombre, valor = par.split("=", 1)
                 nombre = nombre.strip().strip('"\\ ')
                 valor = valor.strip().strip('"\\ ')
+                if not nombre or not valor:
+                    continue
                 try:
-                    por_paso.setdefault(n, {})[nombre] = float(valor)
+                    numericos.setdefault(n, {})[nombre] = float(valor)
                 except ValueError:
-                    pass  # categóricos y booleanos no van al gráfico
+                    estados.setdefault(n, {})[nombre] = valor
 
     series: dict[str, list[tuple[int, float]]] = {}
-    for n in sorted(por_paso):
-        for nombre, valor in por_paso[n].items():
+    for n in sorted(numericos):
+        for nombre, valor in numericos[n].items():
             series.setdefault(nombre, []).append((n, valor))
-    return series
+
+    franjas: dict[str, list[tuple[int, str]]] = {}
+    for n in sorted(estados):
+        for nombre, valor in estados[n].items():
+            franjas.setdefault(nombre, []).append((n, valor))
+    return series, franjas
+
+
+def tramos(serie: list[tuple[int, str]], max_paso: int) -> list[tuple[str, int, int]]:
+    """Agrupa pasos consecutivos con el mismo valor: (valor, desde, hasta)."""
+    if not serie:
+        return []
+    salida, valor_actual, desde = [], serie[0][1], serie[0][0]
+    for paso, valor in serie[1:]:
+        if valor != valor_actual:
+            salida.append((valor_actual, desde, paso - 1))
+            valor_actual, desde = valor, paso
+    salida.append((valor_actual, desde, max_paso))
+    return salida
+
+
+def franja(nombre: str, serie: list[tuple[int, str]], max_paso: int) -> str:
+    """Línea de estados: cuánto duró cada valor y dónde cambió."""
+    partes = tramos(serie, max_paso)
+    if not partes:
+        return ""
+    total = max(1, max_paso)
+    valores_unicos = []
+    for v, _, _ in partes:
+        if v not in valores_unicos:
+            valores_unicos.append(v)
+
+    p = ['<div class="franja">']
+    p.append(f'<div class="franja-nombre">{html.escape(bonito(nombre))}</div>')
+    p.append('<div class="franja-barra">')
+    for valor, desde, hasta in partes:
+        ancho = max(2.0, 100.0 * (hasta - desde + 1) / total)
+        color = COLORES[valores_unicos.index(valor) % len(COLORES)]
+        etiqueta = f"{valor} · pasos {desde}–{hasta}" if hasta > desde else f"{valor} · paso {desde}"
+        p.append(f'<div class="tramo" style="width:{ancho:.1f}%;background:{color}" '
+                 f'title="{html.escape(etiqueta)}">'
+                 f'<span>{html.escape(valor)}</span></div>')
+    p.append("</div>")
+    if len(partes) > 1:
+        cambios = ", ".join(f"paso {d}: {html.escape(v)}" for v, d, _ in partes[1:])
+        p.append(f'<p class="franja-cambios">Cambió en {cambios}</p>')
+    else:
+        p.append(f'<p class="franja-cambios">No cambió en toda la deliberación: '
+                 f'quedó en <strong>{html.escape(partes[0][0])}</strong>.</p>')
+    p.append("</div>")
+    return "".join(p)
 
 
 # ---------------------------------------------------------------- gráfico
@@ -347,7 +406,7 @@ def redactar_resumen(pasos, series, resumen_datos, premisa: str) -> str:
         return ""
 
 
-def armar(pasos, series, resumen, decisiones, texto_resumen="") -> str:
+def armar(pasos, series, franjas, resumen, decisiones, texto_resumen="") -> str:
     titulo = "Acta de la deliberación"
     quienes = []
     for p in pasos:
@@ -389,9 +448,15 @@ def armar(pasos, series, resumen, decisiones, texto_resumen="") -> str:
         partes.append("</div>")
 
     # --- indicadores
-    if series:
+    if series or franjas:
         partes.append('<section><h2>Cómo evolucionaron los indicadores</h2>')
-        partes.append('<div class="grafico">' + grafico(series, max_paso) + "</div>")
+        if series:
+            partes.append('<div class="grafico">' + grafico(series, max_paso) + "</div>")
+        if franjas:
+            partes.append('<div class="grafico franjas">')
+            for nombre, serie in sorted(franjas.items()):
+                partes.append(franja(nombre, serie, max_paso))
+            partes.append("</div>")
         partes.append("</section>")
 
     # --- quiénes participaron
@@ -537,6 +602,12 @@ border-radius:0 8px 8px 0;padding:1.3rem 1.5rem;margin-bottom:2rem}
 .resumen p{margin:0 0 .85rem}.resumen p:last-child{margin-bottom:0}
 .resumen .marca-ia{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;
 text-transform:uppercase;color:var(--ink-faint);margin-bottom:.6rem}
+.franjas{display:flex;flex-direction:column;gap:1.2rem;margin-top:1rem}
+.franja-nombre{font-size:.86rem;font-weight:600;margin-bottom:.45rem}
+.franja-barra{display:flex;gap:2px;border-radius:5px;overflow:hidden}
+.tramo{min-width:0;padding:.5rem .6rem;color:#fff;font-size:.78rem;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.franja-cambios{margin:.45rem 0 0;font-size:.84rem;color:var(--ink-soft)}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}
 @media (max-width:34rem){h1{font-size:1.7rem}main{padding-top:2rem}}
@@ -566,7 +637,7 @@ def main() -> int:
         print("ERROR: el registro no tiene pasos legibles", file=sys.stderr)
         return 1
 
-    series = leer_indicadores(crudo)
+    series, franjas = leer_indicadores(crudo)
 
     resumen = {}
     ruta_res = args.crudo.parent / "resumen.json"
@@ -592,7 +663,7 @@ def main() -> int:
         texto_resumen = redactar_resumen(pasos, series, resumen, premisa)
 
     salida = args.salida or args.crudo.parent / "reporte.html"
-    salida.write_text(armar(pasos, series, resumen, decisiones, texto_resumen), encoding="utf-8")
+    salida.write_text(armar(pasos, series, franjas, resumen, decisiones, texto_resumen), encoding="utf-8")
 
     print(f"reporte      : {salida}")
     print(f"turnos       : {len(pasos)}")
