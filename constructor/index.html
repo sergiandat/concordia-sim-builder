@@ -158,7 +158,7 @@
       <textarea id="premisa" rows="7" placeholder="Ejemplo: La Secretaría debe diseñar una convocatoria para financiar proyectos sobre estrés hídrico. El presupuesto alcanza para seis proyectos..."></textarea>
     </div>
     <div class="campo">
-      <label for="gm-nombre">Cómo se llama la mesa <span class="pista">quien modera y toma nota</span></label>
+      <label for="gm-nombre">Cómo se llama el narrador <span class="pista">quien describe qué pasa y resuelve las consecuencias</span></label>
       <input id="gm-nombre" type="text" placeholder="Mesa Interinstitucional de Diseño">
     </div>
   </section>
@@ -248,7 +248,7 @@
   <section>
     <div class="titulo-seccion"><span class="numero">7</span><h2>Qué modelo usa</h2></div>
     <p class="ayuda">
-      Conviene que la mesa use un modelo distinto al de los participantes: el
+      Conviene que el narrador use un modelo distinto al de los participantes: el
       límite de uso se cuenta por modelo, así que repartir el trabajo hace que
       la corrida vaya más rápido.
     </p>
@@ -262,7 +262,7 @@
         </select>
       </div>
       <div class="campo">
-        <label for="modelo-gm">Modelo de la mesa</label>
+        <label for="modelo-gm">Modelo del narrador</label>
         <select id="modelo-gm">
           <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
           <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
@@ -279,7 +279,7 @@
           La temperatura controla cuánto se aparta de lo previsible: más baja da
           respuestas más consistentes, más alta más variadas. Los participantes
           usan un valor propio que el motor fija en cada acción, así que este
-          ajuste pesa sobre todo en la mesa.
+          ajuste pesa sobre todo en el narrador.
         </p>
         <div class="par">
           <div class="campo">
@@ -287,7 +287,7 @@
             <input id="temp" type="number" min="0" max="2" step="0.1" value="0.2">
           </div>
           <div class="campo">
-            <label for="temp-gm">Temperatura de la mesa</label>
+            <label for="temp-gm">Temperatura del narrador</label>
             <input id="temp-gm" type="number" min="0" max="2" step="0.1" value="0.1">
           </div>
         </div>
@@ -317,10 +317,10 @@
     </p>
 
     <details class="avanzado">
-      <summary>Tipo de mesa y motor</summary>
+      <summary>Tipo de narrador y motor</summary>
       <div class="cuerpo-avanzado">
         <div class="campo" style="margin-top:1rem">
-          <label for="gm-prefab">Tipo de mesa</label>
+          <label for="gm-prefab">Tipo de narrador</label>
           <select id="gm-prefab"></select>
         </div>
         <p class="ayuda" id="ayuda-gm-prefab"></p>
@@ -330,7 +330,7 @@
         </div>
         <p class="ayuda" id="ayuda-motor"></p>
         <div class="campo">
-          <label for="moderacion">Instrucciones para quien modera <span class="pista">opcional</span></label>
+          <label for="moderacion">Instrucciones para el narrador <span class="pista">opcional</span></label>
           <textarea id="moderacion" rows="4" placeholder="Pedir propuestas concretas, registrar acuerdos y desacuerdos, no dar por acordado lo que nadie aceptó en voz alta."></textarea>
         </div>
         <div class="campo">
@@ -388,7 +388,7 @@
     </details>
 
     <details class="avanzado">
-      <summary>Componentes extra de la mesa</summary>
+      <summary>Componentes extra del narrador</summary>
       <div class="cuerpo-avanzado">
         <p class="ayuda" style="margin-top:1rem">
           Agregan reglas del mundo: que aparezcan hechos externos, que cada uno
@@ -459,7 +459,7 @@ var MOTORES = [
 var ORDENES = [
   ["fixed",              "Fijo",           "Siempre en el mismo orden. Podés calcular quién habla en cada paso."],
   ["random",             "Al azar",        "El orden cambia en cada vuelta."],
-  ["game_master_choice", "Lo elige la mesa","Quien modera decide a quién le da la palabra."]
+  ["game_master_choice", "Lo elige el narrador","El narrador decide a quién le da la palabra."]
 ];
 
 var RELOJES = [
@@ -778,7 +778,7 @@ var CONTRIB = [
       refrescar();
       f.appendChild(c);
 
-      f.appendChild(campo("Qué pasa en ese momento", "contalo como si lo anunciara quien modera",
+      f.appendChild(campo("Qué pasa en ese momento", "contalo como si lo anunciara el narrador",
         area(4, d.texto, "El presupuesto se reduce un veinte por ciento. La mesa debe decidir cómo absorberlo.",
           function (x) { d.texto = x; })));
 
@@ -916,7 +916,7 @@ var CONTRIB = [
     if ($("antiadulacion").checked) {
       datos = datos.concat([
         "Adherir a una propuesta sin haber planteado antes una objeción o una condición no es una posición aceptable en esta mesa.",
-        "Quien modera debe repreguntar cuando alguien exprese acuerdo sin señalar ningún reparo desde su rol.",
+        "El narrador debe repreguntar cuando alguien exprese acuerdo sin señalar ningún reparo desde su rol.",
         "Un acuerdo alcanzado en la primera vuelta, sin objeciones registradas, debe tratarse como provisorio."
       ]);
     }
