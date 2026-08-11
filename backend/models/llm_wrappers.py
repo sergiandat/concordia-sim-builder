@@ -294,6 +294,18 @@ class CustomGPTModel:
         return 0, responses[0], {}
 
 
+# Cuántas llamadas hizo cada modelo. La cuota diaria del plan gratuito son 500
+# pedidos por modelo, y nos cortó dos corridas a mitad de camino: la #7 se quedó
+# en 12 de 22 pasos. Sin este número, dimensionar una simulación es adivinar
+# cuántos pasos entran. Se vuelca en resumen.json al terminar.
+CONSUMO: dict[str, dict[str, int]] = {}
+
+
+def _anotar(modelo: str, clave: str) -> None:
+    CONSUMO.setdefault(modelo, {'llamadas': 0, 'esperas': 0, 'segundos_esperando': 0})
+    CONSUMO[modelo][clave] += 1
+
+
 class GeminiModel:
     """
     Gemini model wrapper using Google's genai library.
@@ -389,12 +401,18 @@ class GeminiModel:
                             response = _fut.result(timeout=timeout)
                         except _cf.TimeoutError:
                             raise TimeoutError(f"Gemini call timed out after {timeout:.0f}s")
+                    # Se cuenta el pedido que efectivamente llegó a destino: los
+                    # rechazados por el límite por minuto no descuentan del cupo
+                    # diario, y contarlos inflaría el consumo real.
+                    _anotar(self._model_name, 'llamadas')
                     break
                 except Exception as call_err:
                     delay = self._rate_limit_delay(call_err)
                     if delay is None or attempt == self._MAX_RETRIES:
                         raise
                     wait = delay or min(2 ** attempt, 30)
+                    _anotar(self._model_name, 'esperas')
+                    CONSUMO[self._model_name]['segundos_esperando'] += int(wait)
                     llm_print(
                         f"[LLM] Rate limited, waiting {wait:.1f}s "
                         f"(attempt {attempt + 1}/{self._MAX_RETRIES})"

@@ -192,6 +192,24 @@ def main() -> int:
         "modelo": f"{llm_settings.provider}/{llm_settings.model_name}",
         "modelo_gm": f"{gm_settings.provider}/{gm_settings.model_name}" if gm_settings else None,
     }
+
+    # Cuántas llamadas costó, por modelo. Es el dato que faltaba para saber
+    # cuántos pasos entran en los 500 diarios del plan gratuito en vez de
+    # descubrirlo cuando la corrida se corta por la mitad.
+    try:
+        from backend.models.llm_wrappers import CONSUMO
+        if CONSUMO:
+            resumen["consumo"] = CONSUMO
+            resumen["consumo_por_paso"] = {
+                m: round(d["llamadas"] / paso[0], 1)
+                for m, d in CONSUMO.items() if paso[0]
+            }
+            for m, d in CONSUMO.items():
+                log(f"  {m}: {d['llamadas']} llamadas, "
+                    f"{d['esperas']} esperas ({d['segundos_esperando']}s)")
+    except Exception as e:
+        log(f"  consumo         FALLO: {e}")
+
     (args.salida / "resumen.json").write_text(
         json.dumps(resumen, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"  resumen.json")
