@@ -1307,56 +1307,65 @@ var CONTRIB = [
   /* Ayuda por paso, tomada de la guia oficial del proyecto
      (docs/SIMULATION_BUILDING_GUIDE.md). Cada entrada:
      [titulo, [parrafos], ejemplo, [lista con rotulo]] */
+  /* Ayuda por paso. El publico entiende metodologia pero no programa, asi que
+     se nombra el mecanismo y sus limites en vocabulario metodologico, en vez de
+     simplificar. Fuentes: docs/SIMULATION_BUILDING_GUIDE.md y
+     docs/QUANTITATIVE_RESEARCH_FEATURES.md del propio proyecto. */
   var AYUDAS = [
     ["El tema",
-     ["Es la parte que más pesa: le dice al modelo en qué mundo viven los participantes. Cuanto más específica, más rica la discusión.",
-      "Una buena premisa dice dónde y cuándo pasa, cuál es la situación con números concretos, qué pueden hacer los participantes, qué los limita y por qué importa."],
-     "«Dos países están en guerra y quieren la paz» no da nada. «Dos diplomáticos negocian un alto el fuego en tres rondas; el país A tiene ventaja militar pero está sancionado, el B controla las rutas comerciales» sí.",
-     ["Qué incluir", ["Dónde y cuándo pasa", "La situación actual, con cifras", "Qué pueden hacer", "Qué los limita", "Por qué importa"]]],
+     ["La premisa es el estímulo experimental: define el espacio de lo que puede pasar. Todo lo que no esté acá, o los participantes lo inventan, o no ocurre.",
+      "Una premisa vaga no produce respuestas neutras, produce respuestas genéricas —el modelo rellena con lugares comunes—. La especificidad no es estilo: es control sobre la variabilidad."],
+     "«Dos países en guerra quieren la paz» deja todo librado al modelo. «Tres rondas de negociación; A tiene ventaja militar y está sancionado; B controla las rutas comerciales; si no hay acuerdo escalan las sanciones» fija las condiciones iniciales y el criterio de cierre.",
+     ["Qué operacionalizar", ["Escenario y momento", "Estado inicial, con magnitudes", "Repertorio de acciones posibles", "Restricciones que acotan", "Qué está en juego"]]],
 
     ["Los datos del caso",
-     ["Hechos que todos conocen al sentarse. Sirven para el contexto que condiciona las decisiones, las cifras y las reglas que todos deben respetar.",
-      "Una afirmación clara por línea. Poné los que alguien podría usar para defender su posición."],
-     "«Las sanciones le cuestan al país A dos mil millones por año.» «La zona en disputa tiene 500.000 desplazados.»",
+     ["Información compartida por todos los participantes: el equivalente a lo que en un experimento se le da a todos los grupos por igual.",
+      "Lo que ponés acá deja de ser materia de disputa y pasa a ser dato. Lo que dejes afuera queda disponible para que alguien lo invente —el motor no distingue entre un hecho configurado y uno que un participante afirmó—.",
+      "Una proposición por línea, verificable, sin adjetivos."],
+     "«Las sanciones le cuestan a A dos mil millones anuales.» «La zona en disputa tiene 500.000 desplazados.»",
      null],
 
     ["Quiénes participan",
-     ["El objetivo maneja la conducta. Escribilo como una instrucción de acción, no como una descripción pasiva.",
-      "«Alicia quiere la paz» es débil. «Negociar un alto el fuego que proteja las fronteras; aceptar concesiones solo si levantan las sanciones; RECHAZAR cualquier propuesta que exija retirar tropas del norte» es fuerte.",
-      "En las memorias poné quién es, qué sabe, cómo ve a los demás, qué cree y qué no está dispuesto a hacer."],
-     "La guía recomienda entre 5 y 10 memorias por participante: con menos se comporta de forma genérica, con más el modelo pierde el foco.",
-     ["Qué poner en las memorias", ["Quién es y de dónde viene", "Qué sabe de la situación", "Cómo ve a los otros", "Qué cree y qué valora", "Qué no puede o no quiere hacer"]]],
+     ["El objetivo funciona como instrucción, no como caracterización. La guía del proyecto recomienda verbos de acción explícitos, incluidas las negativas: qué acepta, qué rechaza, bajo qué condición cede.",
+      "Para que haya deliberación y no coordinación, los objetivos tienen que ser incompatibles entre sí en algún punto. Si todos pueden cumplirse a la vez, el resultado va a ser consenso temprano sin fricción —lo verificamos: el consenso trepa al máximo y no vuelve a bajar—.",
+      "Las memorias definen el punto de vista: identidad, qué sabe, cómo ve a los demás, qué no está dispuesto a conceder."],
+     "El proyecto sugiere entre 5 y 10 memorias por participante. Con menos el comportamiento se vuelve genérico; con más el modelo pierde el foco y deja de usarlas.",
+     ["Qué fija cada memoria", ["Identidad y trayectoria", "Conocimiento de la situación", "Vínculos con los demás", "Creencias y valores", "Restricciones autoimpuestas"]]],
 
     ["Cómo se da la palabra",
-     ["Con orden fijo habla uno por paso y podés calcular a quién le toca. Eso importa si querés que alguien puntual cierre la discusión.",
-      "El motor por turnos conviene cuando la discusión es reactiva —negociaciones, entrevistas—. El simultáneo evita que los más dominantes acaparen y da más datos por paso, pero está en Opciones avanzadas."],
-     "Con 5 participantes, el segundo de la lista habla en los pasos 2, 7, 12, 17 y 22.",
-     ["Cuántos pasos, según la guía", ["Una decisión, 2 participantes: 2 a 5", "Interacción corta, 2-3: 10 a 15", "Escenario extendido, 3-5: 20 a 30", "Simulación de política, 5-8: 30 a 50"]]],
+     ["Con orden fijo el turno es determinístico y podés fijar de antemano quién interviene en cada momento crítico. Con orden al azar o a criterio del narrador perdés ese control.",
+      "El motor por turnos introduce ventaja de posición: quien habla primero fija el marco, y los participantes dominantes tienden a acaparar. El motor simultáneo lo evita —todos actúan en cada paso sin ver lo del resto— y multiplica las observaciones por paso. Está en Opciones avanzadas.",
+      "Con un participante por paso, la cantidad de pasos dividida por la cantidad de participantes son las vueltas efectivas."],
+     "Cinco participantes en cinco pasos es una sola vuelta: cada uno enuncia su posición y nadie replica. Recién con cuatro vueltas aparece ida y vuelta.",
+     ["Pasos sugeridos por el proyecto", ["Decisión única, 2 participantes: 2 a 5", "Interacción corta, 2-3: 10 a 15", "Escenario extendido, 3-5: 20 a 30", "Simulación de política, 5-8: 30 a 50"]]],
 
     ["Qué se observa",
-     ["El narrador va actualizando estos valores según lo que pasa en la discusión.",
-      "La regla de cambio es lo que más importa: escribila en lenguaje llano, diciendo cuándo sube y cuándo baja.",
-      "El tipo «Opciones» es el que registra qué se decidió."],
-     "La guía recomienda empezar con dos o tres indicadores. Con muchos, al narrador le cuesta seguirlos a todos con precisión.",
-     null],
+     ["Son las variables de resultado. Las actualiza el narrador interpretando la discusión: son juicios de un modelo, no mediciones. El informe las marca como estimadas por eso.",
+      "La regla de cambio es la operacionalización: define qué evidencia cuenta como movimiento. Sin un criterio explícito, el narrador la mueve por impresión general.",
+      "El tipo «Opciones» registra el resultado entre alternativas cerradas. Ojo: el motor no valida esa lista y puede devolver un valor fuera de ella."],
+     "«Nivel de consenso: solo sube ante aceptación explícita; una objeción sin responder impide considerar que haya acuerdo.»",
+     ["Consideraciones", ["Dos o tres, no más: el narrador pierde precisión", "Si al final siguen moviéndose, faltaron pasos", "Si se estabilizan mucho antes, sobran"]]],
 
     ["Dónde hay que decidir",
-     ["Inyectan un hecho en un paso determinado. Sirven para forzar una votación, o para meter un golpe externo: una crisis, un recorte, una norma nueva.",
-      "Elegí el paso mirando quién habla en ese turno. Si querés que la decisión final la formule alguien puntual, tiene que caer en un turno suyo."],
-     "«El presupuesto se reduce un veinte por ciento. La mesa debe decidir cómo absorberlo.»",
+     ["Inyectan un hecho en un paso determinado: sirven como manipulación experimental, con el resto de las condiciones constantes.",
+      "El paso importa. El evento entra en la premisa, pero la consigna con la que el narrador le da la palabra a quien habla en ese turno la redacta él —lo verificamos: un recorte presupuestario inyectado en el paso 15 no apareció en la consigna, y nadie lo respondió—.",
+      "Si querés que alguien puntual formule la decisión final, el momento tiene que caer en un turno suyo. El recuadro de turnos te dice cuáles son."],
+     "«El presupuesto se reduce un veinte por ciento. Hay que decidir cómo absorberlo: menos proyectos, montos menores o cofinanciamiento.»",
      null],
 
     ["Qué modelo usa",
-     ["Conviene que el narrador use un modelo distinto al de los participantes: el límite de uso se cuenta por modelo, así que repartir hace que la corrida vaya más rápido.",
-      "La temperatura de los participantes casi no pesa: el motor la fija por su cuenta en cada acción. Donde sí influye es en el narrador."],
+     ["El límite de uso del plan gratuito se cuenta por modelo: 500 pedidos diarios cada uno. Usar modelos distintos para participantes y narrador duplica el techo y reduce las esperas.",
+      "La temperatura de los participantes no controla su variabilidad: el motor la fija en cada acción e ignora este valor. Donde sí opera es en el narrador, que resuelve y reparte observaciones.",
+      "Una corrida de 22 pasos con 5 participantes consume entre 450 y 690 llamadas. Planificá en consecuencia."],
      "",
      null],
 
     ["Opciones avanzadas",
-     ["Nada de esto hace falta para una mesa que delibera. Está para otros formatos: entrevistas, encuestas, juegos con pagos, mercados.",
-      "Si no sabés si lo necesitás, no lo necesitás."],
+     ["Acá está lo que cambia el diseño, no la estética: tipo de narrador, motor, reloj y restricción del espacio de acción.",
+      "El tipo de narrador es la variable más influyente que medimos. Con el conversacional, los cinco turnos recibieron la misma consigna genérica y el consenso llegó al máximo; con el general, la consigna cambió en cada turno y el consenso subió a 100 y cayó a 60. Mismo escenario, único cambio.",
+      "Restringir las acciones disponibles convierte respuestas abiertas en categorías comparables entre corridas: es la vía para tener una variable dependiente codificable."],
      "",
-     null]
+     ["Sin exponer todavía", ["Generación de agentes por muestreo, con marginales o perfiles conjuntos y semilla fija", "Barridos de parámetros con repeticiones", "Confiabilidad entre corridas por ICC(3,1)"]]]
   ];
 
   function pintarAyuda(i) {
