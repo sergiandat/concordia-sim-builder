@@ -9,6 +9,7 @@ psychological models as component architectures.
 """
 from concordia.language_model import language_model
 from concordia.typing import entity_component
+from concordia.components.agent import constant
 from typing import Any
 
 
@@ -16,20 +17,17 @@ def personality_traits_component(
     model: language_model.LanguageModel,
     traits: dict[str, str | int],
 ) -> entity_component.ComponentT:
-    from concordia.components.agent import trait
-
     trait_descriptions = []
     for trait_name, value in traits.items():
         trait_descriptions.append(f"{trait_name.capitalize()}: {value}/5")
 
     state = f"Personality traits: {', '.join(trait_descriptions)}"
 
-    class PersonalityComponent(entity_component.ConstantComponent):
-        def __init__(self, state: str = state):
-            super().__init__(state)
-            self._name = "personality_traits"
-
-    return PersonalityComponent(state)
+    # Antes era una subclase de entity_component.ConstantComponent, que
+    # dejo de existir: la clase se mudo a components.agent.constant.
+    # El nombre que llevaba pasa a pre_act_label, que es el rotulo con
+    # el que Concordia lo muestra en el contexto del participante.
+    return constant.Constant(state=state, pre_act_label="Personality")
 
 
 def cognitive_bias_component(
@@ -67,12 +65,11 @@ def cognitive_bias_component(
 
     state = f"This person {description} (strength: {bias_strength})."
 
-    class CognitiveBiasComponent(entity_component.ConstantComponent):
-        def __init__(self, state: str = state):
-            super().__init__(state)
-            self._name = "cognitive_bias"
-
-    return CognitiveBiasComponent(state)
+    # Antes era una subclase de entity_component.ConstantComponent, que
+    # dejo de existir: la clase se mudo a components.agent.constant.
+    # El nombre que llevaba pasa a pre_act_label, que es el rotulo con
+    # el que Concordia lo muestra en el contexto del participante.
+    return constant.Constant(state=state, pre_act_label="Cognitive bias")
 
 
 def social_identity_component(
@@ -103,12 +100,11 @@ def social_identity_component(
         f"which affects how they perceive others and interpret events."
     )
 
-    class SocialIdentityComponent(entity_component.ConstantComponent):
-        def __init__(self, state: str = state):
-            super().__init__(state)
-            self._name = "social_identity"
-
-    return SocialIdentityComponent(state)
+    # Antes era una subclase de entity_component.ConstantComponent, que
+    # dejo de existir: la clase se mudo a components.agent.constant.
+    # El nombre que llevaba pasa a pre_act_label, que es el rotulo con
+    # el que Concordia lo muestra en el contexto del participante.
+    return constant.Constant(state=state, pre_act_label="Social identity")
 
 
 def emotion_component(
@@ -136,12 +132,11 @@ def emotion_component(
         f"This affects their perception of events and decision-making."
     )
 
-    class EmotionComponent(entity_component.ConstantComponent):
-        def __init__(self, state: str = state):
-            super().__init__(state)
-            self._name = "emotion"
-
-    return EmotionComponent(state)
+    # Antes era una subclase de entity_component.ConstantComponent, que
+    # dejo de existir: la clase se mudo a components.agent.constant.
+    # El nombre que llevaba pasa a pre_act_label, que es el rotulo con
+    # el que Concordia lo muestra en el contexto del participante.
+    return constant.Constant(state=state, pre_act_label="Current emotion")
 
 
 def theory_of_planned_behavior_component(
@@ -177,12 +172,11 @@ def theory_of_planned_behavior_component(
         f"Intention is determined by balancing these three factors."
     )
 
-    class TPBComponent(entity_component.ConstantComponent):
-        def __init__(self, state: str = state):
-            super().__init__(state)
-            self._name = "theory_of_planned_behavior"
-
-    return TPBComponent(state)
+    # Antes era una subclase de entity_component.ConstantComponent, que
+    # dejo de existir: la clase se mudo a components.agent.constant.
+    # El nombre que llevaba pasa a pre_act_label, que es el rotulo con
+    # el que Concordia lo muestra en el contexto del participante.
+    return constant.Constant(state=state, pre_act_label="Attitude toward the behavior")
 
 
 def values_component(
@@ -219,12 +213,11 @@ def values_component(
             f"Decisions are evaluated based on alignment with these values."
         )
 
-    class ValuesComponent(entity_component.ConstantComponent):
-        def __init__(self, state: str = state):
-            super().__init__(state)
-            self._name = "values"
-
-    return ValuesComponent(state)
+    # Antes era una subclase de entity_component.ConstantComponent, que
+    # dejo de existir: la clase se mudo a components.agent.constant.
+    # El nombre que llevaba pasa a pre_act_label, que es el rotulo con
+    # el que Concordia lo muestra en el contexto del participante.
+    return constant.Constant(state=state, pre_act_label="Values")
 
 
 # Component template registry

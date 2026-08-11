@@ -155,7 +155,9 @@ def _armar_componentes_psicologicos(components_copy, model, nombre_agente):
             continue
 
         armados[clave] = componente
-        estado = getattr(componente, '_state', None) or getattr(componente, 'get_state', lambda: '')()
+        # constant.Constant guarda el texto en _state. Se lo lee para poder
+        # ofrecerlo como memoria a los prefabs que no aceptan componentes.
+        estado = getattr(componente, '_state', '')
         if isinstance(estado, str) and estado.strip():
             frases.append(estado.strip().replace('This person', nombre_agente))
 
