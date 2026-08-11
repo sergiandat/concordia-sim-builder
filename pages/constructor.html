@@ -146,6 +146,10 @@
   .tilde{width:1.05rem;height:1.05rem;border-radius:50%;border:1px solid var(--rule-strong);
     flex:none;display:flex;align-items:center;justify-content:center;font-size:.62rem}
   .avance li.ok .tilde{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+  .rotulo-lista{font-size:.78rem!important;letter-spacing:.05em;text-transform:uppercase;
+    font-family:var(--mono);color:var(--ink-faint)!important;margin:1rem 0 .4rem!important}
+  .lista-ayuda{margin:0;padding-left:1.1rem;font-size:.86rem;color:var(--ink-soft)}
+  .lista-ayuda li{margin-bottom:.3rem}
   a{color:var(--accent)}
   .pie{padding:2.5rem 0;color:var(--ink-faint);font-size:.88rem}
   @media (max-width:34rem){h1{font-size:1.75rem}.cabecera{padding:2rem 0 1.75rem}}
@@ -1300,39 +1304,59 @@ var CONTRIB = [
   /* Cada seccion explica que hay que hacer, da un ejemplo concreto y avisa el
      error tipico. La ayuda sigue a donde esta parado el lector en vez de
      amontonarse arriba, que es lo que hace que nadie la lea. */
+  /* Ayuda por paso, tomada de la guia oficial del proyecto
+     (docs/SIMULATION_BUILDING_GUIDE.md). Cada entrada:
+     [titulo, [parrafos], ejemplo, [lista con rotulo]] */
   var AYUDAS = [
     ["El tema",
-     ["Describí la situación como se la contarías a alguien que llega a la reunión: qué hay que resolver, con qué restricciones y qué se espera de la mesa.",
-      "Cuanto más concreta la restricción, mejor discuten. «Hay poco presupuesto» da menos juego que «alcanza para seis proyectos y hay nueve pedidos»."],
-     "El presupuesto alcanza para seis proyectos de dieciocho meses, y solo dos pueden incluir equipamiento."],
+     ["Es la parte que más pesa: le dice al modelo en qué mundo viven los participantes. Cuanto más específica, más rica la discusión.",
+      "Una buena premisa dice dónde y cuándo pasa, cuál es la situación con números concretos, qué pueden hacer los participantes, qué los limita y por qué importa."],
+     "«Dos países están en guerra y quieren la paz» no da nada. «Dos diplomáticos negocian un alto el fuego en tres rondas; el país A tiene ventaja militar pero está sancionado, el B controla las rutas comerciales» sí.",
+     ["Qué incluir", ["Dónde y cuándo pasa", "La situación actual, con cifras", "Qué pueden hacer", "Qué los limita", "Por qué importa"]]],
+
     ["Los datos del caso",
-     ["Las cifras y hechos que todos conocen al sentarse. Sin esto discuten sin números y se vuelve abstracto.",
-      "Un dato por línea. Poné los que alguien podría usar para defender su posición."],
-     "Dos provincias concentran el sesenta y cinco por ciento de las capacidades."],
+     ["Hechos que todos conocen al sentarse. Sirven para el contexto que condiciona las decisiones, las cifras y las reglas que todos deben respetar.",
+      "Una afirmación clara por línea. Poné los que alguien podría usar para defender su posición."],
+     "«Las sanciones le cuestan al país A dos mil millones por año.» «La zona en disputa tiene 500.000 desplazados.»",
+     null],
+
     ["Quiénes participan",
-     ["Cada uno defiende algo distinto. Si todos quieren lo mismo, se ponen de acuerdo en la primera vuelta y no pasa nada interesante.",
-      "El objetivo tiene que poder chocar con el de otro. «Que salga bien» no choca con nada; «que salga este trimestre» sí choca con «que tenga respaldo técnico»."],
-     "Conseguir que las provincias chicas tengan liderazgo real, no solo ejecución."],
+     ["El objetivo maneja la conducta. Escribilo como una instrucción de acción, no como una descripción pasiva.",
+      "«Alicia quiere la paz» es débil. «Negociar un alto el fuego que proteja las fronteras; aceptar concesiones solo si levantan las sanciones; RECHAZAR cualquier propuesta que exija retirar tropas del norte» es fuerte.",
+      "En las memorias poné quién es, qué sabe, cómo ve a los demás, qué cree y qué no está dispuesto a hacer."],
+     "La guía recomienda entre 5 y 10 memorias por participante: con menos se comporta de forma genérica, con más el modelo pierde el foco.",
+     ["Qué poner en las memorias", ["Quién es y de dónde viene", "Qué sabe de la situación", "Cómo ve a los otros", "Qué cree y qué valora", "Qué no puede o no quiere hacer"]]],
+
     ["Cómo se da la palabra",
-     ["Habla uno por paso. Con orden fijo podés calcular a quién le toca, y eso importa si querés que alguien puntual cierre la discusión.",
-      "Mirá el recuadro de turnos: te dice exactamente en qué pasos habla cada uno."],
-     "Con 5 participantes, el segundo de la lista habla en los pasos 2, 7, 12, 17 y 22."],
+     ["Con orden fijo habla uno por paso y podés calcular a quién le toca. Eso importa si querés que alguien puntual cierre la discusión.",
+      "El motor por turnos conviene cuando la discusión es reactiva —negociaciones, entrevistas—. El simultáneo evita que los más dominantes acaparen y da más datos por paso, pero está en Opciones avanzadas."],
+     "Con 5 participantes, el segundo de la lista habla en los pasos 2, 7, 12, 17 y 22.",
+     ["Cuántos pasos, según la guía", ["Una decisión, 2 participantes: 2 a 5", "Interacción corta, 2-3: 10 a 15", "Escenario extendido, 3-5: 20 a 30", "Simulación de política, 5-8: 30 a 50"]]],
+
     ["Qué se observa",
-     ["Indicadores que se mueven con la discusión. Sirven para ver el efecto de lo que se acuerda.",
-      "El tipo «Opciones» es el que registra qué se decidió: ahí ponés los resultados posibles y queda asentado cuál se eligió."],
-     "Nivel de consenso, de 0 a 100. Sube solo ante aceptación explícita."],
+     ["El narrador va actualizando estos valores según lo que pasa en la discusión.",
+      "La regla de cambio es lo que más importa: escribila en lenguaje llano, diciendo cuándo sube y cuándo baja.",
+      "El tipo «Opciones» es el que registra qué se decidió."],
+     "La guía recomienda empezar con dos o tres indicadores. Con muchos, al narrador le cuesta seguirlos a todos con precisión.",
+     null],
+
     ["Dónde hay que decidir",
-     ["Momentos en que la mesa tiene que resolver algo, o aparece una novedad que cambia el panorama.",
+     ["Inyectan un hecho en un paso determinado. Sirven para forzar una votación, o para meter un golpe externo: una crisis, un recorte, una norma nueva.",
       "Elegí el paso mirando quién habla en ese turno. Si querés que la decisión final la formule alguien puntual, tiene que caer en un turno suyo."],
-     "El presupuesto se reduce un veinte por ciento. Hay que decidir cómo absorberlo."],
+     "«El presupuesto se reduce un veinte por ciento. La mesa debe decidir cómo absorberlo.»",
+     null],
+
     ["Qué modelo usa",
      ["Conviene que el narrador use un modelo distinto al de los participantes: el límite de uso se cuenta por modelo, así que repartir hace que la corrida vaya más rápido.",
-      "La temperatura de los participantes casi no pesa: el motor la fija por su cuenta en cada acción."],
-     ""],
+      "La temperatura de los participantes casi no pesa: el motor la fija por su cuenta en cada acción. Donde sí influye es en el narrador."],
+     "",
+     null],
+
     ["Opciones avanzadas",
-     ["Nada de esto hace falta para una mesa que delibera. Está para otros formatos: entrevistas, encuestas, juegos con pagos.",
+     ["Nada de esto hace falta para una mesa que delibera. Está para otros formatos: entrevistas, encuestas, juegos con pagos, mercados.",
       "Si no sabés si lo necesitás, no lo necesitás."],
-     ""]
+     "",
+     null]
   ];
 
   function pintarAyuda(i) {
@@ -1343,6 +1367,12 @@ var CONTRIB = [
     caja.textContent = "";
     a[1].forEach(function (t) { caja.appendChild(el("p", null, t)); });
     if (a[2]) caja.appendChild(el("p", "ejemplo", a[2]));
+    if (a[3]) {
+      caja.appendChild(el("p", "rotulo-lista", a[3][0]));
+      var ul = el("ul", "lista-ayuda");
+      a[3][1].forEach(function (x) { ul.appendChild(el("li", null, x)); });
+      caja.appendChild(ul);
+    }
   }
 
   function pintarAvance(actual) {
