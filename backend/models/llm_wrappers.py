@@ -325,6 +325,17 @@ class GeminiModel:
         Returns 0.0 when retryable without a usable hint.
         """
         text = str(err)
+
+        # La cuota diaria no se recupera esperando: reintentar seis veces con
+        # pausas de un minuto solo retrasa el fracaso diez minutos. Se corta de
+        # una y el mensaje dice cuándo vuelve a haber cupo.
+        if 'PerDay' in text or 'per day' in text.lower():
+            raise RuntimeError(
+                'Se agotó la cuota DIARIA del modelo (500 pedidos por modelo en el '
+                'plan gratuito). No se recupera esperando: se repone a medianoche '
+                'del Pacífico. Probá con otro modelo o habilitá facturación.'
+            ) from err
+
         retryable = ('429' in text or 'RESOURCE_EXHAUSTED' in text
                      or '503' in text or 'UNAVAILABLE' in text)
         if not retryable:

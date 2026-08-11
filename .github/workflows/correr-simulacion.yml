@@ -8,6 +8,12 @@ name: Correr simulación
 on:
   issues:
     types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: 'Número del issue con el escenario a correr'
+        required: true
+        type: string
 
 permissions:
   issues: write     # comentar el resultado en el hilo
@@ -15,12 +21,17 @@ permissions:
 
 jobs:
   correr:
-    if: contains(github.event.issue.labels.*.name, 'simulacion')
+    # En disparo manual no hay issue en el evento, así que la etiqueta
+    # solo se exige cuando la corrida viene de un issue nuevo.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.issue.labels.*.name, 'simulacion')
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
     steps:
       - name: Verificar que quien pide esté habilitado
+        if: github.event_name == 'issues'
         env:
           # El repo es público: sin este filtro, cualquiera podría disparar
           # corridas contra la cuota de Gemini del dueño. Se edita en
@@ -45,6 +56,14 @@ jobs:
           python-version: '3.13'
           cache: pip
 
+      - name: Traer el issue cuando el disparo es manual
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue view "${{ inputs.issue }}" --repo "$GITHUB_REPOSITORY"             --json body --jq '.body' > cuerpo_issue.txt
+          echo "NUMERO_ISSUE=${{ inputs.issue }}" >> "$GITHUB_ENV"
+
       - name: Extraer el escenario del issue
         env:
           CUERPO: ${{ github.event.issue.body }}
@@ -52,7 +71,12 @@ jobs:
           python - <<'PY'
           import json, os, re, sys
 
-          cuerpo = os.environ["CUERPO"]
+          # En disparo manual el cuerpo llega por archivo; en issue, por entorno.
+          if os.path.exists("cuerpo_issue.txt"):
+              with open("cuerpo_issue.txt", encoding="utf-8") as f:
+                  cuerpo = f.read()
+          else:
+              cuerpo = os.environ.get("CUERPO", "")
 
           # La plantilla usa render: json, así que el escenario llega dentro de
           # un bloque de código. Si alguien lo pega suelto, se toma el primer
@@ -125,7 +149,7 @@ jobs:
       - name: Publicar los resultados
         id: publicar
         env:
-          NUMERO: ${{ github.event.issue.number }}
+          NUMERO: ${{ github.event.issue.number || env.NUMERO_ISSUE }}
         run: |
           DESTINO="resultados/$NUMERO"
           git fetch origin gh-pages --depth 1 2>/dev/null \
@@ -151,6 +175,7 @@ jobs:
         uses: actions/github-script@v7
         env:
           RUTA: ${{ steps.publicar.outputs.ruta }}
+          NUMERO_ISSUE: ${{ github.event.issue.number || env.NUMERO_ISSUE }}
         with:
           script: |
             const fs = require('fs');
@@ -198,6 +223,6 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: Number(process.env.NUMERO_ISSUE || context.issue.number),
               body: cuerpo,
             });

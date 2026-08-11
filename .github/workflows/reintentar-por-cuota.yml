@@ -1,0 +1,62 @@
+name: Reintentar las que cortó la cuota
+
+# La cuota diaria del plan gratuito de Gemini son 500 pedidos por modelo y se
+# repone a medianoche del Pacífico. Una corrida que se topa con ese techo queda
+# incompleta y no hay nada que hacer hasta el día siguiente, así que en vez de
+# pedirle a alguien que se acuerde de relanzarla, se relanza sola.
+
+on:
+  schedule:
+    # 07:20 UTC = 00:20 en el Pacífico, veinte minutos después de la reposición
+    - cron: '20 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: read
+  actions: write
+
+jobs:
+  reintentar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Buscar corridas que cortó la cuota y relanzarlas
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          DUENIO="${REPO%%/*}"
+          NOMBRE="${REPO##*/}"
+          RELANZADAS=0
+
+          # Solo issues abiertos con la etiqueta, de más nuevo a más viejo
+          for N in $(gh issue list --repo "$REPO" --label simulacion --state open \
+                       --limit 20 --json number --jq '.[].number'); do
+
+            URL="https://$DUENIO.github.io/$NOMBRE/resultados/$N/resumen.json"
+            RES=$(curl -sf --max-time 20 "$URL" || echo "")
+
+            if [ -z "$RES" ]; then
+              echo "#$N todavía no publicó resultados; puede estar corriendo. Se omite."
+              continue
+            fi
+
+            COMPLETA=$(echo "$RES" | python -c "import json,sys; print(json.load(sys.stdin).get('completa'))")
+            POR_CUOTA=$(echo "$RES" | python -c "
+          import json, sys
+          e = json.load(sys.stdin).get('error') or ''
+          print('si' if ('PerDay' in e or 'RESOURCE_EXHAUSTED' in e) else 'no')")
+
+            if [ "$COMPLETA" = "False" ] && [ "$POR_CUOTA" = "si" ]; then
+              echo "#$N quedó incompleta por cuota: se relanza."
+              gh workflow run correr-simulacion.yml --repo "$REPO" -f issue="$N"
+              RELANZADAS=$((RELANZADAS + 1))
+              # De a una por día: relanzar varias volvería a agotar la cuota
+              # y ninguna terminaría.
+              break
+            fi
+          done
+
+          if [ "$RELANZADAS" = "0" ]; then
+            echo "No hay corridas pendientes por cuota."
+          fi
