@@ -150,6 +150,37 @@
     font-family:var(--mono);color:var(--ink-faint)!important;margin:1rem 0 .4rem!important}
   .lista-ayuda{margin:0;padding-left:1.1rem;font-size:.86rem;color:var(--ink-soft)}
   .lista-ayuda li{margin-bottom:.3rem}
+  .b-guia{width:100%;margin-top:1.1rem;border:1px solid var(--rule-strong);background:transparent;
+    color:var(--accent);border-radius:6px;padding:.55rem .8rem;font-size:.86rem;font-weight:600;
+    text-align:left;cursor:pointer}
+  .b-guia:hover{border-color:var(--accent);background:var(--surface-alt)}
+
+  .velo{position:fixed;inset:0;background:rgba(15,18,20,.55);z-index:50;display:flex;
+    align-items:flex-start;justify-content:center;padding:2.5rem 1.25rem;overflow-y:auto}
+  .modal{background:var(--surface);border:1px solid var(--rule-strong);border-radius:11px;
+    width:100%;max-width:44rem;box-shadow:0 12px 40px rgba(0,0,0,.22)}
+  .modal-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:1.5rem;
+    padding:1.5rem 1.75rem 1.1rem;border-bottom:1px solid var(--rule)}
+  .modal-eyebrow{margin:0 0 .3rem;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--accent)}
+  .modal-cab h2{margin:0;font-family:var(--serif);font-weight:400;font-size:1.5rem;letter-spacing:-.01em}
+  .b-cerrar{flex:none;font-size:.84rem;border:1px solid var(--rule-strong);background:var(--surface);
+    color:var(--ink-soft);border-radius:5px;padding:.35rem .8rem;cursor:pointer}
+  .b-cerrar:hover{border-color:var(--accent);color:var(--accent)}
+  .modal-cuerpo{padding:.5rem 1.75rem 1.5rem}
+  .pregunta{padding:1.35rem 0;border-bottom:1px solid var(--rule)}
+  .pregunta:last-child{border-bottom:none;padding-bottom:.5rem}
+  .pregunta h3{margin:0 0 .7rem;font-size:1rem;font-weight:600}
+  .pregunta p{margin:0 0 .8rem;font-size:.94rem;line-height:1.65;color:var(--ink-soft);max-width:40rem}
+  .pregunta p:last-child{margin-bottom:0}
+  .modal-pie{display:flex;justify-content:space-between;gap:1rem;padding:1rem 1.75rem 1.4rem;
+    border-top:1px solid var(--rule)}
+  .b-nav{font-size:.85rem;border:1px solid var(--rule-strong);background:var(--surface);
+    color:var(--ink-soft);border-radius:5px;padding:.45rem .85rem;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:48%}
+  .b-nav:hover{border-color:var(--accent);color:var(--accent)}
+  .modal-pie .b-nav:only-child{margin-left:auto}
+  @media (max-width:34rem){.velo{padding:1rem .75rem}.modal-cab,.modal-cuerpo,.modal-pie{padding-left:1.1rem;padding-right:1.1rem}}
   a{color:var(--accent)}
   .pie{padding:2.5rem 0;color:var(--ink-faint);font-size:.88rem}
   @media (max-width:34rem){h1{font-size:1.75rem}.cabecera{padding:2rem 0 1.75rem}}
@@ -1311,6 +1342,113 @@ var CONTRIB = [
      se nombra el mecanismo y sus limites en vocabulario metodologico, en vez de
      simplificar. Fuentes: docs/SIMULATION_BUILDING_GUIDE.md y
      docs/QUANTITATIVE_RESEARCH_FEATURES.md del propio proyecto. */
+  /* Guia por preguntas, en ventana. El panel lateral no da espacio para
+     desarrollar y el publico necesita profundidad, no resumen. Cada seccion
+     abre las preguntas que efectivamente hay que responder para diseñarla.
+     Fuentes: SIMULATION_BUILDING_GUIDE, SIMULATION_TEMPLATES_GUIDE y
+     QUANTITATIVE_RESEARCH_FEATURES del propio proyecto, mas lo que medimos. */
+  var GUIA = [
+    ["El tema", [
+      ["¿Qué función cumple la premisa?",
+       ["Define el espacio de lo que puede ocurrir. Los participantes no tienen más mundo que este texto: lo que no esté acá, o lo inventan sobre la marcha, o no pasa.",
+        "Por eso una premisa vaga no produce respuestas neutras sino genéricas. El modelo rellena los huecos con lugares comunes, y esa variabilidad no la controlás vos."]],
+      ["¿Qué tiene que incluir?",
+       ["Escenario y momento. Estado inicial con magnitudes concretas. El repertorio de acciones posibles. Las restricciones que acotan. Y qué está en juego si no se resuelve.",
+        "La guía del proyecto insiste en incluir números, nombres y límites: los modelos responden bien a lo específico y mal a lo abstracto."]],
+      ["¿Cómo se ve la diferencia?",
+       ["Débil: «Dos países están en guerra y quieren la paz.»",
+        "Fuerte: «Dos diplomáticos negocian un alto el fuego en tres rondas. A tiene ventaja militar pero está sancionado; B controla las rutas comerciales y tiene economía débil. Ambos tienen presión interna para mostrarse firmes. Si no hay acuerdo en la ronda tres, las sanciones escalan para los dos.»",
+        "La segunda fija condiciones iniciales, asimetrías, presión y criterio de cierre. La primera deja todo librado al modelo."]]]],
+
+    ["Los datos del caso", [
+      ["¿En qué se diferencian de las memorias de cada uno?",
+       ["Estos los conocen todos por igual —el equivalente a lo que en un experimento reciben todos los grupos—. Las memorias son privadas y definen puntos de vista distintos sobre los mismos hechos.",
+        "Si querés que dos participantes discrepen sobre una cifra, la cifra va en los datos compartidos y la interpretación en las memorias de cada uno."]],
+      ["¿Por qué conviene ser exhaustivo?",
+       ["Porque lo que no fijás queda disponible para que alguien lo invente. El motor no distingue entre un hecho que configuraste y uno que un participante afirmó en su turno: ambos pasan a ser parte del mundo.",
+        "Lo verificamos: en una corrida aparecieron una falla informática, una sequía anticipada y una carta con amenaza judicial. Ninguna estaba configurada."]],
+      ["¿Qué forma les doy?",
+       ["Una proposición por línea, verificable, sin adjetivos. «Las sanciones le cuestan a A dos mil millones anuales» sirve; «la situación económica es difícil» no."]]]],
+
+    ["Quiénes participan", [
+      ["¿Cómo se escribe un objetivo que funcione?",
+       ["Como instrucción, no como caracterización. La guía recomienda verbos de acción explícitos, incluidas las negativas: qué acepta, qué rechaza, bajo qué condición cede.",
+        "Débil: «Alicia quiere la paz.»",
+        "Fuerte: «Negociar un alto el fuego que proteja las fronteras de A. Aceptar concesiones territoriales solo si levantan las sanciones. RECHAZAR cualquier propuesta que exija retirar tropas del norte.»"]],
+      ["¿Cómo evito que se pongan de acuerdo enseguida?",
+       ["Haciendo que los objetivos sean incompatibles en algún punto. Si todos pueden cumplirse a la vez, el resultado va a ser coordinación temprana, no deliberación.",
+        "Lo medimos: en un escenario con cinco intereses en tensión pero objetivos compatibles, el consenso trepó al máximo en el turno siete y no volvió a bajar. Nadie sostuvo una objeción.",
+        "La otra palanca, más eficaz todavía, es el tipo de narrador. Está en Opciones avanzadas."]],
+      ["¿Cuántas memorias?",
+       ["Entre cinco y diez por participante, según la guía. Con menos el comportamiento se vuelve genérico; con más el modelo pierde el foco y deja de usarlas.",
+        "Conviene cubrir identidad y trayectoria, qué sabe de la situación, cómo ve a los demás, qué cree y valora, y qué no está dispuesto a conceder."]],
+      ["¿Para qué sirve el perfil psicológico?",
+       ["Para que el sesgo sea una propiedad del participante y no una descripción en su memoria. Un sesgo de anclaje fuerte hace que se aferre al primer número que escuchó; uno de confirmación, que descarte lo que lo contradice.",
+        "La guía documenta que apilarlos produce comportamientos más definidos: confirmación fuerte más identidad social fuerte más valores tradicionales da un escéptico consistente. Así construyeron la plantilla de vacunación.",
+        "Ojo con un límite que verificamos: solo el tipo «Mínimo» los recibe como componente siempre presente. En los demás entran como recuerdo y compiten por ser recuperados."]]]],
+
+    ["Cómo se da la palabra", [
+      ["¿Qué cambia el orden?",
+       ["Con orden fijo el turno es determinístico y podés fijar de antemano quién interviene en cada momento crítico. Con orden al azar o a criterio del narrador, perdés ese control.",
+        "El recuadro de turnos te dice exactamente en qué pasos habla cada uno."]],
+      ["¿Cuántos pasos necesito?",
+       ["Con un participante por paso, pasos dividido participantes son las vueltas efectivas. Cinco participantes en cinco pasos es una vuelta: cada uno enuncia su posición y nadie replica.",
+        "El proyecto sugiere: decisión única con 2 participantes, 2 a 5 pasos. Interacción corta con 2-3, entre 10 y 15. Escenario extendido con 3-5, entre 20 y 30. Simulación de política con 5-8, entre 30 y 50."]],
+      ["¿Cómo sé si me quedé corto?",
+       ["Mirá los indicadores al final. Si todavía se están moviendo en el último paso, cortaste antes de tiempo. Si se estabilizaron varios pasos antes, podés reducir.",
+        "Cuidado con una lectura fácil: que los objetivos queden parcialmente cumplidos puede ser el resultado correcto, no falta de pasos. Muchos escenarios de política están diseñados para ser difíciles. La señal es si todavía había movimiento —propuestas nuevas, alianzas cambiando— cuando terminó."]]]],
+
+    ["Qué se observa", [
+      ["¿Qué son exactamente estos valores?",
+       ["Variables de resultado que actualiza el narrador leyendo la discusión. Son juicios de un modelo, no mediciones de nada observado. El informe las marca como estimadas por esa razón.",
+        "Antes de narrar cada paso, el narrador lee los valores actuales y los ajusta según lo que pasó."]],
+      ["¿Cómo escribo la regla de cambio?",
+       ["Es la operacionalización: define qué evidencia cuenta como movimiento. Sin criterio explícito, el narrador la mueve por impresión general.",
+        "«Sube cuando hay cooperación o se forman alianzas; baja cuando escalan los conflictos o se recortan recursos» sirve. «Refleja el clima del grupo» no."]],
+      ["¿Cuántos indicadores?",
+       ["Dos o tres. La guía advierte que con muchos al narrador le cuesta seguirlos a todos con precisión."]],
+      ["¿Cuándo uso cada tipo?",
+       ["Porcentaje para grados: consenso, aprobación, moral. Número para magnitudes con su escala: montos, cantidades. Opciones para estados cualitativos: en riesgo, aprobado, postergado. Sí/no para banderas.",
+        "Un límite verificado: el motor no valida la lista de opciones. En una corrida devolvió un valor que no estaba entre los permitidos."]]]],
+
+    ["Dónde hay que decidir", [
+      ["¿Qué hace un momento de decisión?",
+       ["Inyecta un hecho en un paso determinado. Funciona como manipulación experimental: cambiás una cosa en un momento conocido y el resto queda constante.",
+        "Sirve para forzar una votación, o para meter un golpe externo —una crisis, un recorte, una norma nueva— y observar la reacción."]],
+      ["¿Dónde los ubico?",
+       ["Espaciados. En una simulación de 30 pasos, ponerlos en el 10, el 20 y el 30 da tiempo a reaccionar entre uno y otro.",
+        "Y si querés que alguien puntual formule la decisión final, el momento tiene que caer en un turno suyo."]],
+      ["¿Garantizan que se responda?",
+       ["No, y conviene saberlo. El evento entra en la premisa, pero la consigna con la que el narrador le da la palabra a quien habla en ese turno la redacta él.",
+        "Lo verificamos: un recorte presupuestario inyectado en el paso 15 no apareció en la consigna de ese turno, y nadie lo respondió. El informe lo mostraba como ocurrido igual.",
+        "Mitigación: redactar el evento nombrando al participante y diciendo qué tiene que responder."]]]],
+
+    ["Qué modelo usa", [
+      ["¿Por qué dos modelos distintos?",
+       ["Porque el límite de uso del plan gratuito se cuenta por modelo: 500 pedidos diarios cada uno. Usar modelos distintos para participantes y narrador duplica el techo y reduce las esperas.",
+        "Una corrida de 22 pasos con 5 participantes consume entre 450 y 690 llamadas. Es decir: una o dos corridas largas por día."]],
+      ["¿La temperatura controla la variabilidad?",
+       ["En los participantes, no. El motor la fija por su cuenta en cada acción e ignora este valor —lo comprobamos en los registros—. Donde sí opera es en el narrador, que resuelve y reparte observaciones.",
+        "Si buscás más variabilidad entre participantes, la palanca está en los objetivos y el tipo de narrador, no acá."]]]],
+
+    ["Opciones avanzadas", [
+      ["¿Cuál es la variable más influyente?",
+       ["El tipo de narrador, por lejos. Corrimos el mismo escenario cambiando solo eso.",
+        "Con el conversacional, los veinte turnos recibieron la misma consigna genérica —«¿qué diría probablemente esta persona?»— y el consenso llegó a 100 sin volver a bajar.",
+        "Con el general, la consigna cambió en cada turno y preguntó por posturas concretas. El consenso subió a 100 en el turno siete y cayó a 60. Apareció desacuerdo sostenido."]],
+      ["¿Cuándo conviene el motor simultáneo?",
+       ["Cuando importa la participación pareja: en el secuencial los dominantes acaparan y tapan a los callados. En el simultáneo todos actúan en cada paso sin ver lo del resto.",
+        "También cuando el orden no debería influir —votaciones, ofertas cerradas, respuestas independientes— y cuando necesitás más datos por paso: diez pasos con cinco participantes dan cincuenta acciones en simultáneo contra diez en secuencial.",
+        "Quedate en secuencial si el escenario depende del diálogo reactivo: negociaciones, entrevistas."]],
+      ["¿Para qué restringir las acciones?",
+       ["Para convertir respuestas abiertas en categorías comparables entre corridas. Es la vía para tener una variable dependiente codificable en vez de texto libre.",
+        "Se pueden definir para todos o restringir a un subconjunto por participante."]],
+      ["¿Qué capacidades quedan sin exponer?",
+       ["Tres, documentadas en el proyecto pero no accesibles desde acá: generación de participantes por muestreo, con marginales independientes o perfiles conjuntos cuando importan las correlaciones, y semilla fija para reproducibilidad.",
+        "Barridos de parámetros: correr la misma configuración variando temperatura o cantidad de pasos, con repeticiones por combinación.",
+        "Y confiabilidad entre corridas por ICC(3,1), para verificar si el comportamiento es estable ante la aleatoriedad."]]]]
+  ];
+
   var AYUDAS = [
     ["El tema",
      ["La premisa es el estímulo experimental: define el espacio de lo que puede pasar. Todo lo que no esté acá, o los participantes lo inventan, o no ocurre.",
@@ -1368,6 +1506,71 @@ var CONTRIB = [
      ["Sin exponer todavía", ["Generación de agentes por muestreo, con marginales o perfiles conjuntos y semilla fija", "Barridos de parámetros con repeticiones", "Confiabilidad entre corridas por ICC(3,1)"]]]
   ];
 
+  /* ---------- ventana de guia ---------- */
+  function abrirGuia(indice) {
+    var g = GUIA[indice];
+    if (!g) return;
+    var previo = document.getElementById("velo");
+    if (previo) previo.parentNode.removeChild(previo);
+
+    var velo = el("div", "velo"); velo.id = "velo";
+    var caja = el("div", "modal");
+    caja.setAttribute("role", "dialog");
+    caja.setAttribute("aria-modal", "true");
+    caja.setAttribute("aria-label", "Guía: " + g[0]);
+
+    var cab = el("div", "modal-cab");
+    var tit = el("div");
+    tit.appendChild(el("p", "modal-eyebrow", "Cómo se diseña"));
+    tit.appendChild(el("h2", null, g[0]));
+    cab.appendChild(tit);
+    var cerrar = el("button", "b-cerrar", "Cerrar");
+    cerrar.type = "button";
+    cab.appendChild(cerrar);
+    caja.appendChild(cab);
+
+    var cuerpo = el("div", "modal-cuerpo");
+    g[1].forEach(function (par, i) {
+      var bloque = el("section", "pregunta");
+      bloque.appendChild(el("h3", null, par[0]));
+      par[1].forEach(function (t) { bloque.appendChild(el("p", null, t)); });
+      cuerpo.appendChild(bloque);
+    });
+    caja.appendChild(cuerpo);
+
+    // Navegacion entre secciones sin cerrar
+    var pie = el("div", "modal-pie");
+    if (indice > 0) {
+      var ant = el("button", "b-nav", "← " + GUIA[indice - 1][0]);
+      ant.type = "button";
+      ant.addEventListener("click", function () { abrirGuia(indice - 1); });
+      pie.appendChild(ant);
+    }
+    if (indice < GUIA.length - 1) {
+      var sig = el("button", "b-nav", GUIA[indice + 1][0] + " →");
+      sig.type = "button";
+      sig.addEventListener("click", function () { abrirGuia(indice + 1); });
+      pie.appendChild(sig);
+    }
+    caja.appendChild(pie);
+
+    velo.appendChild(caja);
+    document.body.appendChild(velo);
+    document.body.style.overflow = "hidden";
+
+    function cerrarla() {
+      var v = document.getElementById("velo");
+      if (v) v.parentNode.removeChild(v);
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", porTecla);
+    }
+    function porTecla(e) { if (e.key === "Escape") cerrarla(); }
+    cerrar.addEventListener("click", cerrarla);
+    velo.addEventListener("click", function (e) { if (e.target === velo) cerrarla(); });
+    document.addEventListener("keydown", porTecla);
+    cerrar.focus();
+  }
+
   function pintarAyuda(i) {
     var a = AYUDAS[i];
     if (!a) return;
@@ -1381,6 +1584,12 @@ var CONTRIB = [
       var ul = el("ul", "lista-ayuda");
       a[3][1].forEach(function (x) { ul.appendChild(el("li", null, x)); });
       caja.appendChild(ul);
+    }
+    if (GUIA[i]) {
+      var b = el("button", "b-guia", "Cómo se diseña esto  →");
+      b.type = "button";
+      b.addEventListener("click", function () { abrirGuia(i); });
+      caja.appendChild(b);
     }
   }
 
