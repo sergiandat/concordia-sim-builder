@@ -406,6 +406,8 @@ def leer_escenario(ruta: Path | None) -> dict:
         "pasos": cfg.get("max_steps"),
         "modelo": (d.get("llm_settings") or {}).get("model_name", ""),
         "modelo_gm": (d.get("gm_llm_settings") or {}).get("model_name", ""),
+        "temp": (d.get("llm_settings") or {}).get("temperature"),
+        "temp_gm": (d.get("gm_llm_settings") or {}).get("temperature"),
     }
 
 
@@ -436,10 +438,16 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
                         "apareció algo que los participantes no estaban dispuestos a aceptar; "
                         f"conviene mirar qué pasó a partir del turno {paso_alto}."))
         elif fin == ini:
+            # La guía del proyecto trata este caso como problema conocido y da
+            # tres causas concretas; la tercera —que el nombre no coincida— es
+            # invisible salvo que a uno se lo digan.
             obs.append(("neutra",
                         f"«{bonito(nombre)}» no se movió en toda la deliberación: quedó en "
-                        f"{fin:.0f}. O nadie hizo nada que lo afectara, o la regla de cambio "
-                        "no es lo bastante clara."))
+                        f"{fin:.0f}. La guía del proyecto señala tres causas para esto: que "
+                        "los puntos de decisión no digan explícitamente qué valores cambian, "
+                        "que la regla de cambio no sea lo bastante accionable, o que el "
+                        "nombre del indicador no coincida exactamente con el que usan los "
+                        "puntos de decisión."))
 
     permitidos = {v.get("name"): (v.get("allowed_values") or [])
                   for v in esc.get("variables", []) if v.get("allowed_values")}
@@ -499,11 +507,197 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
     return obs
 
 
+def ayuda_interpretacion(pasos, series, franjas, esc, resumen) -> str:
+    """
+    Qué se puede concluir de esto y qué no.
+
+    El informe venía diciendo qué pasó, sin decir con qué alcance leerlo. La
+    omisión más seria era la primera: una corrida es una muestra, y la guía del
+    proyecto pide de tres a cinco para conocer el rango de resultados. Sin esa
+    advertencia es natural leer un número puntual como si fuera el resultado.
+
+    Lo demás son diagnósticos que solo aparecen cuando el síntoma está presente,
+    con la causa y el arreglo que documenta el proyecto. Una lista de problemas
+    posibles que no ocurrieron es ruido.
+    """
+    esc = esc or {}
+    resumen = resumen or {}
+    p = ['<section id="interpretacion"><h2>Cómo leer estos resultados</h2>']
+    p.append('<p class="ayuda-sec">Qué permite afirmar esta corrida y qué no.</p>')
+    p.append('<div class="tarjetas">')
+
+    # Esta va siempre: es la condición de lectura de todo lo demás.
+    p.append('<article class="tarjeta"><h3>Una corrida es una muestra</h3>'
+             "<p>El comportamiento varía entre corridas porque el modelo muestrea "
+             "sus respuestas. La guía del proyecto recomienda correr el mismo "
+             "escenario <strong>de tres a cinco veces</strong> para conocer el rango "
+             "de resultados posibles; esta es una. Un valor puntual —«el consenso "
+             "terminó en 60»— describe esta corrida, no el escenario. Lo que sí es "
+             "informativo de una sola es la <em>forma</em>: si hubo ruptura, cuándo, "
+             "y quién la produjo.</p></article>")
+
+    # Los valores no se miden: los asigna un modelo leyendo la discusión.
+    if series or franjas:
+        p.append('<article class="tarjeta"><h3>Los indicadores son juicios</h3>'
+                 "<p>No se miden: los asigna el narrador interpretando la "
+                 "deliberación, y por eso van marcados como estimados. Sirven para "
+                 "comparar momentos <em>dentro</em> de una corrida —subió después de "
+                 "tal intervención— y no como magnitud absoluta. Que un indicador "
+                 "valga 60 no significa que algo esté al 60&nbsp;% de nada.</p></article>")
+
+    # La guía advierte sobre seguir demasiadas variables a la vez.
+    variables = esc.get("variables") or []
+    if len(variables) > 3:
+        p.append('<article class="tarjeta"><h3>Son muchos indicadores</h3>'
+                 f"<p>Este escenario definió <strong>{len(variables)}</strong>. La guía "
+                 "del proyecto recomienda dos o tres: con más, al narrador le cuesta "
+                 "seguirlos a todos con precisión y algunos terminan moviéndose "
+                 "juntos o quedándose planos, no porque eso ocurriera sino porque no "
+                 "los distinguió. Si al mirar el gráfico varias curvas van "
+                 "paralelas, esa es la causa probable.</p></article>")
+
+    # Los puntos de decisión entran en la premisa, pero la consigna del turno la
+    # redacta el narrador: verificamos que un recorte inyectado en el paso 15 no
+    # llegó a la consigna de ese turno y nadie lo respondió.
+    decisiones = esc.get("decisiones") or []
+    if decisiones and pasos:
+        sin_eco = []
+        for d in decisiones:
+            n = d.get("step")
+            paso = next((x for x in pasos if x.get("n") == n), None)
+            if not paso:
+                continue
+            consigna = (paso.get("mesa", {}) or {}).get("consigna") or ""
+            evento = str(d.get("event", ""))
+            # Se buscan las palabras largas del evento en la consigna del turno.
+            clave = [w.lower() for w in re.findall(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]{7,}", evento)][:12]
+            if clave and not any(w in consigna.lower() for w in clave):
+                sin_eco.append(n)
+        if sin_eco:
+            lista = ", ".join(str(n) for n in sin_eco)
+            p.append('<article class="tarjeta aviso"><h3>Decisiones que no llegaron a la '
+                     "consigna</h3>"
+                     f"<p>En los turnos <strong>{html.escape(lista)}</strong> se inyectó un "
+                     "punto de decisión, pero ninguna de sus palabras aparece en la "
+                     "pregunta con que el narrador dio la palabra. El evento entra en la "
+                     "premisa; la consigna la redacta el narrador y puede no recogerlo. "
+                     "Si nadie respondió a esa decisión, esta es la explicación: no "
+                     "que la ignoraran, sino que no se la preguntaron. Se corrige "
+                     "redactando el evento con el nombre de quien debe responder y qué "
+                     "tiene que responder.</p></article>")
+
+    # Nada filtra lo que un participante afirma: pasa a ser parte del mundo.
+    p.append('<article class="tarjeta"><h3>Los hechos nuevos no se verifican</h3>'
+             "<p>Si alguien menciona un dato que no estaba configurado, el motor no "
+             "lo distingue de los que sí: pasa a formar parte de la situación y los "
+             "demás razonan sobre él. Antes de citar un dato del texto, comprobá que "
+             "esté en «Datos que todos conocían» o en las memorias de alguien. Si no "
+             "está, lo inventó la corrida.</p></article>")
+
+    if resumen.get("completa") is False:
+        p.append('<article class="tarjeta aviso"><h3>Quedó incompleta</h3>'
+                 "<p>Los turnos que faltan no son neutrales: los escenarios suelen "
+                 "poner la decisión final al cierre, así que una corrida cortada "
+                 "tiende a mostrar posiciones sin resolución. No leas la falta de "
+                 "acuerdo como resultado.</p></article>")
+
+    p.append("</div></section>")
+    return "".join(p)
+
+
 # ---------------------------------------------------------------- documento
 
 def parrafos(texto: str) -> str:
     trozos = [t.strip() for t in re.split(r"\n\s*\n|\n", texto or "") if t.strip()]
     return "".join(f"<p>{html.escape(t)}</p>" for t in trozos) or "<p class='vacio'>—</p>"
+
+
+# Las mismas etiquetas que muestra el constructor. Si alguien configura un
+# sesgo leyendo «Anclaje — se aferra al primer dato», el informe no puede
+# devolverle "anchoring_bias" y obligarlo a traducir de vuelta.
+SESGOS = {
+    "anchoring_bias": "Anclaje — se aferra al primer dato que recibió",
+    "confirmation_bias": "Confirmación — busca lo que le da la razón",
+    "availability_heuristic": "Disponibilidad — pesa de más lo que recuerda fácil",
+    "sunk_cost_fallacy": "Costo hundido — sigue por lo ya invertido",
+    "in_group_bias": "Endogrupo — favorece a los de su propio grupo",
+}
+FUERZAS = {"weak": "leve", "moderate": "moderado", "strong": "fuerte"}
+RASGOS = {
+    "openness": "Apertura",
+    "conscientiousness": "Responsabilidad",
+    "extraversion": "Extraversión",
+    "agreeableness": "Amabilidad",
+    "neuroticism": "Inestabilidad emocional",
+}
+
+
+def perfil_psicologico(comp: dict) -> str:
+    """
+    El perfil que se le cargó al participante, en palabras.
+
+    Estos componentes recién quedaron conectados al motor, y hasta ahora el
+    informe no los mostraba: se configuraba un sesgo fuerte de anclaje y en la
+    salida no quedaba rastro de que existiera. Sin esto no hay forma de atribuir
+    una conducta a lo que se configuró.
+    """
+    if not isinstance(comp, dict):
+        return ""
+    filas = []
+
+    sesgo = comp.get("cognitive_bias") or {}
+    if sesgo.get("bias_type"):
+        tipo = SESGOS.get(sesgo["bias_type"], bonito(sesgo["bias_type"]))
+        fuerza = FUERZAS.get(sesgo.get("bias_strength", ""), sesgo.get("bias_strength", ""))
+        filas.append(("Sesgo", f"{tipo}" + (f" · {fuerza}" if fuerza else "")))
+
+    rasgos = (comp.get("personality_traits") or {}).get("traits") or {}
+    if not rasgos:
+        # Algunos escenarios los guardan sueltos, sin el nivel 'traits'.
+        rasgos = {k: v for k, v in (comp.get("personality_traits") or {}).items()
+                  if k in RASGOS}
+    if rasgos:
+        # De 1 a 5; se muestra el número porque la escala importa para comparar.
+        filas.append(("Rasgos", " · ".join(
+            f"{RASGOS.get(k, bonito(k))} {v}" for k, v in rasgos.items())))
+
+    ident = comp.get("social_identity") or {}
+    if ident.get("group_membership"):
+        g = ident["group_membership"]
+        g = ", ".join(g) if isinstance(g, list) else str(g)
+        f = FUERZAS.get(ident.get("identification_strength", ""), "")
+        filas.append(("Identidad", g + (f" · pertenencia {f}" if f else "")))
+
+    emo = comp.get("emotion") or {}
+    if emo.get("current_emotion"):
+        i = emo.get("emotion_intensity")
+        filas.append(("Emoción", str(emo["current_emotion"])
+                      + (f" · intensidad {i}" if i else "")))
+
+    val = comp.get("values") or {}
+    nucleo = val.get("core_values")
+    if nucleo:
+        nucleo = ", ".join(nucleo) if isinstance(nucleo, list) else str(nucleo)
+        conflicto = val.get("value_conflict")
+        filas.append(("Valores", nucleo
+                      + (f" · en tensión con {conflicto}" if conflicto else "")))
+
+    tpb = comp.get("theory_of_planned_behavior") or {}
+    if tpb.get("behavior"):
+        detalle = " · ".join(
+            f"{etq} {tpb[k]}" for k, etq in
+            (("attitude", "actitud"), ("subjective_norm", "norma"),
+             ("perceived_control", "control")) if tpb.get(k))
+        filas.append(("Conducta prevista", str(tpb["behavior"])
+                      + (f" ({detalle})" if detalle else "")))
+
+    if not filas:
+        return ""
+    p = ['<table class="perfil"><tbody>']
+    for k, v in filas:
+        p.append(f"<tr><th>{html.escape(k)}</th><td>{html.escape(v)}</td></tr>")
+    p.append("</tbody></table>")
+    return "".join(p)
 
 
 def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
@@ -525,11 +719,27 @@ def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
 
     if esc.get("agentes"):
         p.append("<h3>Cada participante</h3>")
+        # Solo minimal__Entity recibe el perfil como componente presente en cada
+        # acción. En el resto entra como recuerdo y compite por ser recuperado,
+        # así que puede no influir en un turno dado. Quien lea el informe tiene
+        # que saberlo antes de concluir que el sesgo «no funcionó».
+        con_perfil = [a for a in esc["agentes"] if perfil_psicologico(a.get("components") or {})]
+        indirectos = [a for a in con_perfil if a.get("prefab") != "minimal__Entity"]
+        if indirectos:
+            p.append('<p class="ayuda-sec">Los perfiles psicológicos de '
+                     f'{len(indirectos)} de {len(con_perfil)} participantes entraron '
+                     "como recuerdo, no como componente fijo: solo el tipo «Mínimo» "
+                     "los tiene presentes en cada acción. En los demás compiten con "
+                     "el resto de la memoria por ser recuperados, así que pueden no "
+                     "pesar en todos los turnos.</p>")
         for a in esc["agentes"]:
             p.append('<div class="ficha-agente">')
             p.append(f'<h4>{html.escape(a.get("name", ""))}</h4>')
             if a.get("goal"):
                 p.append(f'<p class="obj-agente"><strong>Busca:</strong> {html.escape(a["goal"])}</p>')
+            perfil = perfil_psicologico(a.get("components") or {})
+            if perfil:
+                p.append(perfil)
             mem = a.get("memories") or []
             if mem:
                 p.append("<ul class='lista-datos'>")
@@ -547,6 +757,15 @@ def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
         ("Modelo de participantes", esc.get("modelo") or "—"),
         ("Modelo del narrador", esc.get("modelo_gm") or "—"),
     ]
+    # La temperatura del narrador sí opera; la de los participantes la fija el
+    # motor por su cuenta en cada acción. Se dicen las dos, con esa aclaración,
+    # porque de otro modo se atribuye a este valor una variabilidad que no
+    # controla.
+    if esc.get("temp_gm") is not None:
+        filas.append(("Temperatura del narrador", esc["temp_gm"]))
+    if esc.get("temp") is not None:
+        filas.append(("Temperatura de participantes",
+                      f"{esc['temp']} (el motor la fija por su cuenta; no se aplica)"))
     p.append("<h3>Configuración</h3><table class='config'><tbody>")
     for k, v in filas:
         p.append(f"<tr><th>{html.escape(k)}</th><td>{html.escape(str(v))}</td></tr>")
@@ -950,6 +1169,8 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
             partes.append(f'<li class="s-{tipo}">{html.escape(texto)}</li>')
         partes.append("</ul></section>")
 
+    partes.append(ayuda_interpretacion(pasos, series, franjas, esc, resumen))
+
     # ---------------------------------------------------------- 5. resumen
     if texto_resumen:
         partes.append('<section class="resumen"><h2>En pocas palabras</h2>')
@@ -1111,6 +1332,38 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
     if ficha_esc:
         partes.append(ficha_esc)
 
+    # Cuánto costó, en pedidos al modelo. Es lo que permite dimensionar la
+    # próxima corrida por división en vez de descubrir el techo a mitad de
+    # camino, que es como se cortaron las tres primeras.
+    consumo = resumen.get("consumo") or {}
+    if consumo:
+        por_paso = resumen.get("consumo_por_paso") or {}
+        hechos = resumen.get("pasos_completados") or len(pasos)
+        partes.append('<details class="escenario"><summary>Cuánto consumió</summary>'
+                      "<div class='cuerpo-esc'>")
+        partes.append('<p class="ayuda-sec">El plan gratuito permite 500 pedidos '
+                      "diarios <em>por modelo</em>. Usar un modelo distinto para el "
+                      "narrador duplica el techo, porque cada uno lleva su propia "
+                      "cuenta.</p>")
+        partes.append("<table class='config'><tbody>")
+        for m, d in sorted(consumo.items()):
+            pp = por_paso.get(m)
+            detalle = f"{d['llamadas']} pedidos"
+            if pp:
+                detalle += f" · {pp} por turno"
+            if d.get("esperas"):
+                detalle += (f" · {d['esperas']} esperas por el límite por minuto "
+                            f"({d['segundos_esperando'] // 60} min parado)")
+            partes.append(f"<tr><th>{html.escape(m)}</th><td>{detalle}</td></tr>")
+        partes.append("</tbody></table>")
+        techo = min((int(500 // float(p)) for p in por_paso.values() if p), default=0)
+        if techo and hechos:
+            partes.append(f'<p class="franja-cambios">A este ritmo entran unos '
+                          f"<strong>{techo} turnos por día</strong> con la cuota "
+                          "gratuita. Este escenario pidió "
+                          f"{esc.get('pasos') or hechos}.</p>")
+        partes.append("</div></details>")
+
     consignas = [p["mesa"]["consigna"] for p in pasos if p.get("mesa", {}).get("consigna")]
     if consignas:
         distintas = []
@@ -1222,6 +1475,13 @@ color:var(--ink-faint);font-family:var(--mono)}
 .t-valor.chico{font-size:1.05rem;line-height:1.4}
 .t-sobre{font-size:.9rem;color:var(--ink-faint)}
 .aviso-txt{color:var(--pendiente)}
+/* Las tarjetas de interpretación llevan párrafos, no cifras: necesitan más
+   ancho que las de resultado o el texto queda en columnas de cinco palabras. */
+#interpretacion .tarjetas{grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))}
+#interpretacion .tarjeta h3{margin:0 0 .5rem;font-size:.97rem;font-weight:600}
+#interpretacion .tarjeta p{margin:0;font-size:.9rem;line-height:1.6;color:var(--ink-soft)}
+#interpretacion .tarjeta.aviso{border-color:var(--pendiente)}
+#interpretacion .tarjeta.aviso h3{color:var(--pendiente)}
 .t-nota{margin:.35rem 0 0;font-size:.85rem;color:var(--ink-soft)}
 .t-pie{margin:.7rem 0 0}
 .sin-medir{margin:1.1rem 0 0;padding:.85rem 1.05rem;background:var(--surface-alt);
@@ -1316,6 +1576,11 @@ list-style:none;display:flex;justify-content:space-between;align-items:center;ga
 .lista-datos li{margin-bottom:.45rem}
 .ficha-agente{padding:.85rem 0;border-top:1px solid var(--rule)}
 .obj-agente{margin:0;font-size:.9rem;color:var(--ink-soft)}
+.perfil{border-collapse:collapse;margin:.5rem 0 .2rem;font-size:.85rem;
+background:var(--surface-alt);border-radius:6px}
+.perfil th{text-align:left;font-weight:500;color:var(--ink-faint);
+padding:.3rem .8rem .3rem .7rem;white-space:nowrap;vertical-align:top}
+.perfil td{padding:.3rem .7rem .3rem 0;color:var(--ink-soft)}
 .config{border-collapse:collapse;width:100%;font-size:.89rem;margin-top:.4rem}
 .config th{text-align:left;font-weight:500;color:var(--ink-faint);padding:.35rem .8rem .35rem 0;
 white-space:nowrap;vertical-align:top}
