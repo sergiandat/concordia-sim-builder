@@ -78,12 +78,41 @@ def leer_pasos(crudo) -> list[dict]:
             "dicho": dicho,
             "evento": evento,
             "objetivo": texto_de(comp.get("Goal")),
-            "situacion": texto_de(comp.get("SituationPerception")),
+            # Las tres preguntas que Concordia le hace a un participante antes
+            # de actuar. Mostrar solo una dejaba afuera dos tercios del
+            # razonamiento con el que decide.
             "persona": texto_de(comp.get("SelfPerception")),
+            "situacion": texto_de(comp.get("SituationPerception")),
             "haria": texto_de(comp.get("PersonBySituation")),
+            "razonamiento": {
+                campo: (comp.get(campo) or {}).get("Chain of thought") or []
+                for campo in ("SelfPerception", "SituationPerception", "PersonBySituation")
+            },
+            "memoria": leer_memoria(comp.get("relevant_memories")),
             "mesa": leer_mesa(bruto.get(clave_mesa) or {}),
         })
     return sorted(pasos, key=lambda p: p["n"])
+
+
+def leer_memoria(campo) -> dict:
+    """
+    Qué recordó el participante antes de hablar. Concordia busca en su memoria
+    asociativa con una consulta y trae los recuerdos más cercanos; ver cuáles
+    fueron explica por qué respondió lo que respondió, y por qué a veces ignora
+    algo que sí se dijo.
+    """
+    if not isinstance(campo, dict):
+        return {}
+    recuerdos = []
+    for linea in str(campo.get("Value", "")).split("\n"):
+        t = re.sub(r"^\[observation\]\s*(\[\w+\]\s*)?", "", linea.strip()).strip()
+        t = re.sub(r"^Event:\s*(\*\*Event:\*\*)?\s*", "", t).strip()
+        if len(t) > 15:
+            recuerdos.append(t)
+    return {
+        "consulta": re.sub(r"\s+", " ", str(campo.get("Query", ""))).strip(),
+        "recuerdos": recuerdos,
+    }
 
 
 def decision_de(componente) -> str:
@@ -1032,9 +1061,47 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
                 partes.append(f'<div class="obs">{parrafos(texto)}</div>')
             partes.append("</div></details>")
 
-        if p["situacion"]:
-            partes.append('<details class="interno"><summary>Cómo veía la situación quien '
-                          f'habló</summary><div>{parrafos(p["situacion"])}</div></details>')
+        # Las tres preguntas que se hace antes de actuar, en el orden en que
+        # Concordia se las plantea: quién soy, dónde estoy, qué haría alguien así.
+        tres = [("Qué clase de persona es", p["persona"], "SelfPerception"),
+                ("En qué situación se ve", p["situacion"], "SituationPerception"),
+                ("Qué haría alguien como él o ella", p["haria"], "PersonBySituation")]
+        if any(t[1] for t in tres):
+            pasos_cot = sum(len(p["razonamiento"].get(c) or []) for _, _, c in tres)
+            partes.append('<details class="interno"><summary>Cómo razonó antes de hablar'
+                          + (f" ({pasos_cot} pasos)" if pasos_cot else "")
+                          + "</summary><div>")
+            for titulo, texto, campo in tres:
+                if not texto:
+                    continue
+                partes.append(f'<p class="quien-obs">{titulo}</p>')
+                partes.append(f'<div class="obs">{parrafos(texto)}</div>')
+                cot = p["razonamiento"].get(campo) or []
+                if cot:
+                    partes.append('<details class="cot"><summary>Los '
+                                  f'{len(cot)} pasos de ese razonamiento</summary><ol>')
+                    for x in cot:
+                        t = re.sub(r"\s+", " ", str(x)).strip()
+                        if t:
+                            partes.append(f"<li>{html.escape(t[:600])}</li>")
+                    partes.append("</ol></details>")
+            partes.append("</div></details>")
+
+        mem = p.get("memoria") or {}
+        if mem.get("recuerdos"):
+            partes.append('<details class="interno"><summary>Qué recordó '
+                          f'({len(mem["recuerdos"])} recuerdos)</summary><div>')
+            if mem.get("consulta"):
+                partes.append('<p class="quien-obs">Buscó en su memoria con esto</p>')
+                partes.append(f'<p class="obs">{html.escape(mem["consulta"][:400])}</p>')
+            partes.append('<p class="quien-obs">Y le vino a la mente</p><ul class="recuerdos">')
+            for r in mem["recuerdos"][:12]:
+                partes.append(f"<li>{html.escape(r[:400])}</li>")
+            partes.append("</ul>")
+            if len(mem["recuerdos"]) > 12:
+                partes.append(f'<p class="igual">Y {len(mem["recuerdos"]) - 12} recuerdos más.</p>')
+            partes.append("</div></details>")
+
         partes.append("</div></details>")
     partes.append("</section>")
 
@@ -1293,6 +1360,13 @@ color:var(--ink-soft);font-size:.88rem;font-style:italic;max-width:44rem}
 .obs{font-size:.9rem;color:var(--ink-soft);max-width:44rem}
 .obs p{margin:0 0 .5rem}
 @media (max-width:44rem){.flecha{display:none}.ciclo{flex-direction:column}}
+.cot{margin:.5rem 0 .8rem}
+.cot>summary{cursor:pointer;font-size:.78rem;color:var(--ink-faint);font-family:var(--mono)}
+.cot>summary:hover{color:var(--acuerdo)}
+.cot ol{margin:.5rem 0 0;padding-left:1.4rem;font-size:.86rem;color:var(--ink-soft);max-width:44rem}
+.cot li{margin-bottom:.45rem}
+.recuerdos{margin:.4rem 0 0;padding-left:1.2rem;font-size:.88rem;color:var(--ink-soft);max-width:44rem}
+.recuerdos li{margin-bottom:.45rem}
 a{color:var(--acuerdo)}
 .pie{margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--rule);
 color:var(--ink-faint);font-size:.86rem}

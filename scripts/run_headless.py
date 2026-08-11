@@ -141,6 +141,27 @@ def main() -> int:
     except Exception as e:
         log(f"  raw_log.json    FALLO: {e}")
 
+    # Telemetría por componente. No viaja en el log crudo: vive en un objeto
+    # aparte que se pierde al terminar el proceso si no se vuelca acá.
+    try:
+        medidas = getattr(sim, "_measurements", None)
+        canales = medidas.get_all_channels() if medidas else {}
+        if canales:
+            volcado = {}
+            for nombre, datos in canales.items():
+                volcado[nombre] = [
+                    {k: str(v) for k, v in (d.__dict__ if hasattr(d, "__dict__") else d).items()}
+                    if hasattr(d, "__dict__") or isinstance(d, dict) else str(d)
+                    for d in datos
+                ]
+            texto = json.dumps(volcado, ensure_ascii=False, indent=1, default=str)
+            (args.salida / "measurements.json").write_text(texto, encoding="utf-8")
+            log(f"  measurements    ({len(canales)} canales, {len(texto):,} caracteres)")
+        else:
+            log("  measurements    (sin canales)")
+    except Exception as e:
+        log(f"  measurements    FALLO: {e}")
+
     resumen = {
         "escenario": args.escenario.name,
         "terminada": datetime.datetime.now().isoformat(timespec="seconds"),
