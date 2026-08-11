@@ -134,12 +134,30 @@ def main() -> int:
     except Exception as e:
         log(f"  index.html      FALLO: {e}")
 
+    crudo = ""   # queda definido aunque el volcado falle: lo usa la comparación de abajo
     try:
         crudo = json.dumps(raw_log, ensure_ascii=False, indent=1, default=str)
         (args.salida / "raw_log.json").write_text(crudo, encoding="utf-8")
         log(f"  raw_log.json    ({len(crudo):,} caracteres)")
     except Exception as e:
         log(f"  raw_log.json    FALLO: {e}")
+
+    # Formato canónico de Concordia. Es el que lee su herramienta oficial
+    # `concordia-log` (overview, actions, context, memories, search...), y
+    # deduplica el contenido repetido, así que además pesa bastante menos que
+    # el volcado crudo.
+    try:
+        from concordia.utils.structured_logging import SimulationLog
+        estructurado = SimulationLog.from_raw_log(raw_log).to_json()
+        (args.salida / "sim_structured.json").write_text(estructurado, encoding="utf-8")
+        if crudo:
+            ahorro = 100 - (100 * len(estructurado) / len(crudo))
+            log(f"  sim_structured  ({len(estructurado):,} caracteres, "
+                f"{ahorro:.0f}% menos que el crudo)")
+        else:
+            log(f"  sim_structured  ({len(estructurado):,} caracteres)")
+    except Exception as e:
+        log(f"  sim_structured  FALLO: {type(e).__name__}: {e}")
 
     # Telemetría por componente. No viaja en el log crudo: vive en un objeto
     # aparte que se pierde al terminar el proceso si no se vuelca acá.
