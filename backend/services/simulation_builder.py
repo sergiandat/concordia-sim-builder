@@ -93,6 +93,77 @@ def create_memory_bank(embedder, memories: list[str]) -> basic_associative_memor
     return memory
 
 
+# Nombre del componente -> (fabrica, argumentos que espera del escenario).
+# Las fabricas viven en backend/prefabs/components desde siempre; lo que
+# faltaba era alguien que las llamara.
+_PSICOLOGICOS = {
+    'personality_traits':          ('personality_traits_component',          ('traits',)),
+    'cognitive_bias':              ('cognitive_bias_component',              ('bias_type', 'bias_strength')),
+    'social_identity':             ('social_identity_component',             ('group_membership', 'identification_strength')),
+    'emotion':                     ('emotion_component',                     ('current_emotion', 'emotion_intensity')),
+    'theory_of_planned_behavior':  ('theory_of_planned_behavior_component',  ('behavior', 'attitude', 'subjective_norm', 'perceived_control')),
+    'values':                      ('values_component',                      ('core_values', 'value_conflict')),
+}
+
+
+def _armar_componentes_psicologicos(components_copy, model, nombre_agente):
+    """
+    Saca del bloque `components` los perfiles psicologicos y los instancia.
+
+    Devuelve {'componentes': {clave: componente}, 'frases': [texto]} o None.
+    Las frases son el mismo estado del componente, para los prefabs que no
+    aceptan extra_components y solo pueden recibirlo como memoria.
+
+    Un perfil mal escrito no debe voltear la simulacion entera: se avisa y se
+    sigue sin el.
+    """
+    presentes = [k for k in _PSICOLOGICOS if k in components_copy]
+    if not presentes:
+        return None
+
+    try:
+        from backend.prefabs import components as fabricas
+    except ImportError as e:
+        print(f"[WARNING] No pude cargar los componentes psicologicos: {e}")
+        for k in presentes:
+            components_copy.pop(k, None)
+        return None
+
+    armados, frases = {}, []
+    for clave in presentes:
+        config = components_copy.pop(clave)
+        nombre_fabrica, esperados = _PSICOLOGICOS[clave]
+        fabrica = getattr(fabricas, nombre_fabrica, None)
+        if fabrica is None:
+            print(f"[WARNING] Falta la fabrica {nombre_fabrica}; se omite '{clave}'")
+            continue
+
+        # 'personality_traits' recibe el dict entero; el resto, campos sueltos.
+        if clave == 'personality_traits':
+            kwargs = {'traits': config if isinstance(config, dict) else {}}
+        elif isinstance(config, dict):
+            kwargs = {k: config[k] for k in esperados if k in config}
+        else:
+            print(f"[WARNING] '{clave}' de {nombre_agente} no es un objeto; se omite")
+            continue
+
+        try:
+            componente = fabrica(model=model, **kwargs)
+        except Exception as e:
+            print(f"[WARNING] No pude armar '{clave}' de {nombre_agente}: "
+                  f"{type(e).__name__}: {e}")
+            continue
+
+        armados[clave] = componente
+        estado = getattr(componente, '_state', None) or getattr(componente, 'get_state', lambda: '')()
+        if isinstance(estado, str) and estado.strip():
+            frases.append(estado.strip().replace('This person', nombre_agente))
+
+    if not armados:
+        return None
+    return {'componentes': armados, 'frases': frases}
+
+
 def build_simulation(
     config: SimulationConfig,
     model: language_model.LanguageModel,
@@ -196,6 +267,33 @@ def build_simulation(
                     num_observations_to_select=emotional_stance.get('num_observations_to_select', 5),
                 )
                 components_copy['extra_components'] = extra
+
+            # Los componentes psicologicos (sesgo, rasgos, emociones, identidad,
+            # valores, TPB) estaban definidos en backend/prefabs/components y
+            # ofrecidos por la UI, pero nadie los instanciaba: caian en
+            # entity_params y el prefab, que lee un puñado de claves fijas, los
+            # descartaba en silencio. Se verifico corriendo una simulacion con un
+            # sesgo fuerte: ni el nombre del componente ni el tipo de sesgo
+            # aparecian una sola vez en el registro.
+            #
+            # Solo minimal__Entity acepta extra_components, asi que para el resto
+            # el mismo texto se agrega como memoria. No es equivalente —una
+            # memoria compite por ser recuperada, un componente esta siempre
+            # presente— pero es la unica via que esos prefabs ofrecen.
+            perfil = _armar_componentes_psicologicos(components_copy, model, agent_config.name)
+            if perfil:
+                if agent_config.prefab == 'minimal__Entity':
+                    extra = components_copy.get('extra_components', {})
+                    extra.update(perfil['componentes'])
+                    components_copy['extra_components'] = extra
+                    debug_print(f"[DEBUG] {agent_config.name}: {len(perfil['componentes'])} "
+                                f"componentes psicologicos instanciados")
+                else:
+                    agent_memories.extend(perfil['frases'])
+                    entity_params['memory'] = create_memory_bank(embedder, agent_memories)
+                    debug_print(f"[DEBUG] {agent_config.name}: {len(perfil['frases'])} rasgos "
+                                f"psicologicos agregados como memoria "
+                                f"(prefab '{agent_config.prefab}' no acepta extra_components)")
 
             entity_params.update(components_copy)
 
