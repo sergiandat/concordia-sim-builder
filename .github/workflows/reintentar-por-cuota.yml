@@ -42,10 +42,20 @@ jobs:
             fi
 
             COMPLETA=$(echo "$RES" | python -c "import json,sys; print(json.load(sys.stdin).get('completa'))")
+            # La bandera la escribe run_headless. El texto se sigue mirando por
+            # las corridas guardadas antes de que existiera: el corte por cuota
+            # traduce el error de Google, así que 'PerDay' ya no aparece en el
+            # mensaje y buscarlo solo a él dejaba sin relanzar justo las que
+            # habían fallado por cuota.
             POR_CUOTA=$(echo "$RES" | python -c "
           import json, sys
-          e = json.load(sys.stdin).get('error') or ''
-          print('si' if ('PerDay' in e or 'RESOURCE_EXHAUSTED' in e) else 'no')")
+          d = json.load(sys.stdin)
+          e = d.get('error') or ''
+          marcada = d.get('corto_por_cuota')
+          if marcada is None:
+              marcada = ('PerDay' in e or 'RESOURCE_EXHAUSTED' in e
+                         or 'cuota DIARIA' in e)
+          print('si' if marcada else 'no')")
 
             if [ "$COMPLETA" = "False" ] && [ "$POR_CUOTA" = "si" ]; then
               echo "#$N quedó incompleta por cuota: se relanza."

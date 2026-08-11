@@ -188,6 +188,13 @@ def main() -> int:
         "pasos_pedidos": config.max_steps,
         "completa": paso[0] >= config.max_steps and error is None,
         "error": error,
+        # Bandera explícita en vez de dejar que el relanzador adivine buscando
+        # texto: el corte por cuota traduce el error de Google al castellano, así
+        # que buscar 'PerDay' en el mensaje dejó de encontrarlo y la corrida que
+        # había que relanzar quedaba esperando indefinidamente.
+        "corto_por_cuota": bool(error and (
+            "cuota DIARIA" in error or "PerDay" in error
+            or "RESOURCE_EXHAUSTED" in error)),
         "agentes": [a.name for a in config.agents],
         "modelo": f"{llm_settings.provider}/{llm_settings.model_name}",
         "modelo_gm": f"{gm_settings.provider}/{gm_settings.model_name}" if gm_settings else None,
