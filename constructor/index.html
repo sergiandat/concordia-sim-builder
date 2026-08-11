@@ -477,6 +477,25 @@ var TIPOS_VAR = [
   ["boolean",     "Sí o no",     "Solo verdadero o falso."]
 ];
 
+var SESGOS = [
+  ["",                      "Sin sesgo"],
+  ["anchoring_bias",        "Anclaje — se aferra al primer dato que recibió"],
+  ["confirmation_bias",     "Confirmación — busca lo que le da la razón"],
+  ["availability_heuristic","Disponibilidad — pesa de más lo que recuerda fácil"],
+  ["sunk_cost_fallacy",     "Costo hundido — sigue por lo ya invertido"],
+  ["overconfidence_bias",   "Exceso de confianza — sobreestima su criterio"]
+];
+
+var INTENSIDADES = [["weak", "Leve"], ["moderate", "Moderada"], ["strong", "Fuerte"]];
+
+var RASGOS = [
+  ["openness",          "Apertura"],
+  ["conscientiousness", "Responsabilidad"],
+  ["extraversion",      "Extraversión"],
+  ["agreeableness",     "Amabilidad"],
+  ["neuroticism",       "Inestabilidad emocional"]
+];
+
 var CONTRIB = [
   ["death",                "Muerte",                 "Los participantes pueden morir durante el relato."],
   ["gm_working_memory",    "Memoria de trabajo",     "La mesa recuerda mejor lo reciente."],
@@ -686,6 +705,47 @@ var CONTRIB = [
          que más pesa es el último: es el que decide qué hace, y viene en 5
          por defecto, así que algo anunciado unos turnos antes puede quedar
          afuera justo cuando tiene que actuar. */
+      /* Perfil psicologico. Solo el participante "Minimo" lo recibe como
+         componente siempre presente; en los demas entra como memoria, que
+         compite por ser recuperada. Se avisa en la interfaz porque cambia
+         cuanto pesa. */
+      var psico = el("div", "sub-bloque");
+      psico.appendChild(el("p", "ayuda",
+        "Rasgos que afectan cómo decide. Con el tipo «Mínimo» quedan siempre presentes; " +
+        "con los demás entran como recuerdo y puede que no siempre pesen."));
+
+      var parSesgo = el("div", "par");
+      parSesgo.appendChild(campo("Sesgo al decidir", null,
+        selectDe(SESGOS, ag.sesgo, function (v) { ag.sesgo = v; })));
+      parSesgo.appendChild(campo("Con qué intensidad", null,
+        selectDe(INTENSIDADES, ag.sesgoFuerza || "moderate",
+          function (v) { ag.sesgoFuerza = v; })));
+      psico.appendChild(parSesgo);
+
+      psico.appendChild(campo("Cómo se siente", "una palabra; vacío = sin emoción marcada",
+        entrada("text", ag.emocion, "urgencia", function (v) { ag.emocion = v; })));
+
+      var det2 = el("details", "avanzado");
+      det2.appendChild(el("summary", null, "Rasgos de personalidad y valores"));
+      var c2 = el("div", "cuerpo-avanzado");
+      c2.appendChild(el("p", "ayuda", "Los rasgos van de 1 a 5. Dejá vacío el que no quieras fijar."));
+      ag.rasgos = ag.rasgos || {};
+      var grilla = el("div", "par");
+      RASGOS.forEach(function (r) {
+        grilla.appendChild(campo(r[1], null,
+          entrada("number", ag.rasgos[r[0]], "1 a 5", function (v) { ag.rasgos[r[0]] = v; })));
+      });
+      c2.appendChild(grilla);
+      c2.appendChild(campo("Qué valora", "uno por línea",
+        area(2, ag.valores, "Prudencia fiscal\nTransparencia",
+          function (v) { ag.valores = v; })));
+      c2.appendChild(campo("Qué tensión lo atraviesa", "opcional",
+        entrada("text", ag.tension, "cautela frente a urgencia",
+          function (v) { ag.tension = v; })));
+      det2.appendChild(c2);
+      psico.appendChild(det2);
+      cuerpo.appendChild(psico);
+
       var memorias = el("div", "sub-bloque");
       memorias.appendChild(el("p", "ayuda",
         "Cuántos recuerdos consulta antes de hablar. Subir el último ayuda a que no " +
@@ -892,6 +952,28 @@ var CONTRIB = [
       var va = parseInt(a.ventAccion, 10);
       if (!isNaN(vs) && vs > 0) comp.situation_perception_history_length = vs;
       if (!isNaN(va) && va > 0) comp.person_by_situation_history_length = va;
+
+      // Perfil psicologico. Cada bloque solo viaja si tiene contenido: un
+      // objeto vacio haria que el motor intente armar el componente y falle.
+      if (a.sesgo) {
+        comp.cognitive_bias = { bias_type: a.sesgo, bias_strength: a.sesgoFuerza || "moderate" };
+      }
+      if ((a.emocion || "").trim()) {
+        comp.emotion = { current_emotion: a.emocion.trim(),
+                         emotion_intensity: a.sesgoFuerza || "moderate" };
+      }
+      var rasgos = {};
+      Object.keys(a.rasgos || {}).forEach(function (k) {
+        var n = parseInt(a.rasgos[k], 10);
+        if (!isNaN(n) && n >= 1 && n <= 5) rasgos[k] = n;
+      });
+      if (Object.keys(rasgos).length) comp.personality_traits = rasgos;
+
+      var vals = lineas(a.valores);
+      if (vals.length) {
+        comp.values = { core_values: vals };
+        if ((a.tension || "").trim()) comp.values.value_conflict = a.tension.trim();
+      }
 
       var acciones = lineas(a.acciones);
       return {
@@ -1138,7 +1220,8 @@ var CONTRIB = [
 
   $("b-sumar-agente").addEventListener("click", function () {
     estado.agentes.push({ nombre: "", objetivo: "", memorias: "", prefab: "basic__Entity",
-      contexto: "", azar: false, acciones: "", ventSituacion: "", ventAccion: "" });
+      contexto: "", azar: false, acciones: "", ventSituacion: "", ventAccion: "",
+      sesgo: "", sesgoFuerza: "moderate", emocion: "", rasgos: {}, valores: "", tension: "" });
     dibujarAgentes(); dibujarTurnos(); actualizar();
   });
   $("b-sumar-variable").addEventListener("click", function () {
