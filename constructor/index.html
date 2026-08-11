@@ -120,6 +120,8 @@
     background:var(--accent);color:var(--accent-ink);padding:.75rem 1.2rem;border-radius:7px;
     font-size:.9rem;font-weight:600;max-width:calc(100vw - 2.5rem);text-align:center;
     box-shadow:0 4px 16px rgba(0,0,0,.18)}
+  .sub-bloque{border-top:1px solid var(--rule);margin-top:1.15rem;padding-top:1rem}
+  .sub-bloque .ayuda{margin-bottom:.9rem;font-size:.88rem}
   a{color:var(--accent)}
   .pie{padding:2.5rem 0;color:var(--ink-faint);font-size:.88rem}
   @media (max-width:34rem){h1{font-size:1.75rem}.cabecera{padding:2rem 0 1.75rem}}
@@ -676,6 +678,26 @@ var CONTRIB = [
         area(3, ag.contexto, "Viene de una reunión donde le pidieron no ceder en este punto.",
           function (v) { ag.contexto = v; })));
 
+      cuerpo.appendChild(campo("Qué puede hacer", "una acción por línea; vacío = puede hacer cualquier cosa",
+        area(3, ag.acciones, "Apoyar la propuesta\nObjetar y pedir cambios\nPedir más tiempo",
+          function (v) { ag.acciones = v; })));
+
+      /* Cuántos recuerdos consulta cada una de las tres preguntas. El valor
+         que más pesa es el último: es el que decide qué hace, y viene en 5
+         por defecto, así que algo anunciado unos turnos antes puede quedar
+         afuera justo cuando tiene que actuar. */
+      var memorias = el("div", "sub-bloque");
+      memorias.appendChild(el("p", "ayuda",
+        "Cuántos recuerdos consulta antes de hablar. Subir el último ayuda a que no " +
+        "se olvide de algo que se dijo varios turnos atrás."));
+      var vent = el("div", "par");
+      vent.appendChild(campo("Al mirar la situación", "por defecto 25",
+        entrada("number", ag.ventSituacion, "25", function (v) { ag.ventSituacion = v; })));
+      vent.appendChild(campo("Al decidir qué hace", "por defecto 5",
+        entrada("number", ag.ventAccion, "5", function (v) { ag.ventAccion = v; })));
+      memorias.appendChild(vent);
+      cuerpo.appendChild(memorias);
+
       var chk = el("div", "fila-check");
       var cb = document.createElement("input");
       cb.type = "checkbox"; cb.checked = !!ag.azar;
@@ -863,15 +885,24 @@ var CONTRIB = [
     var max = parseInt($("pasos").value, 10) || 1;
 
     var agentes = estado.agentes.map(function (a, i) {
+      // Las ventanas viajan en components: el motor hace update() de eso sobre
+      // los parámetros del prefab, así que llegan como si fueran propias.
+      var comp = {};
+      var vs = parseInt(a.ventSituacion, 10);
+      var va = parseInt(a.ventAccion, 10);
+      if (!isNaN(vs) && vs > 0) comp.situation_perception_history_length = vs;
+      if (!isNaN(va) && va > 0) comp.person_by_situation_history_length = va;
+
+      var acciones = lineas(a.acciones);
       return {
         id: idDesde(a.nombre, i),
         name: nombreDe(a, i),
         prefab: a.prefab || "basic__Entity",
         goal: (a.objetivo || "").trim(),
         memories: lineas(a.memorias),
-        components: null,
+        components: Object.keys(comp).length ? comp : null,
         randomize_choices: !!a.azar,
-        available_actions: null,
+        available_actions: acciones.length ? acciones : null,
         nested_simulation: null
       };
     });
@@ -1106,7 +1137,8 @@ var CONTRIB = [
   });
 
   $("b-sumar-agente").addEventListener("click", function () {
-    estado.agentes.push({ nombre: "", objetivo: "", memorias: "", prefab: "basic__Entity", contexto: "", azar: false });
+    estado.agentes.push({ nombre: "", objetivo: "", memorias: "", prefab: "basic__Entity",
+      contexto: "", azar: false, acciones: "", ventSituacion: "", ventAccion: "" });
     dibujarAgentes(); dibujarTurnos(); actualizar();
   });
   $("b-sumar-variable").addEventListener("click", function () {
