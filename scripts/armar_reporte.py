@@ -616,6 +616,8 @@ ROTULO_INDICE = {
     "incompleta": "Por qué se cortó",
     "senales": "Qué mirar",
     "interpretacion": "Cómo leerlo",
+    "hallazgos": "Hallazgos",
+    "variaciones": "Qué probar",
     "perfiles": "Perfiles",
     "sintesis": "En pocas palabras",
     "acuerdos": "Acuerdos",
@@ -909,7 +911,67 @@ Sobre el nivel de consenso, si se midió: que llegue al máximo NO es un buen re
 No cierres con un veredicto sobre si la deliberación estuvo bien o mal, ni con una frase de síntesis elogiosa. Terminá con lo que quedó sin resolver o con lo que habría que revisar del escenario."""
 
 
-def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180) -> str:
+PROMPT_HALLAZGOS = """Sos analista metodológico y revisás una simulación deliberativa ya corrida. No te interesa contar qué pasó —eso ya está escrito— sino qué se puede aprender del armado y qué habría que cambiar para la próxima.
+
+CONTEXTO DEL ESCENARIO
+{contexto}
+
+CÓMO ESTABA ARMADO
+- Narrador: {narrador}
+- Motor: {motor}
+- Orden de la palabra: {orden}
+- Turnos pedidos: {pedidos} · efectivamente corridos: {corridos}
+
+PERFILES PSICOLÓGICOS CONFIGURADOS
+{perfiles}
+
+INDICADORES Y SU REGLA DE ACTUALIZACIÓN
+{reglas}
+
+CÓMO SE MOVIÓ CADA INDICADOR, TURNO A TURNO
+{trayectorias}
+
+MOMENTOS DE DECISIÓN INYECTADOS
+{decisiones}
+
+LA DELIBERACIÓN, TURNO POR TURNO
+{transcripcion}
+
+Devolvé un JSON con exactamente esta forma, sin texto alrededor ni bloques de código:
+
+{{
+  "hallazgos": [
+    {{"tema": "Componentes psicológicos|Indicadores|Dinámica|Método",
+      "texto": "dos a cuatro frases con la evidencia concreta"}}
+  ],
+  "variaciones": [
+    {{"cambio": "qué cambiar, con nombre y valor exactos",
+      "hipotesis": "qué pone a prueba ese cambio",
+      "esperado": "qué habría que observar si la hipótesis es cierta"}}
+  ],
+  "mejoras": ["cambio puntual al diseño de este escenario", "..."]
+}}
+
+En "hallazgos" cubrí, y salteá la categoría donde no haya evidencia suficiente en vez de especular:
+
+- Componentes psicológicos: ¿los sesgos configurados produjeron las distorsiones esperadas, como patrón general? ¿Los rasgos se notaron en el estilo? Si no se configuró ninguno, decí qué podría revelar agregarlos.
+- Indicadores: ¿el narrador aplicó las reglas de actualización que se le escribieron? Señalá los que se movieron de manera incoherente con lo que se dijo, los que quedaron planos cuando había motivo para moverse, y los que se movieron juntos como si el narrador no los distinguiera.
+- Dinámica: qué fenómenos aparecieron —coaliciones, persuasión, bloqueo, adhesión sin objetar, alguien que arrastra al resto— y quién los inició.
+- Método: qué confusores o limitaciones tiene este armado. Sé concreto: si dos cosas cambiaron a la vez y no se puede atribuir el efecto a ninguna, decilo.
+
+En "variaciones" proponé tres o cuatro modificaciones para una corrida siguiente. Cada una tiene que ser una sola cosa que cambia, nombrada con precisión —qué participante, qué parámetro, qué valor— para que el efecto sea atribuible. Ejemplos de la forma que buscamos: cambiar el sesgo de alguien de confirmación a anclaje para probar si importa el tipo o solo la presencia; pasar de secuencial a simultáneo para probar si el orden de turno da poder de fijar agenda; sacar un indicador de los ocho para probar si el narrador los sigue mejor con menos.
+
+En "mejoras" poné cambios puntuales a ESTE escenario: un objetivo que quedó vago, un dato que faltó y alguien tuvo que inventar, un momento de decisión mal ubicado, un indicador cuya regla no es accionable.
+
+Reglas estrictas:
+- Basate solo en lo que aparece más arriba. No inventes citas ni hechos.
+- Cada afirmación tiene que poder rastrearse a un turno, un indicador o un valor de configuración. Si no podés señalar dónde se ve, no lo digas.
+- Nada de recomendaciones genéricas del tipo «agregar más contexto». Si proponés algo, decí qué exactamente y dónde.
+- Si la corrida quedó incompleta, tenelo en cuenta: lo que no pasó puede deberse a que se cortó, no al diseño."""
+
+
+def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180,
+                   tope: int = 4000) -> str:
     """
     Llamada REST con biblioteca estándar. A propósito no se usa el motor de
     simulación: así este script corre sobre resultados viejos, en una máquina
@@ -922,7 +984,7 @@ def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180) -> 
            f"{modelo}:generateContent?key={clave}")
     cuerpo = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 4000},
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": tope},
     }).encode("utf-8")
     pedido = urllib.request.Request(
         url, data=cuerpo, headers={"Content-Type": "application/json"}, method="POST")
@@ -969,6 +1031,81 @@ def texto_perfiles(agentes) -> str:
         if partes:
             lineas.append(f"- {a.get('name', '?')}: " + "; ".join(partes))
     return "\n".join(lineas) or "(no se configuraron perfiles psicológicos)"
+
+
+def analizar_hallazgos(pasos, series, esc, resumen_datos) -> dict:
+    """
+    Revisión metodológica: qué se aprende del armado y qué cambiar para la
+    próxima. Es el segundo y tercer prompt del analizador del proyecto original,
+    de los que solo usábamos el primero.
+
+    Va en una llamada aparte, no sumada a la del resumen. El tope de salida son
+    4000 tokens y el otro pedido ya usa buena parte: si el JSON se corta, se
+    pierde todo lo de esa llamada, no solo lo que se agregó. Separadas, cada una
+    tiene lugar y una falla no arrastra a la otra. Contra la cuota diaria esto
+    cuesta una llamada más por informe, no por turno.
+    """
+    import os
+    clave = os.getenv("GEMINI_API_KEY", "").strip()
+    if not clave or not pasos:
+        return {}
+
+    # La regla de actualización es lo que el narrador tenía que aplicar; sin
+    # ella no se puede evaluar si la aplicó.
+    reglas = "\n".join(
+        f"- {bonito(v.get('name', ''))} ({v.get('variable_type', 'sin tipo')}): "
+        f"{v.get('update_rule') or v.get('description') or 'sin regla escrita'}"
+        for v in (esc.get("variables") or [])) or "(no se definieron indicadores)"
+
+    # Trayectoria completa, no solo extremos: un indicador que sube y vuelve
+    # dice algo distinto de uno que no se movió, y con los extremos se ven igual.
+    trayectorias = "\n".join(
+        f"- {bonito(n)}: " + " → ".join(f"t{p}:{v:.0f}" for p, v in s)
+        for n, s in sorted(series.items())) or "(no se midieron indicadores)"
+
+    decisiones = "\n".join(
+        f"- turno {d.get('step')}: {str(d.get('event', ''))[:300]}"
+        for d in (esc.get("decisiones") or [])) or "(no se inyectaron)"
+
+    transcripcion = "\n\n".join(
+        f"Turno {p['n']} — {p['quien']}:\n{(p['dicho'] or p['evento'])[:900]}" for p in pasos)
+
+    prompt = PROMPT_HALLAZGOS.format(
+        contexto=(esc.get("premisa") or "(sin premisa registrada)")[:1500],
+        narrador=NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab") or "—"),
+        motor=NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor") or "—"),
+        orden=NOMBRES_ORDEN.get(esc.get("orden", ""), esc.get("orden") or "—"),
+        pedidos=esc.get("pasos") or "?",
+        corridos=len(pasos),
+        perfiles=texto_perfiles(esc.get("agentes")),
+        reglas=reglas,
+        trayectorias=trayectorias,
+        decisiones=decisiones,
+        transcripcion=transcripcion[:45000],
+    )
+
+    crudo_nombre = (resumen_datos or {}).get("modelo_gm") or (resumen_datos or {}).get("modelo") or ""
+    modelo = crudo_nombre.split("/")[-1].strip() or "gemini-3.5-flash-lite"
+    try:
+        bruto = pedir_a_gemini(prompt, modelo, clave, tope=8000)
+    except Exception as e:
+        detalle = getattr(e, "reason", None) or e
+        print(f"  hallazgos omitidos: {type(e).__name__}: {str(detalle)[:160]}")
+        return {}
+
+    limpio = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", bruto.strip())
+    try:
+        d = json.loads(limpio)
+    except json.JSONDecodeError:
+        print("  hallazgos omitidos: la respuesta no era JSON válido")
+        return {}
+    if not isinstance(d, dict):
+        return {}
+    return {
+        "hallazgos": [x for x in (d.get("hallazgos") or []) if isinstance(x, dict) and x.get("texto")],
+        "variaciones": [x for x in (d.get("variaciones") or []) if isinstance(x, dict) and x.get("cambio")],
+        "mejoras": [str(x) for x in (d.get("mejoras") or []) if str(x).strip()],
+    }
 
 
 def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None) -> dict:
@@ -1262,6 +1399,52 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
         for tipo, texto in obs:
             partes.append(f'<li class="s-{tipo}">{html.escape(texto)}</li>')
         partes.append("</ul></section>")
+
+    # Qué se aprende del armado, no de la deliberación. Va después de los
+    # veredictos y antes de la ayuda de lectura: primero qué salió, después qué
+    # significa para el diseño, después con qué alcance leer todo.
+    hallazgos = analisis.get("hallazgos") or []
+    if hallazgos:
+        partes.append('<section id="hallazgos"><h2>Qué dice esto del armado</h2>')
+        partes.append(f'<p class="ayuda-sec">{marca("inferido")} Revisión metodológica de la '
+                      "corrida: si el narrador aplicó las reglas que se le escribieron, si los "
+                      "componentes produjeron lo esperado, y qué limitaciones tiene este "
+                      "diseño para atribuir lo observado.</p>")
+        partes.append('<div class="tarjetas">')
+        for h in hallazgos:
+            tema = html.escape(str(h.get("tema") or "Observación"))
+            partes.append(f'<article class="tarjeta"><h3>{tema}</h3>'
+                          f'<p>{html.escape(str(h["texto"]))}</p></article>')
+        partes.append("</div></section>")
+
+    variaciones = analisis.get("variaciones") or []
+    mejoras = analisis.get("mejoras") or []
+    if variaciones or mejoras:
+        partes.append('<section id="variaciones"><h2>Qué probar en la próxima</h2>')
+        if variaciones:
+            partes.append(f'<p class="ayuda-sec">{marca("inferido")} Cada variación cambia '
+                          "<strong>una sola cosa</strong>, para que el efecto sea atribuible a "
+                          "ese cambio y no a varios a la vez. La guía del proyecto recomienda "
+                          "de tres a cinco corridas; esto es qué variar entre una y otra.</p>")
+            partes.append('<ol class="variaciones">')
+            for v in variaciones:
+                partes.append('<li><p class="v-cambio">'
+                              + html.escape(str(v["cambio"])) + "</p>")
+                if v.get("hipotesis"):
+                    partes.append('<p class="v-linea"><span class="et-v">Pone a prueba</span>'
+                                  + html.escape(str(v["hipotesis"])) + "</p>")
+                if v.get("esperado"):
+                    partes.append('<p class="v-linea"><span class="et-v">Habría que ver</span>'
+                                  + html.escape(str(v["esperado"])) + "</p>")
+                partes.append("</li>")
+            partes.append("</ol>")
+        if mejoras:
+            partes.append("<h3>Arreglos a este escenario</h3>")
+            partes.append('<ul class="lista-datos ajustes">')
+            for m in mejoras:
+                partes.append(f"<li>{html.escape(m)}</li>")
+            partes.append("</ul>")
+        partes.append("</section>")
 
     partes.append(ayuda_interpretacion(pasos, series, franjas, esc, resumen))
 
@@ -1609,6 +1792,17 @@ overflow-x:auto;scrollbar-width:thin}
 .navega a:hover,.navega a:focus-visible{color:var(--acuerdo)}
 /* Sin esto el índice fijo tapa el título de la sección a la que se saltó. */
 section[id]{scroll-margin-top:3.5rem}
+.variaciones{margin:0;padding-left:1.4rem;display:flex;flex-direction:column;gap:1rem;
+max-width:52rem}
+.variaciones li{padding-left:.3rem}
+.v-cambio{margin:0 0 .4rem;font-size:.93rem;font-weight:600}
+.v-linea{margin:0 0 .25rem;font-size:.88rem;color:var(--ink-soft);line-height:1.55}
+.et-v{display:inline-block;min-width:8.5rem;font-size:.72rem;letter-spacing:.05em;
+text-transform:uppercase;font-family:var(--mono);color:var(--ink-faint)}
+.ajustes{max-width:52rem}
+#hallazgos .tarjetas{grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))}
+#hallazgos .tarjeta h3{margin:0 0 .5rem;font-size:.97rem;font-weight:600}
+#hallazgos .tarjeta p{margin:0;font-size:.9rem;line-height:1.6;color:var(--ink-soft)}
 .veredictos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
 max-width:52rem}
 .veredictos li{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);
@@ -1854,6 +2048,8 @@ def main() -> int:
         print("  pidiendo resumen, acuerdos y pendientes...")
         analisis = analizar_con_modelo(pasos, series, resumen, premisa,
                                        esc.get("agentes"))
+        print("  pidiendo hallazgos y recomendaciones...")
+        analisis.update(analizar_hallazgos(pasos, series, esc, resumen))
 
     salida = args.salida or args.crudo.parent / "reporte.html"
     salida.write_text(armar(pasos, series, franjas, resumen, decisiones, esc, analisis), encoding="utf-8")
