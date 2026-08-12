@@ -857,12 +857,13 @@ ROTULO_INDICE = {
 # atravesaba en el medio. Agrupadas, el orden es: qué pasó, cómo se dio, la
 # evidencia en crudo, qué dice del armado, y el material de referencia.
 GRUPOS = [
-    ("g-diseno", "Qué se simuló", ["ficha", "diseno", "participantes", "variables", "hitos"]),
-    ("g-que", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta"]),
-    ("g-como", "Cómo se dio", ["evolucion", "perfiles", "ciclo"]),
+    ("g-que-es", "Qué es esto", ["ficha", "diseno", "interpretacion"]),
+    ("g-armo", "Cómo se armó", ["participantes", "variables", "hitos", "ciclo"]),
+    ("g-paso", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta",
+                            "evolucion", "perfiles"]),
     ("g-delib", "La deliberación", ["deliberacion"]),
     ("g-armado", "Qué dice del armado", ["senales", "hallazgos", "variaciones"]),
-    ("g-leer", "Alcance y datos", ["interpretacion", "datos", "tecnica"]),
+    ("g-datos", "Datos", ["datos", "tecnica"]),
 ]
 
 
@@ -1026,46 +1027,14 @@ def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
     p = ['<details class="escenario"><summary>Cómo estaba armado el escenario</summary>',
          '<div class="cuerpo-esc">']
 
-    if esc.get("premisa"):
-        p.append("<h3>La situación planteada</h3>")
-        p.append(parrafos(esc["premisa"]))
-
+    # La premisa y la ficha de cada participante ya tienen su lugar propio —en
+    # «Diseño de la simulación» y en «Quiénes participaron»—. Repetirlas acá
+    # obligaba a comparar dos versiones de lo mismo para saber cuál mandaba.
     if esc.get("datos"):
         p.append("<h3>Datos que todos conocían</h3><ul class='lista-datos'>")
         for d in esc["datos"]:
             p.append(f"<li>{html.escape(d)}</li>")
         p.append("</ul>")
-
-    if esc.get("agentes"):
-        p.append("<h3>Cada participante</h3>")
-        # Solo minimal__Entity recibe el perfil como componente presente en cada
-        # acción. En el resto entra como recuerdo y compite por ser recuperado,
-        # así que puede no influir en un turno dado. Quien lea el informe tiene
-        # que saberlo antes de concluir que el sesgo «no funcionó».
-        con_perfil = [a for a in esc["agentes"] if perfil_psicologico(a.get("components") or {})]
-        indirectos = [a for a in con_perfil if a.get("prefab") != "minimal__Entity"]
-        if indirectos:
-            p.append('<p class="ayuda-sec">Los perfiles psicológicos de '
-                     f'{len(indirectos)} de {len(con_perfil)} participantes entraron '
-                     "como recuerdo, no como componente fijo: solo el tipo «Mínimo» "
-                     "los tiene presentes en cada acción. En los demás compiten con "
-                     "el resto de la memoria por ser recuperados, así que pueden no "
-                     "pesar en todos los turnos.</p>")
-        for a in esc["agentes"]:
-            p.append('<div class="ficha-agente">')
-            p.append(f'<h4>{html.escape(a.get("name", ""))}</h4>')
-            if a.get("goal"):
-                p.append(f'<p class="obj-agente"><strong>Busca:</strong> {html.escape(a["goal"])}</p>')
-            perfil = perfil_psicologico(a.get("components") or {})
-            if perfil:
-                p.append(perfil)
-            mem = a.get("memories") or []
-            if mem:
-                p.append("<ul class='lista-datos'>")
-                for m in mem:
-                    p.append(f"<li>{html.escape(m)}</li>")
-                p.append("</ul>")
-            p.append("</div>")
 
     filas = [
         ("Tipo de narrador", NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab", "—"))),
@@ -1823,17 +1792,51 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         partes.append("</section>")
 
     # --------------------------------------------------- 7. participantes
+    # Un solo lugar por participante. Estaba partido en dos: nombre, turnos y
+    # objetivo acá, y perfil y recuerdos en la ficha técnica dentro de un
+    # plegado, en otra pestaña. Para saber cómo estaba configurado alguien había
+    # que juntar dos secciones que ni se mencionaban entre sí.
+    por_nombre = {a.get("name"): a for a in (esc.get("agentes") or [])}
     partes.append('<section id="participantes"><h2>Quiénes participaron</h2>')
-    partes.append('<p class="ayuda-sec">Cada casilla es un turno, coloreada según quién habló.</p>')
-    partes.append(tira_participacion(pasos, quienes))
+    partes.append(f'<p class="ayuda-sec">{marca("medido")} Cómo estaba configurado cada uno: '
+                  "qué busca, con qué perfil y con qué recuerdos entró.</p>")
+    indirectos = [a for a in por_nombre.values()
+                  if perfil_psicologico(a.get("components") or {})
+                  and a.get("prefab") != "minimal__Entity"]
+    if indirectos:
+        partes.append('<p class="ayuda-sec">Los perfiles de '
+                      f"{len(indirectos)} participantes entraron como recuerdo, no como "
+                      "componente fijo: solo el tipo «Mínimo» los tiene presentes en cada "
+                      "acción. En los demás compiten con el resto de la memoria por ser "
+                      "recuperados, así que pueden no pesar en todos los turnos.</p>")
+
     for q in quienes:
+        a = por_nombre.get(q, {})
         partes.append('<article class="participante">')
         partes.append(f"<h3>{html.escape(q)}</h3>")
         partes.append(f'<p class="veces">{veces[q]} '
                       f'{"turno" if veces[q] == 1 else "turnos"}</p>')
-        if objetivos.get(q):
-            partes.append(f'<p class="objetivo">{html.escape(objetivos[q])}</p>')
+        meta = a.get("goal") or objetivos.get(q)
+        if meta:
+            partes.append(f'<p class="objetivo">{html.escape(meta)}</p>')
+        perfil = perfil_psicologico(a.get("components") or {})
+        if perfil:
+            partes.append(perfil)
+        recuerdos = a.get("memories") or []
+        if recuerdos:
+            partes.append('<details class="interno"><summary>'
+                          f"Con qué {len(recuerdos)} recuerdos entró</summary>"
+                          "<ul class='lista-datos'>")
+            for m in recuerdos:
+                partes.append(f"<li>{html.escape(m)}</li>")
+            partes.append("</ul></details>")
         partes.append("</article>")
+    # Los que estaban configurados y nunca hablaron: sin esto, un participante
+    # que la corrida no alcanzó a darle la palabra desaparece del informe.
+    callados = [n for n in por_nombre if n not in quienes]
+    if callados:
+        partes.append('<p class="franja-cambios">Configurados pero sin intervenir: '
+                      + html.escape(", ".join(callados)) + ".</p>")
     partes.append("</section>")
 
     # --------------------------------------------------- 8. la deliberación
@@ -1848,6 +1851,10 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     partes.append('<p class="ayuda-sec">Cada turno se abre y muestra la secuencia completa: '
                   "qué se le preguntó, qué respondió y qué se enteraron los demás. "
                   "Los textos son literales, sin resumir.</p>")
+    # El reparto de turnos encabeza la transcripcion, no la configuracion: es lo
+    # que efectivamente paso, y sirve de mapa de lo que se va a leer.
+    partes.append('<p class="ayuda-sec">Cada casilla es un turno, coloreada según quién habló.</p>')
+    partes.append(tira_participacion(pasos, quienes))
     # Leer la deliberación entera obligaba a abrir turno por turno. El botón se
     # inserta desde el script para que no aparezca muerto donde no haya JS: sin
     # él, los turnos siguen abriéndose de a uno como hasta ahora.
