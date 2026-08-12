@@ -622,7 +622,7 @@ EFECTO_NARRADOR = {
 }
 
 
-def seccion_narrador(pasos, esc, resumen) -> str:
+def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
     """
     Quién condujo la mesa: lo que se configuró y lo que hizo.
 
@@ -632,6 +632,7 @@ def seccion_narrador(pasos, esc, resumen) -> str:
     decide qué queda registrado como ocurrido, así que su margen de intervención
     condiciona la lectura de todo lo demás.
     """
+    series, franjas = series or {}, franjas or {}
     prefab = esc.get("mesa_prefab") or ""
     p = ['<section id="narrador"><h2>El narrador</h2>']
     p.append('<p class="ayuda-sec">Concordia lo define como una entidad especial que simula '
@@ -678,6 +679,7 @@ def seccion_narrador(pasos, esc, resumen) -> str:
                      f"{len(con_ambos)} turnos: no hay copia textual.</p>")
 
     consignas = [x["mesa"]["consigna"] for x in pasos if x.get("mesa", {}).get("consigna")]
+
     if consignas:
         distintas = len(set(consignas))
         if distintas == 1:
@@ -689,6 +691,62 @@ def seccion_narrador(pasos, esc, resumen) -> str:
             p.append(f'<p class="nota-datos">{marca("medido")} Redactó '
                      f"<strong>{distintas} consignas distintas</strong> en {len(consignas)} "
                      "turnos. Están todas en la ficha técnica.</p>")
+
+
+    # Todo lo que produce el narrador estaba repartido dentro de los turnos
+    # plegados, uno por uno, y nada decía cuánto era ni si variaba. Contado acá,
+    # se ve de qué tamaño es su intervención y desde dónde mirarla.
+    p.append("<h3>Qué produjo en cada turno</h3>")
+    p.append('<ul class="produjo">')
+
+    con_sig = sum(1 for x in pasos if (x.get("mesa") or {}).get("siguiente"))
+    aciertos = sum(1 for x in pasos
+                   if (x.get("mesa") or {}).get("siguiente") == x["quien"])
+    if con_sig:
+        p.append(f"<li><strong>Anotó a quién le tocaba</strong> en {con_sig} de {len(pasos)} "
+                 f"turnos, y habló ese mismo en {aciertos}. "
+                 "<span class='donde'>Se ve en «Cómo se repartió la palabra».</span></li>")
+
+    if consignas:
+        p.append(f"<li><strong>Escribió la consigna</strong> con que dio la palabra: "
+                 f"{len(set(consignas))} distintas en {len(consignas)} turnos. "
+                 "<span class='donde'>Cada una, en su turno; todas juntas, en la ficha "
+                 "técnica.</span></li>")
+
+    obs_por_paso = [(x.get("mesa") or {}).get("observaciones") or {} for x in pasos]
+    total_obs = sum(len(o) for o in obs_por_paso)
+    if total_obs:
+        distintos = sum(1 for o in obs_por_paso if len(set(o.values())) > 1)
+        detalle = ("cada participante recibió una versión distinta en "
+                   f"{distintos} de {len(pasos)} turnos"
+                   if distintos else
+                   "todos recibieron el mismo texto, así que no hubo información privada")
+        p.append(f"<li><strong>Repartió las observaciones</strong>: {total_obs} en total, y "
+                 f"{detalle}. <span class='donde'>Dentro de cada turno, en «Qué se enteró "
+                 "cada uno».</span></li>")
+
+    valores = sum(len(s) for s in series.values()) + sum(len(s) for s in franjas.values())
+    if valores:
+        cuantas = len(series) + len(franjas)
+        p.append(f"<li><strong>Asignó los valores</strong> de las variables: {valores} "
+                 f"lecturas sobre {cuantas}. <span class='donde'>En «Cómo evolucionó» y en "
+                 "«Variables de seguimiento».</span></li>")
+
+    cierres = [(x.get("mesa") or {}).get("termina") for x in pasos
+               if (x.get("mesa") or {}).get("termina")]
+    if cierres:
+        quiso = sum(1 for c in cierres if str(c).strip().lower().startswith(("s", "y")))
+        p.append(f"<li><strong>Contestó si la deliberación había terminado</strong>, "
+                 f"{len(cierres)} veces. "
+                 + (f"Dijo que sí en {quiso}." if quiso else "Siempre dijo que no.") + "</li>")
+
+    # El campo Summary del registro es el mismo evento con el número de paso
+    # adelante, no un resumen aparte. Conviene decirlo: buscarlo es razonable.
+    p.append("<li><strong>No escribe un resumen propio.</strong> El registro trae un campo "
+             "«Summary» por paso, pero es el hecho registrado repetido, no una síntesis "
+             "aparte. El resumen en castellano de este informe lo produce otro modelo "
+             "después de terminada la corrida.</li>")
+    p.append("</ul>")
 
     instr = ((esc.get("parametros") or {}).get("moderation_instructions") or "").strip()
     if instr:
@@ -1906,7 +1964,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
             partes.append("</ul>")
         partes.append("</section>")
 
-    partes.append(seccion_narrador(pasos, esc, resumen))
+    partes.append(seccion_narrador(pasos, esc, resumen, series, franjas))
     partes.append(seccion_variables(series, franjas, esc))
     partes.append(seccion_hitos(pasos, esc, resumen))
     partes.append(ayuda_interpretacion(pasos, series, franjas, esc, resumen))
@@ -2390,6 +2448,11 @@ background:var(--surface-alt);border-radius:4px;padding:.2rem .45rem;white-space
 .archivos a:hover{text-decoration:underline}
 .nota-datos{margin:.3rem 0 .8rem;font-size:.89rem;color:var(--ink-soft);line-height:1.6;
 max-width:46rem}
+.produjo{list-style:none;margin:.4rem 0 1rem;padding:0;display:flex;flex-direction:column;
+gap:.55rem;max-width:52rem}
+.produjo li{font-size:.9rem;line-height:1.6;color:var(--ink-soft);padding-left:.9rem;
+border-left:2px solid var(--rule-strong)}
+.donde{color:var(--ink-faint);font-size:.85rem}
 .veredictos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
 max-width:52rem}
 .veredictos li{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);
