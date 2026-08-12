@@ -629,25 +629,78 @@ ROTULO_INDICE = {
 }
 
 
-def armar_indice(doc: str) -> str:
-    """
-    Reemplaza la marca por un índice de las secciones que existen.
+# El informe pasó de nueve secciones a catorce y en una sola página quedan una
+# atrás de otra sin jerarquía: la síntesis narrativa aparecía después del
+# análisis metodológico, y la transcripción —que es el 87% del peso— se
+# atravesaba en el medio. Agrupadas, el orden es: qué pasó, cómo se dio, la
+# evidencia en crudo, qué dice del armado, y el material de referencia.
+GRUPOS = [
+    ("g-que", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta"]),
+    ("g-como", "Cómo se dio", ["evolucion", "participantes", "perfiles"]),
+    ("g-delib", "La deliberación", ["deliberacion"]),
+    ("g-armado", "Qué dice del armado", ["senales", "hallazgos", "variaciones"]),
+    ("g-leer", "Cómo leerlo", ["interpretacion", "ciclo", "tecnica"]),
+]
 
-    Escrito a mano se desfasaba en las dos direcciones: enlazaba «Acuerdos»,
-    que solo se genera si se pidió el análisis —y sin él el enlace no llevaba a
-    ninguna parte—, y no enlazaba las secciones agregadas después. Leerlo del
-    documento ya armado hace que no pueda volver a pasar.
+
+def armar_pestanas(doc: str) -> str:
     """
-    enlaces = []
-    # `[^>]*` porque varias secciones llevan class además del id.
-    for ident, titulo in re.findall(r'<section id="([^"]+)"[^>]*><h2>(.*?)</h2>', doc):
-        rotulo = ROTULO_INDICE.get(ident) or re.sub(r"<[^>]+>", "", titulo)
-        enlaces.append(f'<a href="#{ident}">{html.escape(rotulo)}</a>')
-    if not enlaces:
+    Agrupa las secciones en pestañas y las reordena.
+
+    Las secciones se leen del documento ya armado, no de una lista escrita a
+    mano: así una sección nueva entra sola y una que no se generó no puede
+    quedar enlazada —el índice anterior enlazaba «Acuerdos» aunque no existiera—.
+
+    Sin JavaScript el resultado sigue siendo una página corrida con todo
+    visible y las pestañas funcionando como enlaces internos. El script las
+    convierte en pestañas de verdad; si no corre, no se pierde nada.
+    """
+    ini = doc.find('<main class="ancho">')
+    if ini == -1:
         return doc.replace(MARCA_NAV, "")
-    nav = ('<nav class="navega"><div class="ancho barra">'
-           + "".join(enlaces) + "</div></nav>")
-    return doc.replace(MARCA_NAV, nav)
+    fin = doc.find("</main>", ini)
+    cuerpo = doc[ini + len('<main class="ancho">'):fin]
+
+    # Las secciones son planas: no hay ninguna adentro de otra.
+    bloques, titulos = {}, {}
+    for m in re.finditer(r'<section id="([^"]+)"[^>]*>.*?</section>', cuerpo, re.S):
+        ident = m.group(1)
+        bloques[ident] = m.group(0)
+        t = re.search(r"<h2>(.*?)</h2>", m.group(0))
+        titulos[ident] = re.sub(r"<[^>]+>", "", t.group(1)) if t else ident
+    if not bloques:
+        return doc.replace(MARCA_NAV, "")
+
+    # Lo que no esté en ningún grupo va al último, para que agregar una sección
+    # y olvidarse de agruparla no la haga desaparecer del informe.
+    agrupadas = {i for _, _, ids in GRUPOS for i in ids}
+    sueltas = [i for i in bloques if i not in agrupadas]
+
+    pestanas, paneles, primera = [], [], None
+    for k, (gid, rotulo, ids) in enumerate(GRUPOS):
+        presentes = [i for i in ids if i in bloques]
+        if k == len(GRUPOS) - 1:
+            presentes += sueltas
+        if not presentes:
+            continue
+        if primera is None:
+            primera = gid
+        pestanas.append(
+            f'<a class="pestana" href="#{presentes[0]}" role="tab" '
+            f'data-grupo="{gid}" aria-controls="{gid}">{html.escape(rotulo)}</a>')
+        paneles.append(f'<div class="grupo" id="{gid}" role="tabpanel">'
+                       + "".join(bloques[i] for i in presentes) + "</div>")
+
+    # Dentro de <main> no hay solo secciones: también están el pie y los dos
+    # scripts. Se conserva todo lo que no sea una sección y se vuelve a poner
+    # después de los paneles; re-emitiendo únicamente las secciones se perdían
+    # los scripts, y las pestañas quedaban sin nada que las hiciera funcionar.
+    resto = re.sub(r'<section id="[^"]+"[^>]*>.*?</section>', "", cuerpo, flags=re.S)
+
+    barra = ('<nav class="pestanas" role="tablist"><div class="ancho barra">'
+             + "".join(pestanas) + "</div></nav>")
+    doc = (doc[:ini] + '<main class="ancho">' + "".join(paneles) + resto + doc[fin:])
+    return doc.replace(MARCA_NAV, barra)
 
 
 def parrafos(texto: str) -> str:
@@ -1737,6 +1790,62 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
                   "La transcripción reproduce lo que dijo cada participante, sin resumir.</footer>")
     partes.append("""<script>
 (function(){
+  var tabs = [].slice.call(document.querySelectorAll('.pestana'));
+  var grupos = [].slice.call(document.querySelectorAll('.grupo'));
+  if (tabs.length < 2 || !grupos.length) return;
+
+  function mostrar(gid, mover){
+    grupos.forEach(function(g){ g.hidden = (g.id !== gid); });
+    tabs.forEach(function(t){
+      var act = t.getAttribute('data-grupo') === gid;
+      t.setAttribute('aria-selected', act ? 'true' : 'false');
+      t.tabIndex = act ? 0 : -1;
+      t.classList.toggle('activa', act);
+    });
+    if (mover) window.scrollTo(0, 0);
+  }
+
+  // Un enlace a #deliberacion tiene que abrir su pestaña, no dejar la pagina
+  // en una seccion oculta.
+  function grupoDe(id){
+    var s = id && document.getElementById(id);
+    var g = s && s.closest('.grupo');
+    return g ? g.id : null;
+  }
+
+  tabs.forEach(function(t, i){
+    t.addEventListener('click', function(e){
+      e.preventDefault();
+      mostrar(t.getAttribute('data-grupo'), true);
+      history.replaceState(null, '', t.getAttribute('href'));
+    });
+    t.addEventListener('keydown', function(e){
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = tabs[(i + d + tabs.length) % tabs.length];
+      n.focus(); n.click();
+    });
+  });
+
+  // Enlaces internos que apuntan a una seccion de otra pestaña.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (!a || a.classList.contains('pestana')) return;
+    var g = grupoDe(a.getAttribute('href').slice(1));
+    if (g) mostrar(g, false);
+  });
+
+  var inicial = grupoDe(location.hash.slice(1)) || grupos[0].id;
+  mostrar(inicial, false);
+  if (location.hash) {
+    var destino = document.getElementById(location.hash.slice(1));
+    if (destino) destino.scrollIntoView();
+  }
+})();
+</script>
+<script>
+(function(){
   var caja = document.getElementById('control-turnos');
   var turnos = document.querySelectorAll('details.turno');
   if (!caja || !turnos.length) return;
@@ -1758,7 +1867,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
 })();
 </script>""")
     partes.append("</main></body></html>")
-    return armar_indice("".join(partes))
+    return armar_pestanas("".join(partes))
 
 
 CABEZA = """<!doctype html>
@@ -1802,12 +1911,17 @@ font-size:.82rem;font-weight:600}
    deliberación, así que uno termina lejos del encabezado y sin forma de volver.
    Se desplaza a lo ancho en pantallas angostas en vez de partirse en dos filas
    que empujan el contenido. */
-.navega{position:sticky;top:0;z-index:20;background:var(--ground);
+.pestanas{position:sticky;top:0;z-index:20;background:var(--ground);
 border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
-.barra{display:flex;gap:1.4rem;padding-top:.75rem;padding-bottom:.75rem;
-overflow-x:auto;scrollbar-width:thin}
-.navega a{color:var(--ink-soft);text-decoration:none;font-size:.88rem;white-space:nowrap}
-.navega a:hover,.navega a:focus-visible{color:var(--acuerdo)}
+.barra{display:flex;gap:.35rem;overflow-x:auto;scrollbar-width:thin}
+.pestana{color:var(--ink-soft);text-decoration:none;font-size:.9rem;white-space:nowrap;
+padding:.85rem .95rem;border-bottom:2px solid transparent;margin-bottom:-1px}
+.pestana:hover{color:var(--ink)}
+/* Sin JavaScript ninguna queda marcada y todas las secciones se ven de corrido,
+   que es un resultado correcto: la marca es del script, no del documento. */
+.pestana.activa{color:var(--ink);border-bottom-color:var(--acuerdo);font-weight:600}
+.pestana:focus-visible{outline:2px solid var(--acuerdo);outline-offset:-2px}
+.grupo>section:first-child{padding-top:.4rem}
 /* Sin esto el índice fijo tapa el título de la sección a la que se saltó. */
 section[id]{scroll-margin-top:3.5rem}
 .variaciones{margin:0;padding-left:1.4rem;display:flex;flex-direction:column;gap:1rem;
