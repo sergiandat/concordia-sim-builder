@@ -756,6 +756,95 @@ def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
     return "".join(p)
 
 
+# Huellas del texto con que el motor inyecta el perfil. Son las frases que
+# arman las fábricas de componentes: si el perfil entró como recuerdo y fue
+# recuperado en un turno, alguna de estas aparece en lo recuperado.
+HUELLAS_PERFIL = (
+    "tends to seek information confirming existing beliefs",
+    "gives disproportionate weight to easily recalled examples",
+    "relies heavily on initial information when making decisions",
+    "continues activities due to past investment",
+    "overestimates the accuracy of their judgments",
+    "Personality traits:",
+    "(strength:",
+)
+
+
+def llegada_del_perfil(pasos, esc) -> str:
+    """
+    Si el perfil configurado llegó o no a la acción del participante.
+
+    Es la pregunta que quedaba abierta detrás de todo lo psicológico. Fuera del
+    tipo «Mínimo» el perfil no es un componente presente en cada acción: entra
+    al banco de memoria y tiene que ser recuperado para pesar en algo. Que esté
+    cargado no garantiza nada, y hasta ahora eso se decía como advertencia sin
+    medirlo nunca.
+
+    Se cuenta en cuántos turnos apareció efectivamente entre los recuerdos que
+    el participante trajo antes de hablar.
+    """
+    con_perfil = [a for a in (esc.get("agentes") or [])
+                  if perfil_psicologico(a.get("components") or {})]
+    if not con_perfil or not pasos:
+        return ""
+
+    minimos = [a for a in con_perfil if a.get("prefab") == "minimal__Entity"]
+    indirectos = [a for a in con_perfil if a.get("prefab") != "minimal__Entity"]
+
+    p = ['<h3>¿Llegó el perfil a la acción?</h3>']
+    if minimos and not indirectos:
+        p.append('<p class="nota-datos">Todos son del tipo «Mínimo», así que el perfil entra '
+                 "como componente presente en cada acción: no depende de que se lo recupere. "
+                 "No hay nada que verificar acá.</p>")
+        return "".join(p)
+
+    nombres = {a.get("name") for a in indirectos}
+    turnos = {n: [0, 0] for n in nombres}          # [con perfil, totales]
+    for x in pasos:
+        if x["quien"] not in turnos:
+            continue
+        rec = " ".join((x.get("memoria") or {}).get("recuerdos") or [])
+        turnos[x["quien"]][1] += 1
+        if any(hh in rec for hh in HUELLAS_PERFIL):
+            turnos[x["quien"]][0] += 1
+
+    con = sum(v[0] for v in turnos.values())
+    tot = sum(v[1] for v in turnos.values())
+    if not tot:
+        return ""
+
+    p.append(f'<p class="nota-datos">{marca("medido")} Estos {len(indirectos)} participantes '
+             "no son del tipo «Mínimo», así que su perfil entró al banco de memoria y tenía "
+             "que ser recuperado para influir en algo. Se buscó su texto entre los recuerdos "
+             "que cada uno trajo antes de hablar.</p>")
+
+    if con == 0:
+        p.append(f'<p class="nota-datos aviso-txt"><strong>No se recuperó en ninguno de los '
+                 f"{tot} turnos.</strong> El perfil quedó cargado y nunca entró en el contexto "
+                 "con el que se decidió la acción. Lo que se observe en la conducta se explica "
+                 "por el objetivo y los recuerdos, no por el perfil: para esta corrida, los "
+                 "sesgos configurados no operaron.</p>")
+        p.append('<p class="nota-datos">Para que pesen hay dos caminos: usar el tipo «Mínimo», '
+                 "que los recibe como componente fijo, o escribir el rasgo dentro de los "
+                 "recuerdos del participante, redactado en los términos del caso para que la "
+                 "búsqueda lo encuentre.</p>")
+    elif con < tot:
+        p.append(f'<p class="nota-datos">{marca("medido")} Se recuperó en <strong>{con} de '
+                 f"{tot}</strong> turnos. En los otros {tot - con} el participante decidió sin "
+                 "tenerlo a la vista, así que una conducta sin rastro del sesgo en esos turnos "
+                 "no dice nada sobre el sesgo.</p>")
+    else:
+        p.append(f'<p class="nota-datos">{marca("medido")} Se recuperó en los {tot} turnos: '
+                 "estuvo disponible cada vez que le tocó actuar.</p>")
+
+    if con < tot:
+        p.append('<ul class="lista-datos">')
+        for n, (c, t) in sorted(turnos.items()):
+            p.append(f"<li>{html.escape(n)}: {c} de {t} turnos</li>")
+        p.append("</ul>")
+    return "".join(p)
+
+
 def seccion_variables(series, franjas, esc) -> str:
     """
     Qué observa cada variable, en qué escala y con qué regla se movía.
@@ -2004,8 +2093,15 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     # distintas, dejando el contraste a cargo del lector.
     veredictos = [v for v in (analisis.get("perfiles") or [])
                   if isinstance(v, dict) and v.get("quien")]
-    if veredictos:
+    # La medición de si el perfil llegó a la acción va antes que el veredicto:
+    # decide cómo leerlo. Un «no se observa» sobre un perfil que nunca se
+    # recuperó no es un resultado ambiguo, está explicado.
+    llegada = llegada_del_perfil(pasos, esc)
+    if veredictos or llegada:
         partes.append('<section id="perfiles"><h2>¿Se notó el perfil configurado?</h2>')
+    if llegada:
+        partes.append(llegada)
+    if veredictos:
         partes.append(f'<p class="ayuda-sec">{marca("inferido")} Contraste entre el perfil '
                       "psicológico que se le cargó a cada participante y lo que efectivamente "
                       "hizo. Que un perfil no se note es un resultado, no una falla del "
@@ -2023,7 +2119,9 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                           f'<div><p class="quien-v">{html.escape(str(v["quien"]))}</p>'
                           f'<p class="detalle-v">{html.escape(str(v.get("detalle") or ""))}</p>'
                           "</div></li>")
-        partes.append("</ul></section>")
+        partes.append("</ul>")
+    if veredictos or llegada:
+        partes.append("</section>")
 
     # ------------------------------------------------------- 6. evolución
     if series or franjas:
