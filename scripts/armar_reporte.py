@@ -616,6 +616,7 @@ ROTULO_INDICE = {
     "incompleta": "Por qué se cortó",
     "senales": "Qué mirar",
     "interpretacion": "Cómo leerlo",
+    "perfiles": "Perfiles",
     "sintesis": "En pocas palabras",
     "acuerdos": "Acuerdos",
     "evolucion": "Evolución",
@@ -869,6 +870,9 @@ PARTICIPANTES Y LO QUE BUSCA CADA UNO
 INDICADORES (valor inicial y final)
 {indicadores}
 
+PERFILES PSICOLÓGICOS CONFIGURADOS
+{perfiles}
+
 LA DELIBERACIÓN, TURNO POR TURNO
 {transcripcion}
 
@@ -877,8 +881,14 @@ Devolvé un JSON con exactamente esta forma, sin texto alrededor ni bloques de c
 {{
   "resumen": "cuatro a seis párrafos corridos, separados por \\n\\n",
   "acuerdos": ["punto sobre el que hubo acuerdo explícito", "..."],
-  "pendientes": ["cuestión que quedó sin resolver", "..."]
+  "pendientes": ["cuestión que quedó sin resolver", "..."],
+  "perfiles": [
+    {{"quien": "nombre exacto", "veredicto": "se manifiesta|no se observa|contradice",
+      "detalle": "una o dos frases con la evidencia y el turno"}}
+  ]
 }}
+
+En "perfiles" evaluá, para cada participante que tenga un perfil configurado, si ese perfil se nota en lo que efectivamente hizo. Un sesgo de anclaje se manifiesta si vuelve al primer número que escuchó; uno de confirmación, si descarta lo que lo contradice; el costo hundido, si defiende algo por lo ya invertido. Poné "se manifiesta" solo si podés señalar el turno donde se ve, y citá qué dijo. Poné "no se observa" si el perfil no aparece en su conducta: es un resultado informativo y frecuente, no un fracaso del análisis, así que no lo fuerces. Poné "contradice" si actuó al revés de lo configurado. Si nadie tiene perfil, devolvé la lista vacía.
 
 En "acuerdos" poné solo lo que fue aceptado explícitamente por los participantes, no lo que alguien propuso y nadie contestó. En "pendientes" poné lo que se planteó y quedó sin respuesta, lo que se objetó sin resolverse, y lo que el escenario pedía decidir y no se decidió. Cada entrada, una frase corta y concreta. Si no hubo acuerdos explícitos, devolvé la lista vacía.
 
@@ -922,7 +932,46 @@ def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180) -> 
     return "".join(p.get("text", "") for p in partes).strip()
 
 
-def analizar_con_modelo(pasos, series, resumen_datos, premisa: str) -> dict:
+def texto_perfiles(agentes) -> str:
+    """
+    Los perfiles configurados, en una línea por participante, para que el modelo
+    pueda contrastarlos con la conducta observada. Sin esto solo se le puede
+    preguntar qué pasó, no si pasó lo que se había configurado.
+    """
+    lineas = []
+    for a in agentes or []:
+        comp = a.get("components") or {}
+        partes = []
+        sesgo = comp.get("cognitive_bias") or {}
+        if sesgo.get("bias_type"):
+            partes.append(f"sesgo de {SESGOS.get(sesgo['bias_type'], sesgo['bias_type']).split(' — ')[0].lower()}"
+                          f" ({FUERZAS.get(sesgo.get('bias_strength', ''), 'sin graduar')})")
+        # Igual que en la ficha: algunos escenarios los guardan planos, sin el
+        # nivel 'traits', y leyendo solo el anidado los rasgos no llegaban al
+        # modelo aunque estuvieran configurados.
+        rasgos = (comp.get("personality_traits") or {}).get("traits") or {}
+        if not rasgos:
+            rasgos = {k: v for k, v in (comp.get("personality_traits") or {}).items()
+                      if k in RASGOS}
+        if rasgos:
+            partes.append("rasgos " + ", ".join(
+                f"{RASGOS.get(k, k).lower()} {v}/5" for k, v in rasgos.items()))
+        ident = comp.get("social_identity") or {}
+        if ident.get("group_membership"):
+            g = ident["group_membership"]
+            partes.append("identidad: " + (", ".join(g) if isinstance(g, list) else str(g)))
+        val = (comp.get("values") or {}).get("core_values")
+        if val:
+            partes.append("valores: " + (", ".join(val) if isinstance(val, list) else str(val)))
+        emo = (comp.get("emotion") or {}).get("current_emotion")
+        if emo:
+            partes.append(f"emoción: {emo}")
+        if partes:
+            lineas.append(f"- {a.get('name', '?')}: " + "; ".join(partes))
+    return "\n".join(lineas) or "(no se configuraron perfiles psicológicos)"
+
+
+def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None) -> dict:
     """
     Resumen, acuerdos y pendientes en UNA sola llamada. Se piden juntos a
     propósito: la cuota diaria del plan gratuito es de 500 llamadas por modelo,
@@ -955,6 +1004,7 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str) -> dict:
         contexto=(premisa or "(no se registró la consigna del escenario)")[:2000],
         participantes=participantes,
         indicadores=indicadores,
+        perfiles=texto_perfiles(agentes),
         transcripcion=transcripcion[:60000],
     )
 
@@ -1243,6 +1293,32 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
                 partes.append('<p class="vacio">Ninguno registrado.</p>')
             partes.append("</div>")
         partes.append("</div></section>")
+
+    # Si se configuró un sesgo, la pregunta que sigue es si se notó. El informe
+    # mostraba el perfil configurado y la conducta observada en secciones
+    # distintas, dejando el contraste a cargo del lector.
+    veredictos = [v for v in (analisis.get("perfiles") or [])
+                  if isinstance(v, dict) and v.get("quien")]
+    if veredictos:
+        partes.append('<section id="perfiles"><h2>¿Se notó el perfil configurado?</h2>')
+        partes.append(f'<p class="ayuda-sec">{marca("inferido")} Contraste entre el perfil '
+                      "psicológico que se le cargó a cada participante y lo que efectivamente "
+                      "hizo. Que un perfil no se note es un resultado, no una falla del "
+                      "análisis: los componentes influyen en la conducta, no la determinan, "
+                      "y en los tipos que no son «Mínimo» compiten con el resto de la "
+                      "memoria por entrar en cada acción.</p>")
+        etiquetas = {"se manifiesta": ("v-si", "Se nota"),
+                     "no se observa": ("v-no", "No se observa"),
+                     "contradice": ("v-contra", "Contradice")}
+        partes.append('<ul class="veredictos">')
+        for v in veredictos:
+            clase, rotulo = etiquetas.get(str(v.get("veredicto", "")).strip().lower(),
+                                          ("v-no", str(v.get("veredicto") or "—")))
+            partes.append(f'<li><span class="chapa-v {clase}">{html.escape(rotulo)}</span>'
+                          f'<div><p class="quien-v">{html.escape(str(v["quien"]))}</p>'
+                          f'<p class="detalle-v">{html.escape(str(v.get("detalle") or ""))}</p>'
+                          "</div></li>")
+        partes.append("</ul></section>")
 
     # ------------------------------------------------------- 6. evolución
     if series or franjas:
@@ -1533,6 +1609,17 @@ overflow-x:auto;scrollbar-width:thin}
 .navega a:hover,.navega a:focus-visible{color:var(--acuerdo)}
 /* Sin esto el índice fijo tapa el título de la sección a la que se saltó. */
 section[id]{scroll-margin-top:3.5rem}
+.veredictos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
+max-width:52rem}
+.veredictos li{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);
+border:1px solid var(--rule);border-radius:8px;padding:.75rem .9rem}
+.chapa-v{flex:none;font-size:.74rem;letter-spacing:.04em;text-transform:uppercase;
+font-family:var(--mono);border-radius:4px;padding:.2rem .45rem;white-space:nowrap}
+.v-si{background:var(--acuerdo-suave);color:var(--acuerdo)}
+.v-no{background:var(--surface-alt);color:var(--ink-faint)}
+.v-contra{background:var(--pendiente-suave);color:var(--pendiente)}
+.quien-v{margin:0 0 .2rem;font-size:.9rem;font-weight:600}
+.detalle-v{margin:0;font-size:.88rem;color:var(--ink-soft);line-height:1.55}
 .b-turnos{font:inherit;font-size:.86rem;color:var(--ink-soft);background:var(--surface);
 border:1px solid var(--rule-strong);border-radius:6px;padding:.42rem .85rem;
 cursor:pointer;margin-bottom:1rem}
@@ -1765,7 +1852,8 @@ def main() -> int:
     analisis = {}
     if args.resumen:
         print("  pidiendo resumen, acuerdos y pendientes...")
-        analisis = analizar_con_modelo(pasos, series, resumen, premisa)
+        analisis = analizar_con_modelo(pasos, series, resumen, premisa,
+                                       esc.get("agentes"))
 
     salida = args.salida or args.crudo.parent / "reporte.html"
     salida.write_text(armar(pasos, series, franjas, resumen, decisiones, esc, analisis), encoding="utf-8")
