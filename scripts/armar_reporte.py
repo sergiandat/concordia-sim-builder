@@ -858,10 +858,13 @@ ROTULO_INDICE = {
 # evidencia en crudo, qué dice del armado, y el material de referencia.
 GRUPOS = [
     ("g-que-es", "Qué es esto", ["ficha", "diseno", "interpretacion"]),
-    ("g-armo", "Cómo se armó", ["participantes", "variables", "hitos", "ciclo"]),
+    ("g-armo", "Cómo se armó", ["participantes", "variables", "hitos"]),
     ("g-paso", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta",
                             "evolucion", "perfiles"]),
-    ("g-delib", "La deliberación", ["deliberacion"]),
+    # El ciclo del turno encabeza la transcripcion: su primer paso es quien
+    # recibe la palabra, y los turnos desplegados de abajo muestran esa misma
+    # secuencia. Separado de ellos era una explicacion sin su ejemplo.
+    ("g-delib", "La deliberación", ["ciclo", "deliberacion"]),
     ("g-armado", "Qué dice del armado", ["senales", "hallazgos", "variaciones"]),
     ("g-datos", "Datos", ["datos", "tecnica"]),
 ]
