@@ -404,6 +404,7 @@ def leer_escenario(ruta: Path | None) -> dict:
         "mesa_prefab": gm.get("prefab", ""),
         "orden": gm.get("acting_order", ""),
         "cierre": gm.get("allow_early_termination"),
+        "parametros": gm.get("parameters") or {},
         "motor": cfg.get("engine_type", ""),
         "pasos": cfg.get("max_steps"),
         "modelo": (d.get("llm_settings") or {}).get("model_name", ""),
@@ -570,8 +571,9 @@ def seccion_diseno(pasos, series, esc) -> str:
     nombres = [a.get("name", "") for a in (esc.get("agentes") or [])]
     if nombres:
         filas.append(("Actores", ", ".join(nombres), False))
-    filas.append(("Entorno",
-                  NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab") or "—"),
+    filas.append(("Entorno (narrador)",
+                  NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab") or "—")
+                  + " — da la palabra, registra lo ocurrido y asigna las variables",
                   False))
     filas.append(("Dinámica de interacción",
                   NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor") or "—")
@@ -596,6 +598,102 @@ def seccion_diseno(pasos, series, esc) -> str:
     if esc.get("premisa"):
         p.append('<details class="escenario"><summary>La situación planteada, textual</summary>'
                  '<div class="cuerpo-esc">' + parrafos(esc["premisa"]) + "</div></details>")
+    p.append("</section>")
+    return "".join(p)
+
+
+# Qué implica cada tipo de narrador, medido sobre corridas propias. Se dice el
+# efecto observado y no una descripción del prefab, porque es lo que cambia
+# cómo se lee el resultado.
+EFECTO_NARRADOR = {
+    "generic__GameMaster":
+        "Redacta una consigna distinta en cada turno y pregunta por posiciones concretas. "
+        "En nuestra comparación, con el mismo escenario, produjo desacuerdo sostenido: el "
+        "consenso subió al máximo en el turno siete y después cayó a 60.",
+    "dialogic__GameMaster":
+        "Repite la misma consigna genérica —«¿qué diría probablemente esta persona?»— en "
+        "todos los turnos. En nuestra comparación, con el mismo escenario, el consenso "
+        "llegó al máximo y no volvió a bajar: nadie sostuvo una objeción.",
+    "game_theoretic_and_dramaturgic__GameMaster":
+        "Admite escenas con opciones cerradas y pagos, así que las respuestas quedan "
+        "codificables en vez de texto libre.",
+    "interviewer__GameMaster": "Conduce como entrevista: pregunta y repregunta a uno por vez.",
+    "marketplace__GameMaster": "Resuelve ofertas y demandas entre los participantes.",
+}
+
+
+def seccion_narrador(pasos, esc, resumen) -> str:
+    """
+    Quién condujo la mesa: lo que se configuró y lo que hizo.
+
+    Es el componente más influyente de todos —cambiarlo, con el mismo escenario,
+    dio 100 fijo contra 100 y caída a 60— y tenía una palabra en una fila de
+    tabla. Además es quien asigna los valores de todas las variables y quien
+    decide qué queda registrado como ocurrido, así que su margen de intervención
+    condiciona la lectura de todo lo demás.
+    """
+    prefab = esc.get("mesa_prefab") or ""
+    p = ['<section id="narrador"><h2>El narrador</h2>']
+    p.append('<p class="ayuda-sec">Concordia lo define como una entidad especial que simula '
+             "el entorno. No es un participante más: le da la palabra, decide qué queda "
+             "registrado como ocurrido, reparte lo que se entera cada uno y asigna el valor "
+             "de todas las variables.</p>")
+
+    filas = [("Tipo", NOMBRES_MESA.get(prefab, prefab or "—"))]
+    if esc.get("mesa_nombre"):
+        filas.insert(0, ("Nombre", esc["mesa_nombre"]))
+    filas.append(("Orden de la palabra",
+                  NOMBRES_ORDEN.get(esc.get("orden", ""), esc.get("orden") or "—")))
+    if resumen.get("modelo_gm"):
+        filas.append(("Modelo", str(resumen["modelo_gm"]).split("/")[-1]))
+    if esc.get("temp_gm") is not None:
+        filas.append(("Temperatura", str(esc["temp_gm"])))
+    filas.append(("Puede cerrar antes", "sí" if esc.get("cierre") else "no"))
+    p.append('<table class="config"><tbody>')
+    for k, v in filas:
+        p.append(f"<tr><th>{html.escape(k)}</th><td>{html.escape(str(v))}</td></tr>")
+    p.append("</tbody></table>")
+
+    efecto = EFECTO_NARRADOR.get(prefab)
+    if efecto:
+        p.append(f'<p class="encuadre">{html.escape(efecto)}</p>')
+
+    # Cuánto intervino, medido: si copia textual lo que dijo el participante, no
+    # está mediando nada, y los hechos inventados entran sin filtro.
+    con_ambos = [x for x in pasos if x.get("dicho") and x.get("evento")]
+    if con_ambos:
+        textuales = sum(1 for x in con_ambos if parecido(x["dicho"], x["evento"]) > 0.95)
+        p.append("<h3>Cuánto intervino, medido</h3>")
+        if textuales == len(con_ambos):
+            p.append(f'<p class="nota-datos">{marca("medido")} En los {len(con_ambos)} turnos '
+                     "registró <strong>textualmente</strong> lo que dijo el participante, sin "
+                     "cambiarle nada. Es decir: lo que alguien afirma pasa a ser un hecho del "
+                     "mundo sin que nada lo verifique, y los demás razonan sobre eso.</p>")
+        elif textuales:
+            p.append(f'<p class="nota-datos">{marca("medido")} En {textuales} de '
+                     f"{len(con_ambos)} turnos registró textualmente lo dicho; en los "
+                     f"{len(con_ambos) - textuales} restantes reformuló o agregó.</p>")
+        else:
+            p.append(f'<p class="nota-datos">{marca("medido")} Reformuló lo dicho en los '
+                     f"{len(con_ambos)} turnos: no hay copia textual.</p>")
+
+    consignas = [x["mesa"]["consigna"] for x in pasos if x.get("mesa", {}).get("consigna")]
+    if consignas:
+        distintas = len(set(consignas))
+        if distintas == 1:
+            p.append(f'<p class="nota-datos aviso-txt">{marca("medido")} Usó '
+                     f"<strong>una sola consigna</strong> para los {len(consignas)} turnos: "
+                     "todos respondieron al mismo estímulo, sin que se les preguntara por lo "
+                     "que estaba en discusión en ese momento.</p>")
+        else:
+            p.append(f'<p class="nota-datos">{marca("medido")} Redactó '
+                     f"<strong>{distintas} consignas distintas</strong> en {len(consignas)} "
+                     "turnos. Están todas en la ficha técnica.</p>")
+
+    instr = ((esc.get("parametros") or {}).get("moderation_instructions") or "").strip()
+    if instr:
+        p.append('<details class="escenario"><summary>Instrucciones que se le dieron'
+                 '</summary><div class="cuerpo-esc">' + parrafos(instr) + "</div></details>")
     p.append("</section>")
     return "".join(p)
 
@@ -836,6 +934,7 @@ ROTULO_INDICE = {
     "ficha": "Ficha",
     "diseno": "Diseño",
     "variables": "Variables",
+    "narrador": "Narrador",
     "hitos": "Hitos",
     "datos": "Datos",
     "hallazgos": "Hallazgos",
@@ -858,7 +957,7 @@ ROTULO_INDICE = {
 # evidencia en crudo, qué dice del armado, y el material de referencia.
 GRUPOS = [
     ("g-que-es", "Qué es esto", ["ficha", "diseno", "interpretacion"]),
-    ("g-armo", "Cómo se armó", ["participantes", "variables", "hitos"]),
+    ("g-armo", "Cómo se armó", ["participantes", "narrador", "variables", "hitos"]),
     ("g-paso", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta",
                             "evolucion", "perfiles"]),
     # El ciclo del turno encabeza la transcripcion: su primer paso es quien
@@ -1449,6 +1548,17 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
     }
 
 
+# La primera etapa depende de cómo se configuró el orden: decía siempre «el
+# narrador decide a quién le toca hablar», y con orden fijo el narrador no
+# decide nada —la rotación sale de la lista de participantes—. Atribuirle una
+# decisión que no toma es afirmar de más sobre la única etapa que puede
+# introducir sesgo de agenda.
+PRIMERA_ETAPA = {
+    "fixed": ("Toca", "la rotación sigue el orden en que se listaron los participantes"),
+    "random": ("Sortea", "el turno se sortea entre los participantes"),
+    "game_master_choice": ("Elige", "el narrador decide a quién le toca hablar"),
+}
+
 ETAPAS = [
     ("Elige", "el narrador decide a quién le toca hablar"),
     ("Pregunta", "le hace una consigna, distinta según el momento"),
@@ -1468,20 +1578,92 @@ def parecido(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, na, nb).ratio()
 
 
-def ciclo(pasos) -> str:
+def reparto_de_la_palabra(pasos, esc) -> str:
+    """
+    Cómo se asignó cada turno, y si se cumplió.
+
+    El informe mostraba quién habló y decía que el narrador lo decidía, sin
+    verificar ninguna de las dos cosas. Con orden fijo no hay decisión: la
+    rotación sale de la lista de participantes, y entonces lo que importa es si
+    se respetó. Con orden al azar o a criterio del narrador sí hay decisión, y
+    conviene decir que el registro no guarda el motivo: no es algo que se pueda
+    auditar mirando el log.
+    """
+    orden = esc.get("orden") or ""
+    lista = [a.get("name") for a in (esc.get("agentes") or []) if a.get("name")]
+    p = ['<h3>Cómo se repartió la palabra</h3>']
+
+    if orden == "fixed" and lista:
+        desvios = [(x["n"], x["quien"], lista[(x["n"] - 1) % len(lista)])
+                   for x in pasos
+                   if x["quien"] != lista[(x["n"] - 1) % len(lista)]]
+        p.append('<p class="nota-datos">El orden es <strong>fijo</strong>: el narrador no elige. '
+                 "La rotación sigue el orden en que se listaron los participantes — "
+                 + html.escape(" → ".join(lista)) + " — y vuelve a empezar.</p>")
+        if not desvios:
+            p.append(f'<p class="nota-datos">{marca("medido")} Se respetó en los '
+                     f"{len(pasos)} turnos: cada uno habló cuando le tocaba.</p>")
+        else:
+            detalle = "; ".join(f"en el turno {n} habló {q} y correspondía {t}"
+                                for n, q, t in desvios[:4])
+            p.append(f'<p class="nota-datos aviso-txt">{marca("medido")} La rotación '
+                     f"<strong>no se respetó</strong> en {len(desvios)} de {len(pasos)} turnos: "
+                     + html.escape(detalle) + ". Con orden fijo eso no debería ocurrir.</p>")
+    elif orden in ("random", "game_master_choice"):
+        if orden == "random":
+            p.append('<p class="nota-datos">El turno se <strong>sortea</strong> entre los '
+                     "participantes. No hay rotación contra la cual contrastar: un reparto "
+                     "desparejo es esperable por azar y no indica nada por sí solo.</p>")
+        else:
+            p.append('<p class="nota-datos">El <strong>narrador elige</strong> a quién le da '
+                     "la palabra en cada turno. Es la etapa con más poder de agenda de toda "
+                     "la simulación, y el registro guarda a quién eligió pero no por qué: el "
+                     "motivo no queda auditable mirando el log.</p>")
+        # Sin rotación que verificar, lo que queda es el reparto que resultó.
+        # Es la única evidencia disponible de cómo se ejerció esa decisión.
+        veces = {}
+        for x in pasos:
+            veces[x["quien"]] = veces.get(x["quien"], 0) + 1
+        for n in lista:
+            veces.setdefault(n, 0)
+        if veces:
+            parejo = len(pasos) / len(veces)
+            orden_v = sorted(veces.items(), key=lambda x: -x[1])
+            p.append(f'<p class="nota-datos">{marca("medido")} Así quedó repartido, sobre '
+                     f"{len(pasos)} turnos (parejo sería {parejo:.1f} cada uno):</p>")
+            p.append('<ul class="lista-datos reparto">')
+            for n, c in orden_v:
+                p.append(f"<li>{html.escape(n)}: <strong>{c}</strong> "
+                         + ("turno" if c == 1 else "turnos")
+                         + (" — nunca habló" if not c else "") + "</li>")
+            p.append("</ul>")
+            if orden_v[0][1] >= 2 * max(1, orden_v[-1][1]):
+                p.append('<p class="nota-datos aviso-txt">El más favorecido habló al menos el '
+                         "doble que el menos favorecido. Si el escenario depende de que todos "
+                         "sostengan su posición, conviene mirar si los que hablaron poco son "
+                         "los que tenían las objeciones.</p>")
+    else:
+        p.append('<p class="nota-datos">No se registró con qué regla se asignaron los '
+                 "turnos.</p>")
+    return "".join(p)
+
+
+def ciclo(pasos, orden: str = "") -> str:
     """
     El orden de un turno no se deduce leyendo la transcripción, y sin él no se
     entiende quién puede introducir un hecho en el mundo. Se dibuja el ciclo y
     se mide, sobre esta corrida, cuánto interviene realmente el narrador.
     """
+    etapas = list(ETAPAS)
+    etapas[0] = PRIMERA_ETAPA.get(orden, ETAPAS[0])
     p = ['<div class="ciclo">']
-    for i, (titulo, detalle) in enumerate(ETAPAS):
+    for i, (titulo, detalle) in enumerate(etapas):
         p.append('<div class="etapa">')
         p.append(f'<span class="etapa-n">{i + 1}</span>')
         p.append(f'<p class="etapa-t">{titulo}</p>')
         p.append(f'<p class="etapa-d">{detalle}</p>')
         p.append("</div>")
-        if i < len(ETAPAS) - 1:
+        if i < len(etapas) - 1:
             p.append('<div class="flecha" aria-hidden="true">→</div>')
     p.append("</div>")
 
@@ -1718,6 +1900,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
             partes.append("</ul>")
         partes.append("</section>")
 
+    partes.append(seccion_narrador(pasos, esc, resumen))
     partes.append(seccion_variables(series, franjas, esc))
     partes.append(seccion_hitos(pasos, esc, resumen))
     partes.append(ayuda_interpretacion(pasos, series, franjas, esc, resumen))
@@ -1847,7 +2030,8 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     partes.append('<p class="ayuda-sec">La discusión no es una charla libre: cada turno sigue '
                   'siempre la misma secuencia, y quién puede introducir un hecho en el mundo '
                   'depende de ella.</p>')
-    partes.append(ciclo(pasos))
+    partes.append(ciclo(pasos, esc.get("orden") or ""))
+    partes.append(reparto_de_la_palabra(pasos, esc))
     partes.append("</section>")
 
     partes.append('<section id="deliberacion"><h2>La deliberación</h2>')
