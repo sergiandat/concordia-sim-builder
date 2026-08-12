@@ -380,6 +380,8 @@ NOMBRES_MESA = {
 NOMBRES_ORDEN = {"fixed": "fijo", "random": "al azar", "game_master_choice": "lo elige el narrador"}
 NOMBRES_MOTOR = {"sequential": "por turnos", "simultaneous": "simultáneo",
                  "asynchronous": "asincrónico", "interview": "entrevista", "survey": "encuesta"}
+NOMBRES_TIPO = {"percentage": "porcentaje", "number": "número", "numeric": "número",
+                "categorical": "categorías", "choice": "categorías", "boolean": "sí / no"}
 
 
 def leer_escenario(ruta: Path | None) -> dict:
@@ -507,6 +509,221 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
     return obs
 
 
+def seccion_ficha(pasos, esc, resumen) -> str:
+    """
+    Identificación de la corrida, arriba de todo y en una sola tabla.
+
+    Los datos ya estaban, repartidos entre el encabezado y la ficha técnica del
+    final. Quien abre el informe necesita ubicarse antes de leer nada.
+    """
+    hechos = resumen.get("pasos_completados") or len(pasos)
+    pedidos = resumen.get("pasos_pedidos") or esc.get("pasos")
+    completa = resumen.get("completa")
+
+    filas = [("Estado", "Completa" if completa else "Incompleta")]
+    if pedidos:
+        filas.append(("Progreso", f"{hechos} de {pedidos} turnos"))
+    else:
+        filas.append(("Turnos", str(hechos)))
+    if esc.get("mesa_nombre"):
+        filas.append(("Ámbito simulado", esc["mesa_nombre"]))
+    filas.append(("Actores", str(len(esc.get("agentes") or []) or len({p["quien"] for p in pasos}))))
+    filas.append(("Dinámica", NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor") or "—")))
+    if resumen.get("modelo"):
+        filas.append(("Modelo de los actores", str(resumen["modelo"]).split("/")[-1]))
+    if resumen.get("modelo_gm"):
+        filas.append(("Modelo del entorno", str(resumen["modelo_gm"]).split("/")[-1]))
+    if resumen.get("duracion_min"):
+        filas.append(("Duración", f"{resumen['duracion_min']} minutos"))
+    if resumen.get("terminada"):
+        filas.append(("Fecha", str(resumen["terminada"])[:10]))
+
+    p = ['<section id="ficha"><h2>Ficha de la corrida</h2>',
+         f'<p class="ayuda-sec">{marca("medido")} Sale del registro de la corrida.</p>',
+         '<table class="config ficha-corrida"><tbody>']
+    for k, v in filas:
+        p.append(f"<tr><th>{html.escape(k)}</th><td>{html.escape(str(v))}</td></tr>")
+    p.append("</tbody></table></section>")
+    return "".join(p)
+
+
+def seccion_diseno(pasos, series, esc) -> str:
+    """
+    Qué se simuló y qué no pretende ser, antes de mostrar ningún resultado.
+
+    El informe describía lo que pasó sin decir nunca qué clase de cosa es. Para
+    alguien con formación metodológica esa es la primera pregunta, y sin
+    responderla los números de más abajo quedan sin encuadre.
+    """
+    p = ['<section id="diseno"><h2>Diseño de la simulación</h2>']
+    p.append('<p class="encuadre">Esta simulación representa una deliberación entre actores '
+             "con intereses, restricciones y criterios distintos. No busca predecir una "
+             "decisión real, sino explorar cómo podrían evolucionar tensiones, acuerdos y "
+             "bloqueos bajo un conjunto explícito de supuestos.</p>")
+
+    filas = []
+    # Dos campos que el esquema no tiene todavía. Se muestran igual, y en falta:
+    # ocultarlos daría por completo un encuadre al que le faltan las dos
+    # definiciones que más lo ordenan.
+    filas.append(("Unidad de análisis",
+                  esc.get("mesa_nombre") or "<em>no declarada en el escenario</em>", True))
+    nombres = [a.get("name", "") for a in (esc.get("agentes") or [])]
+    if nombres:
+        filas.append(("Actores", ", ".join(nombres), False))
+    filas.append(("Entorno",
+                  NOMBRES_MESA.get(esc.get("mesa_prefab", ""), esc.get("mesa_prefab") or "—"),
+                  False))
+    filas.append(("Dinámica de interacción",
+                  NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor") or "—")
+                  + " · " + NOMBRES_ORDEN.get(esc.get("orden", ""), esc.get("orden") or "—"),
+                  False))
+    filas.append(("Producto esperado", "<em>no declarado en el escenario</em>", True))
+    if series or esc.get("variables"):
+        obs = [bonito(v.get("name", "")) for v in (esc.get("variables") or [])] or \
+              [bonito(n) for n in sorted(series)]
+        filas.append(("Variables observadas", ", ".join(obs), False))
+    if esc.get("decisiones"):
+        filas.append(("Hitos críticos",
+                      f"{len(esc['decisiones'])}, en los turnos "
+                      + ", ".join(str(d.get("step")) for d in esc["decisiones"]), False))
+
+    p.append('<table class="config"><tbody>')
+    for k, v, crudo in filas:
+        celda = v if crudo else html.escape(str(v))
+        p.append(f"<tr><th>{html.escape(k)}</th><td>{celda}</td></tr>")
+    p.append("</tbody></table>")
+
+    if esc.get("premisa"):
+        p.append('<details class="escenario"><summary>La situación planteada, textual</summary>'
+                 '<div class="cuerpo-esc">' + parrafos(esc["premisa"]) + "</div></details>")
+    p.append("</section>")
+    return "".join(p)
+
+
+def seccion_variables(series, franjas, esc) -> str:
+    """
+    Qué observa cada variable, en qué escala y con qué regla se movía.
+
+    El informe mostraba nombres y curvas. La descripción, la escala y sobre todo
+    la regla de actualización estaban escritas en el escenario y no se mostraban
+    en ninguna parte, así que «federalización efectiva: 40 → 65» no se podía
+    juzgar: faltaba saber qué tenía que hacer subir ese número. Es además la
+    información que el entorno tenía y el lector no.
+    """
+    variables = esc.get("variables") or []
+    if not variables:
+        return ""
+
+    p = ['<section id="variables"><h2>Variables de seguimiento</h2>']
+    p.append(f'<p class="ayuda-sec">{marca("estimado")} Ninguna se mide: las asigna el entorno '
+             "interpretando la deliberación, turno a turno. Sirven para comparar momentos "
+             "dentro de esta corrida, no como magnitud absoluta ni como dato empírico. "
+             "La regla es lo que el entorno tenía que aplicar; contrastarla con la curva es "
+             "lo que permite ver si la aplicó.</p>")
+    p.append('<table class="config tabla-vars"><thead><tr><th>Variable</th><th>Qué observa</th>'
+             "<th>Escala</th><th>Regla de cambio</th></tr></thead><tbody>")
+    for v in variables:
+        nombre = bonito(v.get("name", ""))
+        tipo = v.get("variable_type", "")
+        if v.get("allowed_values"):
+            escala = " · ".join(str(x) for x in v["allowed_values"])
+        elif tipo == "percentage":
+            escala = "0 a 100"
+        elif v.get("min_value") is not None or v.get("max_value") is not None:
+            escala = f"{v.get('min_value', '?')} a {v.get('max_value', '?')}"
+        else:
+            escala = NOMBRES_TIPO.get(tipo, tipo or "—")
+        if v.get("default_value") is not None:
+            escala += f" · empieza en {v['default_value']}"
+        p.append(f"<tr><th>{html.escape(nombre)}</th>"
+                 f"<td>{html.escape(str(v.get('description') or '—'))}</td>"
+                 f"<td>{html.escape(escala)}</td>"
+                 f"<td>{html.escape(str(v.get('update_rule') or '—'))}</td></tr>")
+    p.append("</tbody></table></section>")
+    return "".join(p)
+
+
+def seccion_hitos(pasos, esc, resumen) -> str:
+    """
+    Los momentos de decisión como lista, antes de la transcripción.
+
+    Estaban marcados dentro de la deliberación, donde uno se los cruza en el
+    turno nueve. Enumerados antes, estructuran la lectura: se sabe de entrada
+    dónde el escenario forzaba una definición.
+    """
+    decisiones = esc.get("decisiones") or []
+    if not decisiones:
+        return ""
+    hechos = resumen.get("pasos_completados") or len(pasos)
+
+    p = ['<section id="hitos"><h2>Hitos críticos</h2>']
+    p.append(f'<p class="ayuda-sec">{marca("medido")} Hechos que el escenario inyecta en un '
+             "turno determinado para forzar una definición. Funcionan como manipulación: "
+             "cambia una cosa en un momento conocido y el resto queda igual.</p>")
+    p.append('<ol class="hitos">')
+    for d in decisiones:
+        n = d.get("step")
+        alcanzado = isinstance(n, int) and n <= hechos
+        texto = str(d.get("event", ""))
+        # El titulo viene en mayusculas antes de los dos puntos. Se toma la
+        # tirada entera y no la primera parte: cortando en el primer separador,
+        # los cinco hitos quedaban titulados «Punto de decision critico» y lo
+        # que los distingue caia dentro del cuerpo.
+        m = re.match(r"\s*([A-ZÁÉÍÓÚÑ0-9\s\-–]{6,}):\s*(.*)", texto, re.S)
+        titulo, cuerpo = (m.group(1).strip(), m.group(2).strip()) if m else ("", texto)
+        titulo = re.sub(r"^puntos?\s+de\s+decisi[oó]n(?:es)?\s+cr[ií]tico?s?\s*[-–:]?\s*",
+                        "", titulo, flags=re.I).strip()
+        p.append('<li class="' + ("alcanzado" if alcanzado else "no-alcanzado") + '">')
+        p.append(f'<span class="turno-hito">turno {html.escape(str(n))}</span>')
+        p.append("<div>")
+        if titulo:
+            p.append(f'<p class="titulo-hito">{html.escape(titulo.capitalize())}</p>')
+        p.append(f'<p class="cuerpo-hito">{html.escape(cuerpo[:400])}</p>')
+        if not alcanzado:
+            p.append('<p class="cuerpo-hito aviso-txt">La corrida terminó antes de este turno: '
+                     "no llegó a ocurrir.</p>")
+        p.append("</div></li>")
+    p.append("</ol></section>")
+    return "".join(p)
+
+
+def seccion_datos(archivos, resumen) -> str:
+    """
+    De dónde salió esto y cómo volver a los datos crudos.
+
+    Los enlaces vivían en el comentario del issue: quien guardaba el HTML perdía
+    el rastro. Solo se enlaza lo que existe, para no dejar enlaces muertos.
+    """
+    QUE_ES = {
+        "reporte.csv": "Los turnos y los valores de cada variable, para planilla.",
+        "raw_log.json": "El registro completo de la corrida, tal cual lo emitió el motor.",
+        "sim_structured.json": "El mismo registro en el formato estructurado de Concordia.",
+        "resumen.json": "Estado, duración, modelos y consumo, en pocos campos.",
+        "measurements.json": "Los canales de medición que haya emitido el motor.",
+    }
+    p = ['<section id="datos"><h2>Datos y trazabilidad</h2>']
+    if archivos:
+        p.append('<p class="ayuda-sec">Archivos de esta corrida, en la misma carpeta que este '
+                 "informe.</p><ul class='lista-datos archivos'>")
+        for nombre in archivos:
+            p.append(f'<li><a href="{html.escape(nombre)}">{html.escape(nombre)}</a> — '
+                     f"{html.escape(QUE_ES.get(nombre, 'archivo de la corrida'))}</li>")
+        p.append("</ul>")
+
+    p.append("<h3>Reproducibilidad</h3>")
+    p.append('<p class="nota-datos">Volver a correr este mismo escenario no da este mismo '
+             "resultado: el modelo muestrea sus respuestas y el motor fija por su cuenta la "
+             "temperatura de los actores. Lo que se puede reproducir es el <em>procedimiento</em> "
+             "—la configuración está completa en la ficha técnica y en el JSON del escenario—, "
+             "no la corrida. Por eso conviene correr varias veces y mirar el rango.</p>")
+    if resumen.get("consumo"):
+        total = sum(d.get("llamadas", 0) for d in resumen["consumo"].values())
+        p.append(f'<p class="nota-datos">Costó <strong>{total} pedidos</strong> al modelo, '
+                 "repartidos por modelo en la ficha técnica.</p>")
+    p.append("</section>")
+    return "".join(p)
+
+
 def ayuda_interpretacion(pasos, series, franjas, esc, resumen) -> str:
     """
     Qué se puede concluir de esto y qué no.
@@ -616,6 +833,11 @@ ROTULO_INDICE = {
     "incompleta": "Por qué se cortó",
     "senales": "Qué mirar",
     "interpretacion": "Cómo leerlo",
+    "ficha": "Ficha",
+    "diseno": "Diseño",
+    "variables": "Variables",
+    "hitos": "Hitos",
+    "datos": "Datos",
     "hallazgos": "Hallazgos",
     "variaciones": "Qué probar",
     "perfiles": "Perfiles",
@@ -635,11 +857,12 @@ ROTULO_INDICE = {
 # atravesaba en el medio. Agrupadas, el orden es: qué pasó, cómo se dio, la
 # evidencia en crudo, qué dice del armado, y el material de referencia.
 GRUPOS = [
+    ("g-diseno", "Qué se simuló", ["ficha", "diseno", "participantes", "variables", "hitos"]),
     ("g-que", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta"]),
-    ("g-como", "Cómo se dio", ["evolucion", "participantes", "perfiles"]),
+    ("g-como", "Cómo se dio", ["evolucion", "perfiles", "ciclo"]),
     ("g-delib", "La deliberación", ["deliberacion"]),
     ("g-armado", "Qué dice del armado", ["senales", "hallazgos", "variaciones"]),
-    ("g-leer", "Cómo leerlo", ["interpretacion", "ciclo", "tecnica"]),
+    ("g-leer", "Alcance y datos", ["interpretacion", "datos", "tecnica"]),
 ]
 
 
@@ -1340,7 +1563,8 @@ def marca(clase: str) -> str:
             f'{simbolo} {html.escape(rotulo)}</span>')
 
 
-def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) -> str:
+def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
+          archivos=None) -> str:
     esc = esc or {}
     analisis = analisis or {}
     texto_resumen = analisis.get("resumen", "")
@@ -1388,6 +1612,11 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
     partes.append(MARCA_NAV)
 
     partes.append('<main class="ancho">')
+
+    # La ficha y el diseño van antes que cualquier resultado: primero hay que
+    # saber qué clase de cosa es esto y qué se simuló.
+    partes.append(seccion_ficha(pasos, esc, resumen))
+    partes.append(seccion_diseno(pasos, series, esc))
 
     # ------------------------------------------------- 2. resultado y estado
     partes.append('<section id="resultado"><h2>Qué resultó</h2>')
@@ -1517,7 +1746,10 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
             partes.append("</ul>")
         partes.append("</section>")
 
+    partes.append(seccion_variables(series, franjas, esc))
+    partes.append(seccion_hitos(pasos, esc, resumen))
     partes.append(ayuda_interpretacion(pasos, series, franjas, esc, resumen))
+    partes.append(seccion_datos(archivos, resumen))
 
     # ---------------------------------------------------------- 5. resumen
     if texto_resumen:
@@ -1935,6 +2167,30 @@ text-transform:uppercase;font-family:var(--mono);color:var(--ink-faint)}
 #hallazgos .tarjetas{grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))}
 #hallazgos .tarjeta h3{margin:0 0 .5rem;font-size:.97rem;font-weight:600}
 #hallazgos .tarjeta p{margin:0;font-size:.9rem;line-height:1.6;color:var(--ink-soft)}
+.ficha-corrida{max-width:34rem}
+.tabla-vars{width:100%}
+.tabla-vars thead th{font-size:.74rem;letter-spacing:.05em;text-transform:uppercase;
+font-family:var(--mono);color:var(--ink-faint);border-bottom:1px solid var(--rule-strong);
+padding-bottom:.4rem;text-align:left}
+.tabla-vars tbody th{width:11rem;font-weight:600;color:var(--ink);font-family:var(--sans);
+font-size:.88rem}
+.tabla-vars td{font-family:var(--sans);font-size:.85rem;color:var(--ink-soft);
+line-height:1.5;padding:.5rem .8rem .5rem 0;vertical-align:top}
+.encuadre{margin:0 0 1.2rem;font-size:.98rem;line-height:1.65;max-width:46rem;
+padding-left:.9rem;border-left:3px solid var(--acuerdo)}
+.hitos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.65rem;
+max-width:52rem;counter-reset:h}
+.hitos li{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);
+border:1px solid var(--rule);border-radius:8px;padding:.75rem .9rem}
+.hitos li.no-alcanzado{opacity:.62}
+.turno-hito{flex:none;font-size:.74rem;font-family:var(--mono);color:var(--ink-faint);
+background:var(--surface-alt);border-radius:4px;padding:.2rem .45rem;white-space:nowrap}
+.titulo-hito{margin:0 0 .25rem;font-size:.9rem;font-weight:600}
+.cuerpo-hito{margin:0;font-size:.87rem;color:var(--ink-soft);line-height:1.55}
+.archivos a{color:var(--acuerdo);text-decoration:none;font-family:var(--mono);font-size:.85rem}
+.archivos a:hover{text-decoration:underline}
+.nota-datos{margin:.3rem 0 .8rem;font-size:.89rem;color:var(--ink-soft);line-height:1.6;
+max-width:46rem}
 .veredictos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
 max-width:52rem}
 .veredictos li{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);
@@ -2184,7 +2440,20 @@ def main() -> int:
         analisis.update(analizar_hallazgos(pasos, series, esc, resumen))
 
     salida = args.salida or args.crudo.parent / "reporte.html"
-    salida.write_text(armar(pasos, series, franjas, resumen, decisiones, esc, analisis), encoding="utf-8")
+
+    # Solo se enlaza lo que efectivamente está al lado del informe: los archivos
+    # dependen de qué produjo la corrida y de si se pidió el CSV, y un enlace a
+    # algo que no existe es peor que no ofrecerlo. El CSV se escribe después, así
+    # que se lo da por presente si se pidió.
+    posibles = ["reporte.csv", "raw_log.json", "sim_structured.json",
+                "resumen.json", "measurements.json"]
+    archivos = [n for n in posibles
+                if (salida.parent / n).is_file()
+                or (n == "reporte.csv" and args.csv)]
+
+    salida.write_text(
+        armar(pasos, series, franjas, resumen, decisiones, esc, analisis, archivos),
+        encoding="utf-8")
 
     print(f"reporte      : {salida}")
     print(f"turnos       : {len(pasos)}")
