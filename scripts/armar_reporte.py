@@ -935,6 +935,7 @@ ROTULO_INDICE = {
     "diseno": "Diseño",
     "variables": "Variables",
     "narrador": "Narrador",
+    "reparto": "Reparto de la palabra",
     "hitos": "Hitos",
     "datos": "Datos",
     "hallazgos": "Hallazgos",
@@ -963,7 +964,7 @@ GRUPOS = [
     # El ciclo del turno encabeza la transcripcion: su primer paso es quien
     # recibe la palabra, y los turnos desplegados de abajo muestran esa misma
     # secuencia. Separado de ellos era una explicacion sin su ejemplo.
-    ("g-delib", "La deliberación", ["ciclo", "deliberacion"]),
+    ("g-delib", "La deliberación", ["ciclo", "reparto", "deliberacion"]),
     ("g-armado", "Qué dice del armado", ["senales", "hallazgos", "variaciones"]),
     ("g-datos", "Datos", ["datos", "tecnica"]),
 ]
@@ -1591,7 +1592,7 @@ def reparto_de_la_palabra(pasos, esc) -> str:
     """
     orden = esc.get("orden") or ""
     lista = [a.get("name") for a in (esc.get("agentes") or []) if a.get("name")]
-    p = ['<h3>Cómo se repartió la palabra</h3>']
+    p = ['<section id="reparto"><h2>Cómo se repartió la palabra</h2>']
 
     if orden == "fixed" and lista:
         desvios = [(x["n"], x["quien"], lista[(x["n"] - 1) % len(lista)])
@@ -1645,6 +1646,11 @@ def reparto_de_la_palabra(pasos, esc) -> str:
     else:
         p.append('<p class="nota-datos">No se registró con qué regla se asignaron los '
                  "turnos.</p>")
+    p.append('<p class="nota-datos">Cada casilla es un turno, coloreada según quién '
+             "habló.</p>")
+    p.append(tira_participacion(pasos, [a.get("name") for a in (esc.get("agentes") or [])]
+                                or sorted({x["quien"] for x in pasos})))
+    p.append("</section>")
     return "".join(p)
 
 
@@ -2031,8 +2037,8 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                   'siempre la misma secuencia, y quién puede introducir un hecho en el mundo '
                   'depende de ella.</p>')
     partes.append(ciclo(pasos, esc.get("orden") or ""))
-    partes.append(reparto_de_la_palabra(pasos, esc))
     partes.append("</section>")
+    partes.append(reparto_de_la_palabra(pasos, esc))
 
     partes.append('<section id="deliberacion"><h2>La deliberación</h2>')
     partes.append('<p class="ayuda-sec">Cada turno se abre y muestra la secuencia completa: '
@@ -2040,8 +2046,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                   "Los textos son literales, sin resumir.</p>")
     # El reparto de turnos encabeza la transcripcion, no la configuracion: es lo
     # que efectivamente paso, y sirve de mapa de lo que se va a leer.
-    partes.append('<p class="ayuda-sec">Cada casilla es un turno, coloreada según quién habló.</p>')
-    partes.append(tira_participacion(pasos, quienes))
+
     # Leer la deliberación entera obligaba a abrir turno por turno. El botón se
     # inserta desde el script para que no aparezca muerto donde no haya JS: sin
     # él, los turnos siguen abriéndose de a uno como hasta ahora.
