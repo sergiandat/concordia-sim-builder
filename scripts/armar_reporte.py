@@ -607,6 +607,46 @@ def ayuda_interpretacion(pasos, series, franjas, esc, resumen) -> str:
 
 # ---------------------------------------------------------------- documento
 
+MARCA_NAV = "<!--INDICE-->"
+
+# Títulos largos para la página, cortos para el índice: «Cómo leer estos
+# resultados» no entra en una barra junto a otros ocho.
+ROTULO_INDICE = {
+    "resultado": "Resultado",
+    "incompleta": "Por qué se cortó",
+    "senales": "Qué mirar",
+    "interpretacion": "Cómo leerlo",
+    "sintesis": "En pocas palabras",
+    "acuerdos": "Acuerdos",
+    "evolucion": "Evolución",
+    "participantes": "Participantes",
+    "ciclo": "Cómo funciona",
+    "deliberacion": "Deliberación",
+    "tecnica": "Ficha técnica",
+}
+
+
+def armar_indice(doc: str) -> str:
+    """
+    Reemplaza la marca por un índice de las secciones que existen.
+
+    Escrito a mano se desfasaba en las dos direcciones: enlazaba «Acuerdos»,
+    que solo se genera si se pidió el análisis —y sin él el enlace no llevaba a
+    ninguna parte—, y no enlazaba las secciones agregadas después. Leerlo del
+    documento ya armado hace que no pueda volver a pasar.
+    """
+    enlaces = []
+    # `[^>]*` porque varias secciones llevan class además del id.
+    for ident, titulo in re.findall(r'<section id="([^"]+)"[^>]*><h2>(.*?)</h2>', doc):
+        rotulo = ROTULO_INDICE.get(ident) or re.sub(r"<[^>]+>", "", titulo)
+        enlaces.append(f'<a href="#{ident}">{html.escape(rotulo)}</a>')
+    if not enlaces:
+        return doc.replace(MARCA_NAV, "")
+    nav = ('<nav class="navega"><div class="ancho barra">'
+           + "".join(enlaces) + "</div></nav>")
+    return doc.replace(MARCA_NAV, nav)
+
+
 def parrafos(texto: str) -> str:
     trozos = [t.strip() for t in re.split(r"\n\s*\n|\n", texto or "") if t.strip()]
     return "".join(f"<p>{html.escape(t)}</p>" for t in trozos) or "<p class='vacio'>—</p>"
@@ -1080,10 +1120,14 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
     partes.append('<p class="chapa ' + ("ok" if completa else "aviso") + '">'
                   + ("Simulación completa" if completa else "Simulación incompleta") + "</p>")
 
-    partes.append('<nav class="navega"><a href="#resultado">Resultado</a>'
-                  '<a href="#acuerdos">Acuerdos</a><a href="#evolucion">Evolución</a><a href="#participantes">Participantes</a>'
-                  '<a href="#ciclo">Cómo funciona</a><a href="#deliberacion">Deliberación</a><a href="#tecnica">Ficha técnica</a></nav>')
+    # El índice se arma al final, con las secciones que de verdad se generaron.
+    # Escrito a mano quedaba desfasado: enlazaba «Acuerdos», que solo existe si
+    # se pidió el análisis, y no incluía las secciones agregadas después.
     partes.append("</div></header>")
+    # Fuera del encabezado a propósito: `sticky` solo pega mientras el padre
+    # sigue en pantalla, así que adentro del header el índice desaparecía
+    # justo cuando empieza a hacer falta.
+    partes.append(MARCA_NAV)
 
     partes.append('<main class="ancho">')
 
@@ -1141,7 +1185,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
         hechos = resumen.get("pasos_completados") or 0
         pedidos = resumen.get("pasos_pedidos") or 0
         sin_llegar = [d for d in (decisiones or []) if (d.get("step") or 0) > hechos]
-        partes.append('<section class="incompleta"><h2>Por qué quedó incompleta</h2>')
+        partes.append('<section id="incompleta" class="incompleta"><h2>Por qué quedó incompleta</h2>')
         partes.append(f'<p>Se ejecutaron {hechos} de los {pedidos} turnos previstos.</p>')
         if sin_llegar:
             partes.append("<p>No se llegó a estos momentos de decisión:</p><ul>")
@@ -1161,7 +1205,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
 
     # ------------------------------------------------------- 4. qué mirar
     if obs:
-        partes.append('<section class="senales"><h2>Qué mirar de esta corrida</h2>')
+        partes.append('<section id="senales" class="senales"><h2>Qué mirar de esta corrida</h2>')
         partes.append(f'<p class="ayuda-sec">{marca("medido")} Observaciones calculadas sobre '
                       "el registro, sin intervención de ningún modelo.</p>")
         partes.append("<ul>")
@@ -1173,7 +1217,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
 
     # ---------------------------------------------------------- 5. resumen
     if texto_resumen:
-        partes.append('<section class="resumen"><h2>En pocas palabras</h2>')
+        partes.append('<section id="sintesis" class="resumen"><h2>En pocas palabras</h2>')
         partes.append(f'<p class="marca-ia">{marca("inferido")}</p>')
         partes.append(parrafos(texto_resumen))
         partes.append("</section>")
@@ -1242,6 +1286,10 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
     partes.append('<p class="ayuda-sec">Cada turno se abre y muestra la secuencia completa: '
                   "qué se le preguntó, qué respondió y qué se enteraron los demás. "
                   "Los textos son literales, sin resumir.</p>")
+    # Leer la deliberación entera obligaba a abrir turno por turno. El botón se
+    # inserta desde el script para que no aparezca muerto donde no haya JS: sin
+    # él, los turnos siguen abriéndose de a uno como hasta ahora.
+    partes.append('<div id="control-turnos"></div>')
     for p in pasos:
         hito = por_paso.get(p["n"])
         if hito:
@@ -1410,8 +1458,30 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None) 
 
     partes.append('<footer class="pie">Generado a partir del registro de la simulación. '
                   "La transcripción reproduce lo que dijo cada participante, sin resumir.</footer>")
+    partes.append("""<script>
+(function(){
+  var caja = document.getElementById('control-turnos');
+  var turnos = document.querySelectorAll('details.turno');
+  if (!caja || !turnos.length) return;
+  var b = document.createElement('button');
+  b.className = 'b-turnos';
+  b.type = 'button';
+  var abiertos = false;
+  function rotular(){
+    b.textContent = abiertos ? 'Cerrar los ' + turnos.length + ' turnos'
+                             : 'Abrir los ' + turnos.length + ' turnos';
+  }
+  b.addEventListener('click', function(){
+    abiertos = !abiertos;
+    for (var i = 0; i < turnos.length; i++) turnos[i].open = abiertos;
+    rotular();
+  });
+  rotular();
+  caja.appendChild(b);
+})();
+</script>""")
     partes.append("</main></body></html>")
-    return "".join(partes)
+    return armar_indice("".join(partes))
 
 
 CABEZA = """<!doctype html>
@@ -1451,9 +1521,22 @@ letter-spacing:-.01em;text-wrap:balance;max-width:36rem}
 font-size:.82rem;font-weight:600}
 .chapa.ok{background:var(--acuerdo-suave);color:var(--acuerdo)}
 .chapa.aviso{background:var(--pendiente-suave);color:var(--pendiente)}
-.navega{display:flex;gap:1.4rem;flex-wrap:wrap;border-top:1px solid var(--rule);padding:.9rem 0}
-.navega a{color:var(--ink-soft);text-decoration:none;font-size:.88rem}
-.navega a:hover{color:var(--acuerdo)}
+/* El índice queda fijo arriba: el informe pasa de las 400 KB y casi todo es la
+   deliberación, así que uno termina lejos del encabezado y sin forma de volver.
+   Se desplaza a lo ancho en pantallas angostas en vez de partirse en dos filas
+   que empujan el contenido. */
+.navega{position:sticky;top:0;z-index:20;background:var(--ground);
+border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.barra{display:flex;gap:1.4rem;padding-top:.75rem;padding-bottom:.75rem;
+overflow-x:auto;scrollbar-width:thin}
+.navega a{color:var(--ink-soft);text-decoration:none;font-size:.88rem;white-space:nowrap}
+.navega a:hover,.navega a:focus-visible{color:var(--acuerdo)}
+/* Sin esto el índice fijo tapa el título de la sección a la que se saltó. */
+section[id]{scroll-margin-top:3.5rem}
+.b-turnos{font:inherit;font-size:.86rem;color:var(--ink-soft);background:var(--surface);
+border:1px solid var(--rule-strong);border-radius:6px;padding:.42rem .85rem;
+cursor:pointer;margin-bottom:1rem}
+.b-turnos:hover{color:var(--acuerdo);border-color:var(--acuerdo)}
 
 section{margin-top:3rem}
 h2{font-family:var(--serif);font-weight:400;font-size:1.4rem;margin:0 0 1rem;
