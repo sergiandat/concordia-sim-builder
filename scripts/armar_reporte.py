@@ -890,7 +890,20 @@ Devolvé un JSON con exactamente esta forma, sin texto alrededor ni bloques de c
   ]
 }}
 
-En "perfiles" evaluá, para cada participante que tenga un perfil configurado, si ese perfil se nota en lo que efectivamente hizo. Un sesgo de anclaje se manifiesta si vuelve al primer número que escuchó; uno de confirmación, si descarta lo que lo contradice; el costo hundido, si defiende algo por lo ya invertido. Poné "se manifiesta" solo si podés señalar el turno donde se ve, y citá qué dijo. Poné "no se observa" si el perfil no aparece en su conducta: es un resultado informativo y frecuente, no un fracaso del análisis, así que no lo fuerces. Poné "contradice" si actuó al revés de lo configurado. Si nadie tiene perfil, devolvé la lista vacía.
+En "perfiles" evaluá, para cada participante con perfil configurado, si el SESGO se nota en lo que hizo.
+
+Antes de responder, tené presente la distinción que decide todo: perseguir su objetivo NO es evidencia de su sesgo. Que alguien defienda lo que se le pidió defender es que el objetivo funciona. El sesgo se ve solamente cuando el razonamiento se distorsiona MÁS ALLÁ de lo que el objetivo ya explica. Si la conducta se explica entera por el objetivo, la respuesta es "no se observa", aunque la persona haya sido coherente y enfática.
+
+Cada sesgo tiene una huella propia, y hay que encontrar esa huella y no otra:
+- anclaje: vuelve a la primera cifra o propuesta que escuchó y la usa de referencia aunque hayan aparecido datos mejores.
+- confirmación: se le presenta evidencia que lo contradice y la descarta, la minimiza o no la responde.
+- costo hundido: defiende seguir con algo invocando lo ya invertido, no lo que rinde de acá en adelante.
+- disponibilidad: generaliza a partir de un caso puntual que recuerda, y le da más peso que a datos agregados.
+- endogrupo: evalúa la misma propuesta distinto según quién la haya hecho.
+
+Poné "se manifiesta" solo si podés señalar el turno donde se ve ESA huella y citar qué dijo. Poné "contradice" si hizo lo opuesto: por ejemplo, alguien con sesgo de confirmación que incorpora una objeción que lo desmiente. En cualquier otro caso poné "no se observa", y en el detalle explicá qué se vio en cambio.
+
+Esperamos que "no se observa" sea frecuente: los componentes influyen sin determinar, y fuera del tipo Mínimo compiten con el resto de la memoria por entrar en cada acción. Una lista donde los cinco se manifiestan es señal de que se está confirmando lo configurado en vez de ponerlo a prueba, y eso no sirve. Si nadie tiene perfil, devolvé la lista vacía.
 
 En "acuerdos" poné solo lo que fue aceptado explícitamente por los participantes, no lo que alguien propuso y nadie contestó. En "pendientes" poné lo que se planteó y quedó sin respuesta, lo que se objetó sin resolverse, y lo que el escenario pedía decidir y no se decidió. Cada entrada, una frase corta y concreta. Si no hubo acuerdos explícitos, devolvé la lista vacía.
 
@@ -1180,6 +1193,11 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
         "resumen": str(d.get("resumen") or "").strip(),
         "acuerdos": [str(x).strip() for x in (d.get("acuerdos") or []) if str(x).strip()],
         "pendientes": [str(x).strip() for x in (d.get("pendientes") or []) if str(x).strip()],
+        # Se pedía en el prompt y se dibujaba en el informe, pero esta lista
+        # blanca lo descartaba en el medio: el veredicto llegaba del modelo y se
+        # tiraba acá, así que la sección nunca aparecía.
+        "perfiles": [x for x in (d.get("perfiles") or [])
+                     if isinstance(x, dict) and x.get("quien")],
     }
 
 
