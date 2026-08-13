@@ -1,0 +1,34 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-08-13T18:04:33",
+  "duracion_min": 13.2,
+  "pasos_completados": 0,
+  "pasos_pedidos": 22,
+  "completa": false,
+  "error": "TypeError: 'int' object is not iterable",
+  "corto_por_cuota": false,
+  "agentes": [
+    "Laura Benítez — DIE",
+    "Mariana Roldán — SI",
+    "Martín Salvatierra — CECT",
+    "Verónica Cruz — COFECyT-NOA",
+    "Sergio Ledesma — CP-NOA"
+  ],
+  "modelo": "LLMProvider.NVIDIA/meta/llama-3.1-8b-instruct",
+  "modelo_gm": "LLMProvider.NVIDIA/nvidia/llama-3.3-nemotron-super-49b-v1",
+  "consumo": {
+    "nvidia/llama-3.3-nemotron-super-49b-v1": {
+      "llamadas": 22,
+      "esperas": 0,
+      "segundos_esperando": 0,
+      "tokens": 85434
+    },
+    "meta/llama-3.1-8b-instruct": {
+      "llamadas": 6,
+      "esperas": 0,
+      "segundos_esperando": 0,
+      "tokens": 6618
+    }
+  },
+  "consumo_por_paso": {}
+}
