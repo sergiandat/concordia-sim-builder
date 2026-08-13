@@ -622,6 +622,78 @@ EFECTO_NARRADOR = {
 }
 
 
+def tabla_actores(esc, veces=None) -> str:
+    """
+    Los actores en una fila cada uno, para poder compararlos de un vistazo.
+
+    Viene de una propuesta del equipo que pedía cuatro columnas nuevas —rol,
+    interés, restricción y orientación—. Tres se pueden llenar con lo que el
+    escenario ya guarda: la orientación son los valores configurados, el rol lo
+    enuncia el primer recuerdo por convención, y el interés es el objetivo. La
+    cuarta, la restricción, no se puede separar del objetivo de forma confiable
+    —partirlo por palabra clave devuelve fragmentos sin sentido—, así que se
+    deja afuera en vez de completarla mal.
+
+    Cada columna dice de dónde sale: una tabla que parece la ficha de diseño y
+    en realidad mezcla campos con inferencias es peor que no tenerla.
+    """
+    agentes = esc.get("agentes") or []
+    if len(agentes) < 2:
+        return ""
+    veces = veces or {}
+
+    filas = []
+    for a in agentes:
+        nombre = a.get("name", "")
+        # El rol suele ser la primera frase del primer recuerdo. Es una
+        # convención de cómo se escriben los escenarios, no un campo, así que
+        # se toma solo si el recuerdo habla del participante.
+        rol = ""
+        mems = a.get("memories") or []
+        if mems:
+            primera = re.split(r"(?<=[.;])\s", mems[0].strip())[0]
+            corto = nombre.split(" — ")[0]
+            if corto and corto.split()[0] in primera:
+                # Se saca el nombre, el verbo y la preposición que a veces lo
+                # sigue: sin esto «representa a las autoridades» quedaba como
+                # «a las autoridades», empezando por la preposición.
+                rol = re.sub(
+                    rf"^{re.escape(corto)}\s+"
+                    r"(?:es|era|integra|representa|forma parte de|pertenece a|dirige|"
+                    r"coordina|preside)\s+(?:a\s+)?",
+                    "", primera).strip(" .")
+                rol = rol[:1].upper() + rol[1:] if rol else ""
+        meta = (a.get("goal") or "").strip()
+        if meta:
+            meta = re.split(r"(?<=[.;])\s", meta)[0]
+        val = ((a.get("components") or {}).get("values") or {}).get("core_values")
+        orient = ", ".join(val) if isinstance(val, list) else (val or "")
+        filas.append((nombre, rol, meta, orient, veces.get(nombre)))
+
+    if not any(r or o for _, r, _, o, _ in filas):
+        return ""
+
+    p = ['<table class="config tabla-actores"><thead><tr><th>Actor</th><th>Rol</th>'
+         "<th>Qué busca</th><th>Orientación</th>"
+         + ("<th>Turnos</th>" if veces else "") + "</tr></thead><tbody>"]
+    for nombre, rol, meta, orient, n in filas:
+        p.append(f"<tr><th>{html.escape(nombre)}</th>"
+                 f"<td>{html.escape(rol) or '—'}</td>"
+                 f"<td>{html.escape(meta) or '—'}</td>"
+                 f"<td>{html.escape(orient) or '—'}</td>"
+                 + (f"<td>{n if n is not None else '—'}</td>" if veces else "")
+                 + "</tr>")
+    p.append("</tbody></table>")
+    p.append('<p class="nota-fuente">De dónde sale cada columna: <strong>rol</strong>, de la '
+             "primera frase del primer recuerdo —es una convención de redacción, no un campo—; "
+             "<strong>qué busca</strong>, de la primera oración del objetivo; "
+             "<strong>orientación</strong>, de los valores configurados. La restricción de cada "
+             "uno —qué no está dispuesto a aceptar— no figura como campo aparte: está mezclada "
+             "dentro del objetivo, y separarla automáticamente no da un resultado "
+             "confiable.</p>")
+    return "".join(p)
+
+
 def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
     """
     Quién condujo la mesa: lo que se configuró y lo que hizo.
@@ -2295,6 +2367,10 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                       "acción. En los demás compiten con el resto de la memoria por ser "
                       "recuperados, así que pueden no pesar en todos los turnos.</p>")
 
+    # La comparación primero: sin ella hay que leer cinco fichas de prosa y
+    # armar de memoria dónde chocan.
+    partes.append(tabla_actores(esc, veces))
+
     for q in quienes:
         a = por_nombre.get(q, {})
         partes.append('<article class="participante">')
@@ -2696,6 +2772,16 @@ gap:.55rem;max-width:52rem}
 .produjo li{font-size:.9rem;line-height:1.6;color:var(--ink-soft);padding-left:.9rem;
 border-left:2px solid var(--rule-strong)}
 .donde{color:var(--ink-faint);font-size:.85rem}
+.tabla-actores{width:100%;margin-bottom:.5rem}
+.tabla-actores thead th{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;
+font-family:var(--mono);color:var(--ink-faint);border-bottom:1px solid var(--rule-strong);
+padding-bottom:.4rem;text-align:left}
+.tabla-actores tbody th{width:11rem;font-weight:600;color:var(--ink);font-family:var(--sans);
+font-size:.87rem;vertical-align:top}
+.tabla-actores td{font-family:var(--sans);font-size:.84rem;color:var(--ink-soft);
+line-height:1.5;padding:.5rem .8rem .5rem 0;vertical-align:top}
+.nota-fuente{margin:.2rem 0 1.4rem;font-size:.83rem;color:var(--ink-faint);line-height:1.55;
+max-width:52rem}
 .autor{display:inline-block;margin-left:.45rem;font-size:.66rem;letter-spacing:.05em;
 text-transform:uppercase;font-family:var(--mono);border-radius:3px;padding:.1rem .32rem;
 vertical-align:middle;font-weight:500}
