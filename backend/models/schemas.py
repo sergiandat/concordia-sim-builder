@@ -41,6 +41,7 @@ class LLMProvider(str, Enum):
     OLLAMA = "ollama"
     OLLAMA_REMOTE = "ollama_remote"
     GLM = "glm"  # Zhipu AI (GLM models)
+    GROQ = "groq"  # Groq (OpenAI-compatible; el plan gratuito da mucho mas cupo diario)
 
 
 class NestedSimulationConfig(BaseModel):

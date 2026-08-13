@@ -129,6 +129,13 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NVIDIA_NIM_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Groq admite 30 pedidos por minuto y un turno consume del orden de
+          # quince, asi que el 429 por minuto es parte del funcionamiento normal.
+          # El envoltorio compatible con OpenAI reintenta dos veces por defecto,
+          # que no alcanza; con seis, las esperas escalonadas cubren la ventana.
+          # Gemini no lo lee: lleva su propio contador de reintentos.
+          LLM_MAX_RETRIES: '6'
           PYTHONUNBUFFERED: '1'
           TOKENIZERS_PARALLELISM: 'false'
         run: python scripts/run_headless.py escenario.json -o salida/

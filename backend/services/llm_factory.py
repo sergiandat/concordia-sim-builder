@@ -199,6 +199,25 @@ def get_model_and_embedder(settings: LLMSettings) -> Tuple[language_model.Langua
             base_url=base_url or os.getenv('NVIDIA_NIM_BASE_URL', 'https://integrate.api.nvidia.com/v1')
         )
 
+    elif provider == LLMProvider.GROQ.value:
+        # Endpoint compatible con OpenAI. Se agrega por una razon concreta: el
+        # plan gratuito de Gemini son 500 pedidos por modelo y por dia, y una
+        # corrida de 22 pasos con 8 variables consume del orden de 330 solo en
+        # el narrador. Tres corridas nuestras murieron por ese techo. En Groq el
+        # limite diario del modelo chico es 14.400, y 1.000 en los grandes.
+        #
+        # A cambio el limite por minuto es mas estricto (30), asi que conviene
+        # subir LLM_MAX_RETRIES: el reintento por defecto son dos intentos.
+        if not api_key:
+            api_key = os.getenv('GROQ_API_KEY')
+        if not api_key:
+            raise ValueError("GROQ_API_KEY not set in settings or environment")
+        model = CustomGPTModel(
+            api_key=api_key,
+            model_name=model_name,
+            base_url=base_url or os.getenv('GROQ_BASE_URL', 'https://api.groq.com/openai/v1')
+        )
+
     elif provider == LLMProvider.GEMINI.value:
         if not api_key:
             api_key = os.getenv('GEMINI_API_KEY')
