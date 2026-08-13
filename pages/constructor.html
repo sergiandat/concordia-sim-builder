@@ -320,24 +320,28 @@ padding:.5rem .7rem;border-radius:0 5px 5px 0;color:var(--ink)}
       <div class="campo">
         <label for="modelo">Modelo de los actores</label>
         <select id="modelo">
-          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite — el más rápido</option>
-          <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-          <option value="gemini-3.5-flash">Gemini 3.5 Flash — más elaborado, más lento</option>
-          <option value="llama-3.1-8b-instant">Groq · Llama 3.1 8B — 14.400 pedidos por día</option>
-          <option value="llama-3.3-70b-versatile">Groq · Llama 3.3 70B — 1.000 por día</option>
-          <option value="openai/gpt-oss-120b">Groq · GPT-OSS 120B — 1.000 por día</option>
-        </select>
+          <option value="gemini-3.5-flash-lite" data-proveedor="gemini">Gemini 3.5 Flash Lite — el más rápido</option>
+          <option value="gemini-3.1-flash-lite" data-proveedor="gemini">Gemini 3.1 Flash Lite</option>
+          <option value="gemini-3.5-flash" data-proveedor="gemini">Gemini 3.5 Flash — más elaborado, más lento</option>
+          <option value="llama-3.1-8b-instant" data-proveedor="groq">Groq · Llama 3.1 8B — 14.400 pedidos por día</option>
+          <option value="llama-3.3-70b-versatile" data-proveedor="groq">Groq · Llama 3.3 70B — 1.000 por día</option>
+          <option value="openai/gpt-oss-120b" data-proveedor="groq">Groq · GPT-OSS 120B — 1.000 por día</option>
+                  <option value="nvidia/llama-3.3-nemotron-super-49b-v1" data-proveedor="nvidia">NVIDIA · Nemotron Super 49B — sin tope de tokens diarios</option>
+          <option value="meta/llama-3.1-8b-instruct" data-proveedor="nvidia">NVIDIA · Llama 3.1 8B — el más rápido</option>
+</select>
       </div>
       <div class="campo">
         <label for="modelo-gm">Modelo del narrador</label>
         <select id="modelo-gm">
-          <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-          <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
-          <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-          <option value="llama-3.3-70b-versatile">Groq · Llama 3.3 70B — 1.000 por día</option>
-          <option value="openai/gpt-oss-120b">Groq · GPT-OSS 120B — 1.000 por día</option>
-          <option value="llama-3.1-8b-instant">Groq · Llama 3.1 8B — 14.400 por día</option>
-        </select>
+          <option value="gemini-3.1-flash-lite" data-proveedor="gemini">Gemini 3.1 Flash Lite</option>
+          <option value="gemini-3.5-flash-lite" data-proveedor="gemini">Gemini 3.5 Flash Lite</option>
+          <option value="gemini-3.5-flash" data-proveedor="gemini">Gemini 3.5 Flash</option>
+          <option value="llama-3.3-70b-versatile" data-proveedor="groq">Groq · Llama 3.3 70B — 1.000 por día</option>
+          <option value="openai/gpt-oss-120b" data-proveedor="groq">Groq · GPT-OSS 120B — 1.000 por día</option>
+          <option value="llama-3.1-8b-instant" data-proveedor="groq">Groq · Llama 3.1 8B — 14.400 por día</option>
+                  <option value="nvidia/llama-3.3-nemotron-super-49b-v1" data-proveedor="nvidia">NVIDIA · Nemotron Super 49B — sin tope de tokens diarios</option>
+          <option value="meta/llama-3.1-8b-instruct" data-proveedor="nvidia">NVIDIA · Llama 3.1 8B — el más rápido</option>
+</select>
       </div>
     </div>
     <div id="aviso-modelos"></div>
@@ -1188,7 +1192,11 @@ var CONTRIB = [
     /* El proveedor se deduce del modelo elegido. Antes iba fijo en "gemini",
        y al sumar Groq eso habria mandado modelos de Groq al cliente de Gemini. */
     function proveedorDe(modelo) {
-      return String(modelo || "").indexOf("gemini") === 0 ? "gemini" : "groq";
+      /* El proveedor lo declara cada opcion en data-proveedor. Deducirlo del
+         nombre andaba con dos, pero "openai/gpt-oss-120b" es de Groq y
+         "meta/llama-..." de NVIDIA: no hay regla por prefijo que acierte. */
+      var o = document.querySelector('option[value="' + modelo + '"][data-proveedor]');
+      return o ? o.getAttribute("data-proveedor") : "gemini";
     }
 
     var comun = {

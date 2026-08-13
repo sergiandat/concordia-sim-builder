@@ -1,8 +1,21 @@
 // Corre la logica real del constructor contra un DOM minimo y valida que el
 // archivo que produce sea exactamente el que el motor espera.
-const { readFileSync } = require('fs');
+const { readFileSync, existsSync } = require('fs');
 
-const html = readFileSync('constructor.html', 'utf8');
+// El archivo del repo, no una copia. Antes era 'constructor.html' a secas y
+// tomaba la que hubiera en el directorio desde donde se corriera: una copia
+// vieja del scratchpad paso varias rondas de cambios sin que se probara nada,
+// informando que todo pasaba. Se busca la del repo y, si no aparece, se corta
+// en vez de validar cualquier cosa.
+const RUTA = process.argv[2] ||
+  ['pages/constructor.html', 'csb/pages/constructor.html'].find(existsSync);
+if (!RUTA) {
+  console.error('No encontre pages/constructor.html. Corre esto desde la raiz ' +
+                'del repo, o pasa la ruta como argumento.');
+  process.exit(1);
+}
+console.log('  probando: ' + RUTA);
+const html = readFileSync(RUTA, 'utf8');
 const js = html.split('<script>')[1].split('</script>')[0];
 
 // --- DOM minimo ------------------------------------------------------------
@@ -35,6 +48,19 @@ for (const m of html.matchAll(/<select\s+id="([^"]+)"\s*>([\s\S]*?)<\/select>/g)
   if (primera) desdeHtml[m[1]] = primera[1];
 }
 
+// value -> data-proveedor, leido del mismo HTML que se prueba.
+// Cada modelo figura en las dos listas —actores y narrador— y quedarse con la
+// ultima aparicion esconde que se contradigan: una etiqueta rota en una lista
+// pasaba desapercibida porque su duplicado en la otra seguia bien.
+const PROVEEDORES = {};
+const CONFLICTOS = [];
+for (const m of html.matchAll(/<option value="([^"]+)" data-proveedor="([^"]+)"/g)) {
+  if (PROVEEDORES[m[1]] !== undefined && PROVEEDORES[m[1]] !== m[2]) {
+    CONFLICTOS.push(m[1] + ': ' + PROVEEDORES[m[1]] + ' y ' + m[2]);
+  }
+  PROVEEDORES[m[1]] = m[2];
+}
+
 const cache = {};
 global.document = {
   getElementById(id) {
@@ -44,6 +70,17 @@ global.document = {
   createElement(t) { return nodo(t); },
   createTextNode(t) { return { nodeType: 3, textContent: t }; },
   body: nodo('body'),
+  // proveedorDe() consulta las opciones por data-proveedor. Se resuelven contra
+  // el HTML real: con un nodo falso la comprobacion pasaba sin mirar nada, y sin
+  // el metodo el constructor ni corre.
+  querySelector(sel) {
+    const m = /option\[value="([^"]+)"\]\[data-proveedor\]/.exec(sel || '');
+    if (m) {
+      const prov = PROVEEDORES[m[1]];
+      return prov ? { getAttribute: () => prov } : null;
+    }
+    return nodo('div');
+  },
   querySelectorAll() { return []; },
 };
 global.window = global;
@@ -173,10 +210,44 @@ chk(d.llm_settings.max_tokens > 0 && d.llm_settings.request_timeout > 0, 'tokens
 
 // El proveedor se deduce del nombre del modelo. Si se rompe, un modelo de Groq
 // termina en el cliente de Gemini y la corrida falla recien al arrancar.
+// Comparar la salida contra PROVEEDORES seria tautologico: el constructor lee
+// esa misma tabla, asi que una etiqueta mal puesta coincide consigo misma. Se
+// deduce el proveedor del nombre del modelo, que es conocimiento independiente
+// del HTML, y se exige que ambos coincidan.
+function proveedorEsperado(m) {
+  if (/^gemini-/.test(m)) return 'gemini';
+  if (/^(nvidia|meta|mistralai|microsoft|qwen)\//.test(m)) return 'nvidia';
+  if (/(-instant|-versatile)$/.test(m) || /^openai\/gpt-oss/.test(m)) return 'groq';
+  return null;
+}
+chk(Object.keys(PROVEEDORES).length >= 8, 'faltan opciones con proveedor declarado');
+// Toda opcion de las dos listas de modelo tiene que declarar su proveedor. Sin
+// esto, a una que lo pierda la cubre su duplicado en la otra lista, hasta que
+// alguien agregue un modelo que figure una sola vez y caiga en el que va por
+// defecto.
+const SIN_DECLARAR = [];
+for (const bloque of html.matchAll(/<select id="modelo(?:-gm)?">([\s\S]*?)<\/select>/g)) {
+  for (const o of bloque[1].matchAll(/<option value="([^"]+)"([^>]*)>/g)) {
+    if (!/data-proveedor=/.test(o[2])) SIN_DECLARAR.push(o[1]);
+  }
+}
+chk(SIN_DECLARAR.length === 0,
+    'opciones de modelo sin data-proveedor: ' + SIN_DECLARAR.join(', '));
+chk(CONFLICTOS.length === 0, 'un modelo declara distinto proveedor segun la lista — '
+    + CONFLICTOS.join('; '));
+Object.keys(PROVEEDORES).forEach(function (m) {
+  var esp = proveedorEsperado(m);
+  chk(esp !== null, 'no se de que proveedor es el modelo ' + m);
+  chk(esp === null || PROVEEDORES[m] === esp,
+      'la opcion ' + m + ' dice proveedor ' + PROVEEDORES[m] + ' y deberia ser ' + esp);
+});
 ['llm_settings', 'gm_llm_settings'].forEach(function (k) {
-  var s = d[k], esGemini = s.model_name.indexOf('gemini') === 0;
-  chk(s.provider === (esGemini ? 'gemini' : 'groq'),
-      k + ': proveedor ' + s.provider + ' no corresponde al modelo ' + s.model_name);
+  var s = d[k];
+  chk(PROVEEDORES[s.model_name] !== undefined,
+      k + ': el modelo ' + s.model_name + ' no declara proveedor');
+  chk(s.provider === proveedorEsperado(s.model_name),
+      k + ': proveedor ' + s.provider + ' para el modelo ' + s.model_name +
+      ' (deberia ser ' + proveedorEsperado(s.model_name) + ')');
 });
 chk(!('provider' in (d.config || {})), 'el proveedor no va dentro de config');
 chk(gm.prefab.endsWith('__GameMaster'), 'el tipo de mesa no es un prefab de mesa');
