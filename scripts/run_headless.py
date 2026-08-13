@@ -117,6 +117,14 @@ def main() -> int:
     except Exception as e:
         error = f"{type(e).__name__}: {e}"
         log(f"ERROR en el paso {paso[0]}: {error}")
+        # Con el tipo y el mensaje solos no se puede ubicar nada: un
+        # «TypeError: 'int' object is not iterable» a mitad del motor no dice ni
+        # qué archivo ni qué línea, y averiguarlo cuesta otra corrida entera.
+        # La traza va al registro de ejecución, que es donde se la busca.
+        import traceback
+        log("Traza completa:")
+        for linea in traceback.format_exc().rstrip().split("\n"):
+            log("    " + linea)
         log("Guardo igual los pasos que si se completaron.")
 
     duracion = time.time() - inicio
