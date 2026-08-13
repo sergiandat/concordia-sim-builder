@@ -1687,7 +1687,26 @@ Reglas estrictas:
 
 
 # A qué modelo caer cuando falta la clave del proveedor que usó la corrida.
-POR_DEFECTO = {"gemini": "gemini-3.5-flash-lite", "groq": "llama-3.3-70b-versatile"}
+POR_DEFECTO = {"gemini": "gemini-3.5-flash-lite",
+               "groq": "llama-3.3-70b-versatile",
+               "nvidia": "nvidia/llama-3.3-nemotron-super-49b-v1"}
+
+# De qué proveedor es cada modelo. No hay regla por prefijo que acierte sola:
+# «openai/gpt-oss-120b» es de Groq y «meta/llama-3.1-8b-instruct» de NVIDIA,
+# y los dos llevan barra. Se reconoce por familia, en el mismo orden que usa la
+# batería de pruebas del constructor.
+def proveedor_de(modelo: str) -> str:
+    if modelo.startswith("gemini-"):
+        return "gemini"
+    if modelo.startswith("openai/gpt-oss") or modelo.endswith(("-instant", "-versatile")):
+        return "groq"
+    if modelo.startswith(("nvidia/", "meta/", "mistralai/", "microsoft/", "qwen/")):
+        return "nvidia"
+    return "gemini"
+
+
+CLAVES = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY",
+          "nvidia": "NVIDIA_NIM_API_KEY"}
 
 
 def clave_para(modelo: str) -> tuple[str, str, str]:
@@ -1707,14 +1726,15 @@ def clave_para(modelo: str) -> tuple[str, str, str]:
     Devuelve ("", "", "") si no hay ninguna clave.
     """
     import os
-    claves = {"gemini": os.getenv("GEMINI_API_KEY", "").strip(),
-              "groq": os.getenv("GROQ_API_KEY", "").strip()}
-    propio = "gemini" if modelo.startswith("gemini") else "groq"
-    if claves[propio]:
+    claves = {p: os.getenv(v, "").strip() for p, v in CLAVES.items()}
+    propio = proveedor_de(modelo)
+    if claves.get(propio):
         return claves[propio], propio, modelo
-    otro = "groq" if propio == "gemini" else "gemini"
-    if claves[otro]:
-        return claves[otro], otro, POR_DEFECTO[otro]
+    # Se cae al primero que tenga clave, cambiando también el modelo: mandar el
+    # nombre de uno a otro endpoint falla igual que no tener clave.
+    for otro in ("gemini", "groq", "nvidia"):
+        if claves.get(otro):
+            return claves[otro], otro, POR_DEFECTO[otro]
     return "", "", ""
 
 
@@ -1730,8 +1750,9 @@ def pedir_al_modelo(prompt: str, modelo: str, clave: str, timeout: int = 180,
     """
     import urllib.request
 
-    if proveedor == "groq":
-        url = "https://api.groq.com/openai/v1/chat/completions"
+    if proveedor in ("groq", "nvidia"):
+        url = ("https://api.groq.com/openai/v1/chat/completions" if proveedor == "groq"
+               else "https://integrate.api.nvidia.com/v1/chat/completions")
         cuerpo = json.dumps({
             "model": modelo,
             "messages": [{"role": "user", "content": prompt}],
@@ -1753,7 +1774,7 @@ def pedir_al_modelo(prompt: str, modelo: str, clave: str, timeout: int = 180,
     with urllib.request.urlopen(pedido, timeout=timeout) as r:
         datos = json.loads(r.read().decode("utf-8"))
 
-    if proveedor == "groq":
+    if proveedor in ("groq", "nvidia"):
         opciones = datos.get("choices") or [{}]
         return (opciones[0].get("message", {}).get("content") or "").strip()
     partes = datos.get("candidates", [{}])[0].get("content", {}).get("parts", [])
