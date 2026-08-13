@@ -5,7 +5,7 @@ Arma un reporte legible a partir del log crudo de una simulación.
 El log de Concordia tiene todo pero no se puede leer: para veinte pasos son
 catorce megas de estructura anidada, en inglés y mezclada con el andamiaje
 interno del motor. Esto lee los datos crudos —no el HTML ya generado, que es
-lo que hace perder participantes al volver a parsearlo— y escribe un
+lo que hace perder actores al volver a parsearlo— y escribe un
 documento que una persona puede recorrer.
 
     python scripts/armar_reporte.py salida/raw_log.json -o salida/reporte.html
@@ -78,7 +78,7 @@ def leer_pasos(crudo) -> list[dict]:
             "dicho": dicho,
             "evento": evento,
             "objetivo": texto_de(comp.get("Goal")),
-            # Las tres preguntas que Concordia le hace a un participante antes
+            # Las tres preguntas que Concordia le hace a un actor antes
             # de actuar. Mostrar solo una dejaba afuera dos tercios del
             # razonamiento con el que decide.
             "persona": texto_de(comp.get("SelfPerception")),
@@ -96,7 +96,7 @@ def leer_pasos(crudo) -> list[dict]:
 
 def leer_memoria(campo) -> dict:
     """
-    Qué recordó el participante antes de hablar. Concordia busca en su memoria
+    Qué recordó el actor antes de hablar. Concordia busca en su memoria
     asociativa con una consulta y trae los recuerdos más cercanos; ver cuáles
     fueron explica por qué respondió lo que respondió, y por qué a veces ignora
     algo que sí se dijo.
@@ -140,7 +140,7 @@ def leer_mesa(bloque: dict) -> dict:
     pedido = re.sub(r"\s*(For example|Por ejemplo)[,:].*$", "", pedido, flags=re.S).strip()
     pedido = re.sub(r"\s+", " ", pedido)
 
-    # A cada participante le escribe una observación distinta, redactada desde
+    # A cada actor le escribe una observación distinta, redactada desde
     # su punto de vista. Es la parte del ciclo donde el narrador sí interviene.
     observaciones = {}
     mo = bloque.get("make_observation")
@@ -170,7 +170,7 @@ def leer_indicadores(crudo) -> tuple[dict[str, list[tuple[int, float]]],
     franja. Estos últimos suelen ser los que registran qué se decidió, así que
     dejarlos afuera del reporte, como pasaba antes, escondía el resultado.
 
-    Los valores viajan dentro del contexto que ve cada participante; se toma el
+    Los valores viajan dentro del contexto que ve cada actor; se toma el
     último anuncio de cada paso y se descartan los ejemplos de la plantilla.
     """
     numericos: dict[int, dict[str, float]] = {}
@@ -300,7 +300,7 @@ def grafico(series: dict[str, list[tuple[int, float]]], max_paso: int, hitos=Non
         p.append(f'<line x1="{izq}" y1="{yy:.1f}" x2="{an-der}" y2="{yy:.1f}" class="rejilla"/>')
         p.append(f'<text x="{izq-8}" y="{yy+4:.1f}" class="eje-y">{v:.0f}</text>')
 
-    # Momentos de decisión: permiten ver si los indicadores se movieron ahí
+    # Hitos críticos: permiten ver si los indicadores se movieron ahí
     for paso_hito in hitos:
         if 1 <= paso_hito <= max_paso:
             xx = x(paso_hito)
@@ -430,7 +430,7 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
         if es_consenso and fin >= 100:
             obs.append(("alerta",
                         f"El consenso terminó en {fin:.0f}, el máximo posible. En una mesa "
-                        "con intereses en conflicto eso suele indicar que los participantes "
+                        "con intereses en conflicto eso suele indicar que los actores "
                         "no sostuvieron sus posiciones, más que un acuerdo trabajado."))
         elif es_consenso and alto >= 100 and fin < alto:
             # Que trepe al techo y se derrumbe es la firma de una deliberación
@@ -438,7 +438,7 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
             obs.append(("buena",
                         f"El consenso llegó a {alto:.0f} en el turno {paso_alto} y después "
                         f"cayó hasta {fin:.0f}. Un acuerdo que se arma y se rompe indica que "
-                        "apareció algo que los participantes no estaban dispuestos a aceptar; "
+                        "apareció algo que los actores no estaban dispuestos a aceptar; "
                         f"conviene mirar qué pasó a partir del turno {paso_alto}."))
         elif fin == ini:
             # La guía del proyecto trata este caso como problema conocido y da
@@ -488,7 +488,7 @@ def senales(pasos, series, franjas, esc, resumen) -> list[tuple[str, str]]:
     elif distintas > 1:
         obs.append(("buena",
                     f"Hubo {distintas} consignas distintas en {len(consignas)} turnos: a cada "
-                    "participante se le pidió postura sobre algo concreto de lo que se venía "
+                    "actor se le pidió postura sobre algo concreto de lo que se venía "
                     "discutiendo."))
 
     if resumen and resumen.get("completa") is False:
@@ -618,7 +618,7 @@ EFECTO_NARRADOR = {
         "Admite escenas con opciones cerradas y pagos, así que las respuestas quedan "
         "codificables en vez de texto libre.",
     "interviewer__GameMaster": "Conduce como entrevista: pregunta y repregunta a uno por vez.",
-    "marketplace__GameMaster": "Resuelve ofertas y demandas entre los participantes.",
+    "marketplace__GameMaster": "Resuelve ofertas y demandas entre los actores.",
 }
 
 
@@ -647,7 +647,7 @@ def tabla_actores(esc, veces=None) -> str:
         nombre = a.get("name", "")
         # El rol suele ser la primera frase del primer recuerdo. Es una
         # convención de cómo se escriben los escenarios, no un campo, así que
-        # se toma solo si el recuerdo habla del participante.
+        # se toma solo si el recuerdo habla del actor.
         rol = ""
         mems = a.get("memories") or []
         if mems:
@@ -708,7 +708,7 @@ def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
     prefab = esc.get("mesa_prefab") or ""
     p = ['<section id="narrador"><h2>El narrador</h2>']
     p.append('<p class="ayuda-sec">Concordia lo define como una entidad especial que simula '
-             "el entorno. No es un participante más: le da la palabra, decide qué queda "
+             "el entorno. No es un actor más: le da la palabra, decide qué queda "
              "registrado como ocurrido, reparte lo que se entera cada uno y asigna el valor "
              "de todas las variables.</p>")
 
@@ -731,7 +731,7 @@ def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
     if efecto:
         p.append(f'<p class="encuadre">{html.escape(efecto)}</p>')
 
-    # Cuánto intervino, medido: si copia textual lo que dijo el participante, no
+    # Cuánto intervino, medido: si copia textual lo que dijo el actor, no
     # está mediando nada, y los hechos inventados entran sin filtro.
     con_ambos = [x for x in pasos if x.get("dicho") and x.get("evento")]
     if con_ambos:
@@ -739,7 +739,7 @@ def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
         p.append("<h3>Cuánto intervino, medido</h3>")
         if textuales == len(con_ambos):
             p.append(f'<p class="nota-datos">{marca("medido")} En los {len(con_ambos)} turnos '
-                     "registró <strong>textualmente</strong> lo que dijo el participante, sin "
+                     "registró <strong>textualmente</strong> lo que dijo el actor, sin "
                      "cambiarle nada. Es decir: lo que alguien afirma pasa a ser un hecho del "
                      "mundo sin que nada lo verifique, y los demás razonan sobre eso.</p>")
         elif textuales:
@@ -789,7 +789,7 @@ def seccion_narrador(pasos, esc, resumen, series=None, franjas=None) -> str:
     total_obs = sum(len(o) for o in obs_por_paso)
     if total_obs:
         distintos = sum(1 for o in obs_por_paso if len(set(o.values())) > 1)
-        detalle = ("cada participante recibió una versión distinta en "
+        detalle = ("cada actor recibió una versión distinta en "
                    f"{distintos} de {len(pasos)} turnos"
                    if distintos else
                    "todos recibieron el mismo texto, así que no hubo información privada")
@@ -897,7 +897,7 @@ def seccion_controles(pasos, esc) -> str:
                       f"en inglés o mezclado (turnos {', '.join(map(str, mezclados[:8]))})."))
 
     # Que las tres preguntas se repitan idénticas turno a turno es un modo de
-    # falla conocido: el participante deja de actualizar y responde en piloto.
+    # falla conocido: el actor deja de actualizar y responde en piloto.
     pares = repetidos = 0
     for q in {p["quien"] for p in pasos}:
         for campo in ("persona", "situacion", "haria"):
@@ -907,12 +907,12 @@ def seccion_controles(pasos, esc) -> str:
                 repetidos += parecido(a, b) > 0.9
     if pares:
         if repetidos:
-            filas.append(("aviso", "Los participantes se actualizan",
+            filas.append(("aviso", "Los actores se actualizan",
                           f"{repetidos} de {pares} respuestas consecutivas a «quién soy», "
                           "«dónde estoy» y «qué haría» quedaron casi idénticas: en esos "
-                          "turnos el participante no incorporó lo que había pasado."))
+                          "turnos el actor no incorporó lo que había pasado."))
         else:
-            filas.append(("ok", "Los participantes se actualizan",
+            filas.append(("ok", "Los actores se actualizan",
                           f"Las {pares} respuestas consecutivas a «quién soy», «dónde estoy» "
                           "y «qué haría» cambiaron entre turno y turno: nadie quedó "
                           "contestando en piloto automático."))
@@ -933,12 +933,12 @@ def seccion_controles(pasos, esc) -> str:
         if dif_publico == tot and dif_entre == len(pasos):
             filas.append(("ok", "Cada uno se entera de algo distinto",
                           f"Las {tot} observaciones difieren del hecho público, y en los "
-                          f"{len(pasos)} turnos difieren también entre participantes. Hay "
+                          f"{len(pasos)} turnos difieren también entre actores. Hay "
                           "información privada de verdad, no el mismo texto repartido."))
         else:
             filas.append(("aviso", "Cada uno se entera de algo distinto",
                           f"{dif_publico} de {tot} observaciones difieren del hecho público; "
-                          f"entre participantes difieren en {dif_entre} de {len(pasos)} "
+                          f"entre actores difieren en {dif_entre} de {len(pasos)} "
                           "turnos. Donde coinciden no hay información privada."))
 
     # Recuperar siempre los mismos recuerdos significaría razonar sobre una
@@ -979,7 +979,7 @@ def seccion_controles(pasos, esc) -> str:
 
 def llegada_del_perfil(pasos, esc) -> str:
     """
-    Si el perfil configurado llegó o no a la acción del participante.
+    Si el perfil configurado llegó o no a la acción del actor.
 
     Es la pregunta que quedaba abierta detrás de todo lo psicológico. Fuera del
     tipo «Mínimo» el perfil no es un componente presente en cada acción: entra
@@ -988,7 +988,7 @@ def llegada_del_perfil(pasos, esc) -> str:
     medirlo nunca.
 
     Se cuenta en cuántos turnos apareció efectivamente entre los recuerdos que
-    el participante trajo antes de hablar.
+    el actor trajo antes de hablar.
     """
     con_perfil = [a for a in (esc.get("agentes") or [])
                   if perfil_psicologico(a.get("components") or {})]
@@ -1020,7 +1020,7 @@ def llegada_del_perfil(pasos, esc) -> str:
     if not tot:
         return ""
 
-    p.append(f'<p class="nota-datos">{marca("medido")} Estos {len(indirectos)} participantes '
+    p.append(f'<p class="nota-datos">{marca("medido")} Estos {len(indirectos)} actores '
              "no son del tipo «Mínimo», así que su perfil entró al banco de memoria y tenía "
              "que ser recuperado para influir en algo. Se buscó su texto entre los recuerdos "
              "que cada uno trajo antes de hablar.</p>")
@@ -1033,11 +1033,11 @@ def llegada_del_perfil(pasos, esc) -> str:
                  "sesgos configurados no operaron.</p>")
         p.append('<p class="nota-datos">Para que pesen hay dos caminos: usar el tipo «Mínimo», '
                  "que los recibe como componente fijo, o escribir el rasgo dentro de los "
-                 "recuerdos del participante, redactado en los términos del caso para que la "
+                 "recuerdos del actor, redactado en los términos del caso para que la "
                  "búsqueda lo encuentre.</p>")
     elif con < tot:
         p.append(f'<p class="nota-datos">{marca("medido")} Se recuperó en <strong>{con} de '
-                 f"{tot}</strong> turnos. En los otros {tot - con} el participante decidió sin "
+                 f"{tot}</strong> turnos. En los otros {tot - con} el actor decidió sin "
                  "tenerlo a la vista, así que una conducta sin rastro del sesgo en esos turnos "
                  "no dice nada sobre el sesgo.</p>")
     else:
@@ -1097,7 +1097,7 @@ def seccion_variables(series, franjas, esc) -> str:
 
 def seccion_hitos(pasos, esc, resumen) -> str:
     """
-    Los momentos de decisión como lista, antes de la transcripción.
+    Los hitos críticos como lista, antes de la transcripción.
 
     Estaban marcados dentro de la deliberación, donde uno se los cruza en el
     turno nueve. Enumerados antes, estructuran la lectura: se sabe de entrada
@@ -1255,7 +1255,7 @@ def ayuda_interpretacion(pasos, series, franjas, esc, resumen) -> str:
                      "redactando el evento con el nombre de quien debe responder y qué "
                      "tiene que responder.</p></article>")
 
-    # Nada filtra lo que un participante afirma: pasa a ser parte del mundo.
+    # Nada filtra lo que un actor afirma: pasa a ser parte del mundo.
     p.append('<article class="tarjeta"><h3>Los hechos nuevos no se verifican</h3>'
              "<p>Si alguien menciona un dato que no estaba configurado, el motor no "
              "lo distingue de los que sí: pasa a formar parte de la situación y los "
@@ -1299,7 +1299,7 @@ ROTULO_INDICE = {
     "sintesis": "En pocas palabras",
     "acuerdos": "Acuerdos",
     "evolucion": "Evolución",
-    "participantes": "Participantes",
+    "actores": "Actores",
     "ciclo": "Cómo funciona",
     "deliberacion": "Deliberación",
     "tecnica": "Ficha técnica",
@@ -1313,7 +1313,7 @@ ROTULO_INDICE = {
 # evidencia en crudo, qué dice del armado, y el material de referencia.
 GRUPOS = [
     ("g-que-es", "Qué es esto", ["ficha", "diseno", "interpretacion"]),
-    ("g-armo", "Cómo se armó", ["participantes", "narrador", "variables", "hitos"]),
+    ("g-armo", "Cómo se armó", ["actores", "narrador", "variables", "hitos"]),
     ("g-paso", "Qué pasó", ["sintesis", "resultado", "acuerdos", "incompleta",
                             "evolucion", "perfiles"]),
     # El ciclo del turno encabeza la transcripcion: su primer paso es quien
@@ -1412,7 +1412,7 @@ RASGOS = {
 
 def perfil_psicologico(comp: dict) -> str:
     """
-    El perfil que se le cargó al participante, en palabras.
+    El perfil que se le cargó al actor, en palabras.
 
     Estos componentes recién quedaron conectados al motor, y hasta ahora el
     informe no los mostraba: se configuraba un sesgo fuerte de anclaje y en la
@@ -1485,7 +1485,7 @@ def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
     p = ['<details class="escenario"><summary>Cómo estaba armado el escenario</summary>',
          '<div class="cuerpo-esc">']
 
-    # La premisa y la ficha de cada participante ya tienen su lugar propio —en
+    # La premisa y la ficha de cada actor ya tienen su lugar propio —en
     # «Diseño de la simulación» y en «Quiénes participaron»—. Repetirlas acá
     # obligaba a comparar dos versiones de lo mismo para saber cuál mandaba.
     if esc.get("datos"):
@@ -1500,17 +1500,17 @@ def seccion_escenario(esc: dict, orden_reales: list[str]) -> str:
         ("Motor", NOMBRES_MOTOR.get(esc.get("motor", ""), esc.get("motor", "—"))),
         ("Turnos pedidos", esc.get("pasos") or "—"),
         ("Puede cerrar antes", "sí" if esc.get("cierre") else "no"),
-        ("Modelo de participantes", esc.get("modelo") or "—"),
+        ("Modelo de actores", esc.get("modelo") or "—"),
         ("Modelo del narrador", esc.get("modelo_gm") or "—"),
     ]
-    # La temperatura del narrador sí opera; la de los participantes la fija el
+    # La temperatura del narrador sí opera; la de los actores la fija el
     # motor por su cuenta en cada acción. Se dicen las dos, con esa aclaración,
     # porque de otro modo se atribuye a este valor una variabilidad que no
     # controla.
     if esc.get("temp_gm") is not None:
         filas.append(("Temperatura del narrador", esc["temp_gm"]))
     if esc.get("temp") is not None:
-        filas.append(("Temperatura de participantes",
+        filas.append(("Temperatura de actores",
                       f"{esc['temp']} (el motor la fija por su cuenta; no se aplica)"))
     p.append("<h3>Configuración</h3><table class='config'><tbody>")
     for k, v in filas:
@@ -1553,7 +1553,7 @@ def exportar_csv(pasos, series, destino: Path) -> None:
 
     with destino.open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f, delimiter=";")
-        w.writerow(["paso", "participante", "objetivo", "consigna",
+        w.writerow(["paso", "actor", "objetivo", "consigna",
                     "palabras", "dicho"] + nombres)
         for p in pasos:
             dicho = p["dicho"] or p["evento"]
@@ -1570,7 +1570,7 @@ CONTEXTO DEL ESCENARIO
 {contexto}
 
 PARTICIPANTES Y LO QUE BUSCA CADA UNO
-{participantes}
+{actores}
 
 INDICADORES (valor inicial y final)
 {indicadores}
@@ -1593,7 +1593,7 @@ Devolvé un JSON con exactamente esta forma, sin texto alrededor ni bloques de c
   ]
 }}
 
-En "perfiles" evaluá, para cada participante con perfil configurado, si el SESGO se nota en lo que hizo.
+En "perfiles" evaluá, para cada actor con perfil configurado, si el SESGO se nota en lo que hizo.
 
 Antes de responder, tené presente la distinción que decide todo: perseguir su objetivo NO es evidencia de su sesgo. Que alguien defienda lo que se le pidió defender es que el objetivo funciona. El sesgo se ve solamente cuando el razonamiento se distorsiona MÁS ALLÁ de lo que el objetivo ya explica. Si la conducta se explica entera por el objetivo, la respuesta es "no se observa", aunque la persona haya sido coherente y enfática.
 
@@ -1608,11 +1608,11 @@ Poné "se manifiesta" solo si podés señalar el turno donde se ve ESA huella y 
 
 Esperamos que "no se observa" sea frecuente: los componentes influyen sin determinar, y fuera del tipo Mínimo compiten con el resto de la memoria por entrar en cada acción. Una lista donde los cinco se manifiestan es señal de que se está confirmando lo configurado en vez de ponerlo a prueba, y eso no sirve. Si nadie tiene perfil, devolvé la lista vacía.
 
-En "acuerdos" poné solo lo que fue aceptado explícitamente por los participantes, no lo que alguien propuso y nadie contestó. En "pendientes" poné lo que se planteó y quedó sin respuesta, lo que se objetó sin resolverse, y lo que el escenario pedía decidir y no se decidió. Cada entrada, una frase corta y concreta. Si no hubo acuerdos explícitos, devolvé la lista vacía.
+En "acuerdos" poné solo lo que fue aceptado explícitamente por los actores, no lo que alguien propuso y nadie contestó. En "pendientes" poné lo que se planteó y quedó sin respuesta, lo que se objetó sin resolverse, y lo que el escenario pedía decidir y no se decidió. Cada entrada, una frase corta y concreta. Si no hubo acuerdos explícitos, devolvé la lista vacía.
 
 El campo "resumen" tiene que cubrir:
 1. Qué se discutió y qué se resolvió, si es que se resolvió algo.
-2. Qué defendió cada participante y si su posición cambió a lo largo de los turnos.
+2. Qué defendió cada actor y si su posición cambió a lo largo de los turnos.
 3. Dónde hubo desacuerdo real y dónde hubo adhesión sin reparos. Sé específico: si alguien aceptó una propuesta sin objetar nada, decilo y señalá en qué turno.
 4. Si los indicadores se movieron de forma coherente con lo que efectivamente se dijo.
 
@@ -1622,7 +1622,7 @@ Reglas estrictas:
 - Nada de vocabulario de manual ni conclusiones infladas. Si la deliberación fue floja, decilo.
 - No uses títulos ni viñetas: párrafos corridos.
 
-Sobre el nivel de consenso, si se midió: que llegue al máximo NO es un buen resultado por sí mismo. En una mesa donde los participantes fueron diseñados con intereses en conflicto, un consenso altísimo alcanzado sin objeciones sostenidas indica que los personajes no defendieron sus posiciones, y eso es un problema del escenario que hay que señalar, no un logro que celebrar.
+Sobre el nivel de consenso, si se midió: que llegue al máximo NO es un buen resultado por sí mismo. En una mesa donde los actores fueron diseñados con intereses en conflicto, un consenso altísimo alcanzado sin objeciones sostenidas indica que los personajes no defendieron sus posiciones, y eso es un problema del escenario que hay que señalar, no un logro que celebrar.
 
 No cierres con un veredicto sobre si la deliberación estuvo bien o mal, ni con una frase de síntesis elogiosa. Terminá con lo que quedó sin resolver o con lo que habría que revisar del escenario."""
 
@@ -1675,9 +1675,9 @@ En "hallazgos" cubrí, y salteá la categoría donde no haya evidencia suficient
 - Dinámica: qué fenómenos aparecieron —coaliciones, persuasión, bloqueo, adhesión sin objetar, alguien que arrastra al resto— y quién los inició.
 - Método: qué confusores o limitaciones tiene este armado. Sé concreto: si dos cosas cambiaron a la vez y no se puede atribuir el efecto a ninguna, decilo.
 
-En "variaciones" proponé tres o cuatro modificaciones para una corrida siguiente. Cada una tiene que ser una sola cosa que cambia, nombrada con precisión —qué participante, qué parámetro, qué valor— para que el efecto sea atribuible. Ejemplos de la forma que buscamos: cambiar el sesgo de alguien de confirmación a anclaje para probar si importa el tipo o solo la presencia; pasar de secuencial a simultáneo para probar si el orden de turno da poder de fijar agenda; sacar un indicador de los ocho para probar si el narrador los sigue mejor con menos.
+En "variaciones" proponé tres o cuatro modificaciones para una corrida siguiente. Cada una tiene que ser una sola cosa que cambia, nombrada con precisión —qué actor, qué parámetro, qué valor— para que el efecto sea atribuible. Ejemplos de la forma que buscamos: cambiar el sesgo de alguien de confirmación a anclaje para probar si importa el tipo o solo la presencia; pasar de secuencial a simultáneo para probar si el orden de turno da poder de fijar agenda; sacar un indicador de los ocho para probar si el narrador los sigue mejor con menos.
 
-En "mejoras" poné cambios puntuales a ESTE escenario: un objetivo que quedó vago, un dato que faltó y alguien tuvo que inventar, un momento de decisión mal ubicado, un indicador cuya regla no es accionable.
+En "mejoras" poné cambios puntuales a ESTE escenario: un objetivo que quedó vago, un dato que faltó y alguien tuvo que inventar, un hito crítico mal ubicado, un indicador cuya regla no es accionable.
 
 Reglas estrictas:
 - Basate solo en lo que aparece más arriba. No inventes citas ni hechos.
@@ -1712,7 +1712,7 @@ def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180,
 
 def texto_perfiles(agentes) -> str:
     """
-    Los perfiles configurados, en una línea por participante, para que el modelo
+    Los perfiles configurados, en una línea por actor, para que el modelo
     pueda contrastarlos con la conducta observada. Sin esto solo se le puede
     preguntar qué pasó, no si pasó lo que se había configurado.
     """
@@ -1846,7 +1846,7 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
         if p["objetivo"] and p["quien"] not in objetivos:
             objetivos[p["quien"]] = p["objetivo"]
 
-    participantes = "\n".join(f"- {q}: {objetivos.get(q, 'sin objetivo declarado')}" for q in orden)
+    actores = "\n".join(f"- {q}: {objetivos.get(q, 'sin objetivo declarado')}" for q in orden)
     indicadores = "\n".join(
         f"- {bonito(n)}: empezó en {s[0][1]:.0f} y terminó en {s[-1][1]:.0f}"
         for n, s in sorted(series.items())) or "(no se midieron indicadores)"
@@ -1855,7 +1855,7 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
 
     prompt = PROMPT_RESUMEN.format(
         contexto=(premisa or "(no se registró la consigna del escenario)")[:2000],
-        participantes=participantes,
+        actores=actores,
         indicadores=indicadores,
         perfiles=texto_perfiles(agentes),
         transcripcion=transcripcion[:60000],
@@ -1906,19 +1906,19 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
 
 # La primera etapa depende de cómo se configuró el orden: decía siempre «el
 # narrador decide a quién le toca hablar», y con orden fijo el narrador no
-# decide nada —la rotación sale de la lista de participantes—. Atribuirle una
+# decide nada —la rotación sale de la lista de actores—. Atribuirle una
 # decisión que no toma es afirmar de más sobre la única etapa que puede
 # introducir sesgo de agenda.
 PRIMERA_ETAPA = {
-    "fixed": ("Toca", "la rotación sigue el orden en que se listaron los participantes"),
-    "random": ("Sortea", "el turno se sortea entre los participantes"),
+    "fixed": ("Toca", "la rotación sigue el orden en que se listaron los actores"),
+    "random": ("Sortea", "el turno se sortea entre los actores"),
     "game_master_choice": ("Elige", "el narrador decide a quién le toca hablar"),
 }
 
 ETAPAS = [
     ("Elige", "el narrador decide a quién le toca hablar"),
     ("Pregunta", "le hace una consigna, distinta según el momento"),
-    ("Responde", "el participante dice o hace algo"),
+    ("Responde", "el actor dice o hace algo"),
     ("Registra", "el narrador lo convierte en un hecho ocurrido"),
     ("Reparte", "le cuenta a cada uno lo que pasó, desde su lugar"),
 ]
@@ -1940,7 +1940,7 @@ def reparto_de_la_palabra(pasos, esc) -> str:
 
     El informe mostraba quién habló y decía que el narrador lo decidía, sin
     verificar ninguna de las dos cosas. Con orden fijo no hay decisión: la
-    rotación sale de la lista de participantes, y entonces lo que importa es si
+    rotación sale de la lista de actores, y entonces lo que importa es si
     se respetó. Con orden al azar o a criterio del narrador sí hay decisión, y
     conviene decir que el registro no guarda el motivo: no es algo que se pueda
     auditar mirando el log.
@@ -1954,7 +1954,7 @@ def reparto_de_la_palabra(pasos, esc) -> str:
                    for x in pasos
                    if x["quien"] != lista[(x["n"] - 1) % len(lista)]]
         p.append('<p class="nota-datos">El orden es <strong>fijo</strong>: el narrador no elige. '
-                 "La rotación sigue el orden en que se listaron los participantes — "
+                 "La rotación sigue el orden en que se listaron los actores — "
                  + html.escape(" → ".join(lista)) + " — y vuelve a empezar.</p>")
         if not desvios:
             p.append(f'<p class="nota-datos">{marca("medido")} Se respetó en los '
@@ -1968,7 +1968,7 @@ def reparto_de_la_palabra(pasos, esc) -> str:
     elif orden in ("random", "game_master_choice"):
         if orden == "random":
             p.append('<p class="nota-datos">El turno se <strong>sortea</strong> entre los '
-                     "participantes. No hay rotación contra la cual contrastar: un reparto "
+                     "actores. No hay rotación contra la cual contrastar: un reparto "
                      "desparejo es esperable por azar y no indica nada por sí solo.</p>")
         else:
             p.append('<p class="nota-datos">El <strong>narrador elige</strong> a quién le da '
@@ -2035,7 +2035,7 @@ def ciclo(pasos, orden: str = "") -> str:
         if calcados == len(comparables):
             p.append('<div class="nota-ciclo aviso-ciclo">'
                      f'<strong>En los {len(comparables)} turnos, el hecho registrado quedó '
-                     'idéntico a lo que dijo el participante.</strong> El narrador no filtró '
+                     'idéntico a lo que dijo el actor.</strong> El narrador no filtró '
                      'ni reformuló nada en el paso 4: lo que alguien escribe pasa a ser un '
                      'hecho del mundo tal cual. Por eso pueden aparecer sucesos que nadie '
                      'configuró —una falla, una carta, un informe— y quedan como ocurridos.'
@@ -2051,7 +2051,7 @@ def ciclo(pasos, orden: str = "") -> str:
         distintas = len(textos) > 1 and any(
             parecido(textos[0], t) < 0.95 for t in textos[1:])
         p.append('<div class="nota-ciclo">'
-                 + (f'A cada participante le escribió una observación distinta, redactada '
+                 + (f'A cada actor le escribió una observación distinta, redactada '
                     'desde su punto de vista: no todos se enteran de lo mismo de la misma '
                     'manera.' if distintas
                     else "A todos les mandó la misma observación.")
@@ -2107,7 +2107,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     partes.append('<p class="marca-doc">Informe de simulación deliberativa</p>')
     partes.append(f"<h1>{html.escape(nombre_esc)}</h1>")
 
-    linea = [f"{len(quienes)} participantes", f"{max_paso} turnos"]
+    linea = [f"{len(quienes)} actores", f"{max_paso} turnos"]
     if resumen and resumen.get("duracion_min") is not None:
         linea.append(f"{resumen['duracion_min']} min")
     if resumen and resumen.get("terminada"):
@@ -2190,7 +2190,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         partes.append('<section id="incompleta" class="incompleta"><h2>Por qué quedó incompleta</h2>')
         partes.append(f'<p>Se ejecutaron {hechos} de los {pedidos} turnos previstos.</p>')
         if sin_llegar:
-            partes.append("<p>No se llegó a estos momentos de decisión:</p><ul>")
+            partes.append("<p>No se llegó a estos hitos críticos:</p><ul>")
             for d in sin_llegar:
                 partes.append(f'<li><strong>Turno {d["step"]}:</strong> '
                               f'{html.escape((d.get("event") or "")[:220])}</li>')
@@ -2312,7 +2312,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         partes.append(llegada)
     if veredictos:
         partes.append(f'<p class="ayuda-sec">{marca("inferido")} Contraste entre el perfil '
-                      "psicológico que se le cargó a cada participante y lo que efectivamente "
+                      "psicológico que se le cargó a cada actor y lo que efectivamente "
                       "hizo. Que un perfil no se note es un resultado, no una falla del "
                       "análisis: los componentes influyen en la conducta, no la determinan, "
                       "y en los tipos que no son «Mínimo» compiten con el resto de la "
@@ -2337,7 +2337,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         partes.append('<section id="evolucion"><h2>Cómo evolucionó</h2>')
         partes.append(f'<p class="ayuda-sec">{marca("estimado")} Los valores los asigna el narrador '
                       "interpretando lo que se dijo; no son mediciones de nada observado. "
-                      "Las líneas punteadas marcan los momentos de decisión previstos.</p>")
+                      "Las líneas punteadas marcan los hitos críticos previstos.</p>")
         if series:
             hitos = [d.get("step") for d in (decisiones or []) if d.get("step")]
             partes.append('<div class="grafico">' + grafico(series, max_paso, hitos) + "</div>")
@@ -2348,13 +2348,13 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
             partes.append("</div>")
         partes.append("</section>")
 
-    # --------------------------------------------------- 7. participantes
-    # Un solo lugar por participante. Estaba partido en dos: nombre, turnos y
+    # --------------------------------------------------- 7. actores
+    # Un solo lugar por actor. Estaba partido en dos: nombre, turnos y
     # objetivo acá, y perfil y recuerdos en la ficha técnica dentro de un
     # plegado, en otra pestaña. Para saber cómo estaba configurado alguien había
     # que juntar dos secciones que ni se mencionaban entre sí.
     por_nombre = {a.get("name"): a for a in (esc.get("agentes") or [])}
-    partes.append('<section id="participantes"><h2>Quiénes participaron</h2>')
+    partes.append('<section id="actores"><h2>Quiénes participaron</h2>')
     partes.append(f'<p class="ayuda-sec">{marca("medido")} Cómo estaba configurado cada uno: '
                   "qué busca, con qué perfil y con qué recuerdos entró.</p>")
     indirectos = [a for a in por_nombre.values()
@@ -2362,7 +2362,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                   and a.get("prefab") != "minimal__Entity"]
     if indirectos:
         partes.append('<p class="ayuda-sec">Los perfiles de '
-                      f"{len(indirectos)} participantes entraron como recuerdo, no como "
+                      f"{len(indirectos)} actores entraron como recuerdo, no como "
                       "componente fijo: solo el tipo «Mínimo» los tiene presentes en cada "
                       "acción. En los demás compiten con el resto de la memoria por ser "
                       "recuperados, así que pueden no pesar en todos los turnos.</p>")
@@ -2373,7 +2373,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
 
     for q in quienes:
         a = por_nombre.get(q, {})
-        partes.append('<article class="participante">')
+        partes.append('<article class="actor">')
         partes.append(f"<h3>{html.escape(q)}</h3>")
         partes.append(f'<p class="veces">{veces[q]} '
                       f'{"turno" if veces[q] == 1 else "turnos"}</p>')
@@ -2392,7 +2392,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                 partes.append(f"<li>{html.escape(m)}</li>")
             partes.append("</ul></details>")
         partes.append("</article>")
-    # Los que estaban configurados y nunca hablaron: sin esto, un participante
+    # Los que estaban configurados y nunca hablaron: sin esto, un actor
     # que la corrida no alcanzó a darle la palabra desaparece del informe.
     callados = [n for n in por_nombre if n not in quienes]
     if callados:
@@ -2418,9 +2418,9 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     # hecho nuevo en el mundo. Sin la marca hay que acordarse de cuál era cuál.
     partes.append('<p class="ayuda-sec">Cada etapa lleva de quién es: '
                   '<span class="autor a-n">narrador</span> o '
-                  '<span class="autor a-p">participante</span>. Cuatro de las seis son del '
+                  '<span class="autor a-p">actor</span>. Cuatro de las seis son del '
                   "narrador, y son las únicas que pueden introducir un hecho en el mundo: lo "
-                  "que dice un participante recién existe cuando el narrador lo registra.</p>")
+                  "que dice un actor recién existe cuando el narrador lo registra.</p>")
     # El reparto de turnos encabeza la transcripcion, no la configuracion: es lo
     # que efectivamente paso, y sirve de mapa de lo que se va a leer.
 
@@ -2431,7 +2431,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     for p in pasos:
         hito = por_paso.get(p["n"])
         if hito:
-            partes.append('<div class="hito"><span class="hito-rotulo">Momento de decisión '
+            partes.append('<div class="hito"><span class="hito-rotulo">Hito crítico '
                           f'· turno {p["n"]}</span><p>{html.escape(hito)}</p></div>')
         dicho = p["dicho"] or p["evento"]
         adelanto = re.sub(r"\s+", " ", re.sub(r"\*\*|__", "", dicho))[:150]
@@ -2446,7 +2446,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
             partes.append('<div class="etapa-turno"><span class="et">Se le preguntó<span class="autor a-n">narrador</span></span>'
                           f'<p class="consigna">{html.escape(mesa["consigna"])}</p></div>')
 
-        partes.append('<div class="etapa-turno"><span class="et">Respondió<span class="autor a-p">participante</span></span>'
+        partes.append('<div class="etapa-turno"><span class="et">Respondió<span class="autor a-p">actor</span></span>'
                       f'<div class="dicho">{parrafos(dicho)}</div></div>')
 
         # Si el hecho registrado difiere de lo dicho, el narrador intervino y
@@ -2462,7 +2462,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         obs = mesa.get("observaciones") or {}
         if obs:
             partes.append('<details class="interno"><summary><span class="autor a-n">narrador</span>Qué se enteró cada uno '
-                          f'({len(obs)} participantes)</summary><div>')
+                          f'({len(obs)} actores)</summary><div>')
             for quien, texto in obs.items():
                 partes.append(f'<p class="quien-obs">{html.escape(quien)}</p>')
                 partes.append(f'<div class="obs">{parrafos(texto)}</div>')
@@ -2475,7 +2475,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                 ("Qué haría alguien como él o ella", p["haria"], "PersonBySituation")]
         if any(t[1] for t in tres):
             pasos_cot = sum(len(p["razonamiento"].get(c) or []) for _, _, c in tres)
-            partes.append('<details class="interno"><summary><span class="autor a-p">participante</span>Cómo razonó antes de hablar'
+            partes.append('<details class="interno"><summary><span class="autor a-p">actor</span>Cómo razonó antes de hablar'
                           + (f" ({pasos_cot} pasos)" if pasos_cot else "")
                           + "</summary><div>")
             for titulo, texto, campo in tres:
@@ -2496,7 +2496,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
 
         mem = p.get("memoria") or {}
         if mem.get("recuerdos"):
-            partes.append('<details class="interno"><summary><span class="autor a-p">participante</span>Qué recordó '
+            partes.append('<details class="interno"><summary><span class="autor a-p">actor</span>Qué recordó '
                           f'({len(mem["recuerdos"])} recuerdos)</summary><div>')
             if mem.get("consulta"):
                 partes.append('<p class="quien-obs">Buscó en su memoria con esto</p>')
@@ -2595,7 +2595,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     partes.append("</section>")
 
     partes.append('<footer class="pie">Generado a partir del registro de la simulación. '
-                  "La transcripción reproduce lo que dijo cada participante, sin resumir.</footer>")
+                  "La transcripción reproduce lo que dijo cada actor, sin resumir.</footer>")
     partes.append("""<script>
 (function(){
   var tabs = [].slice.call(document.querySelectorAll('.pestana'));
@@ -2893,7 +2893,7 @@ overflow:hidden;text-overflow:ellipsis}
 .celda{width:2rem;height:2rem;border-radius:4px;color:#fff;font-size:.72rem;font-family:var(--mono);
 display:flex;align-items:center;justify-content:center}
 .leyenda-tira{margin-bottom:1.8rem}
-.participante{padding:.9rem 0;border-top:1px solid var(--rule);max-width:52rem}
+.actor{padding:.9rem 0;border-top:1px solid var(--rule);max-width:52rem}
 .veces{margin:0;font-size:.82rem;color:var(--ink-faint);font-family:var(--mono)}
 .objetivo{margin:.5rem 0 0;color:var(--ink-soft);font-size:.94rem}
 
@@ -3007,7 +3007,7 @@ def main() -> int:
     ap.add_argument("crudo", type=Path, help="raw_log.json de la corrida")
     ap.add_argument("-o", "--salida", type=Path, default=None)
     ap.add_argument("--escenario", type=Path, default=None,
-                    help="JSON del escenario, para marcar los momentos de decisión")
+                    help="JSON del escenario, para marcar los hitos críticos")
     ap.add_argument("--resumen", action="store_true",
                     help="agregar un resumen ejecutivo redactado por el modelo")
     ap.add_argument("--csv", action="store_true",
@@ -3064,7 +3064,7 @@ def main() -> int:
 
     print(f"reporte      : {salida}")
     print(f"turnos       : {len(pasos)}")
-    print(f"participantes: {len({p['quien'] for p in pasos})}")
+    print(f"actores: {len({p['quien'] for p in pasos})}")
     print(f"indicadores  : {len(series)}" + (f" ({', '.join(sorted(series))})" if series else ""))
     print(f"decisiones   : {len(decisiones)}")
     print(f"resumen      : {'si' if analisis.get('resumen') else 'no'}")

@@ -185,6 +185,8 @@
   .pie{padding:2.5rem 0;color:var(--ink-faint);font-size:.88rem}
   @media (max-width:34rem){h1{font-size:1.75rem}.cabecera{padding:2rem 0 1.75rem}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.aviso-medido{border-left:3px solid var(--warn);background:var(--warn-soft);
+padding:.5rem .7rem;border-radius:0 5px 5px 0;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -248,11 +250,11 @@
   <section>
     <div class="titulo-seccion"><span class="numero">3</span><h2>Quiénes participan</h2></div>
     <p class="ayuda">
-      Cada participante defiende algo distinto. Cuanto más claro sea el
+      Cada actor defiende algo distinto. Cuanto más claro sea el
       conflicto entre sus intereses, más interesante es la deliberación.
     </p>
     <div id="lista-agentes"></div>
-    <button type="button" class="b-sumar" id="b-sumar-agente">Sumar participante</button>
+    <button type="button" class="b-sumar" id="b-sumar-agente">Sumar actor</button>
   </section>
 
   <section>
@@ -304,19 +306,19 @@
       Elegí el paso mirando quién habla en ese turno.
     </p>
     <div id="lista-decisiones"></div>
-    <button type="button" class="b-sumar" id="b-sumar-decision">Sumar momento de decisión</button>
+    <button type="button" class="b-sumar" id="b-sumar-decision">Sumar hito crítico</button>
   </section>
 
   <section>
     <div class="titulo-seccion"><span class="numero">7</span><h2>Qué modelo usa</h2></div>
     <p class="ayuda">
-      Conviene que el narrador use un modelo distinto al de los participantes: el
+      Conviene que el narrador use un modelo distinto al de los actores: el
       límite de uso se cuenta por modelo, así que repartir el trabajo hace que
       la corrida vaya más rápido.
     </p>
     <div class="par">
       <div class="campo">
-        <label for="modelo">Modelo de los participantes</label>
+        <label for="modelo">Modelo de los actores</label>
         <select id="modelo">
           <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite — el más rápido</option>
           <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
@@ -339,13 +341,13 @@
       <div class="cuerpo-avanzado">
         <p class="ayuda">
           La temperatura controla cuánto se aparta de lo previsible: más baja da
-          respuestas más consistentes, más alta más variadas. Los participantes
+          respuestas más consistentes, más alta más variadas. Los actores
           usan un valor propio que el motor fija en cada acción, así que este
           ajuste pesa sobre todo en el narrador.
         </p>
         <div class="par">
           <div class="campo">
-            <label for="temp">Temperatura de los participantes <span class="pista">0 a 2</span></label>
+            <label for="temp">Temperatura de los actores <span class="pista">0 a 2</span></label>
             <input id="temp" type="number" min="0" max="2" step="0.1" value="0.2">
           </div>
           <div class="campo">
@@ -486,7 +488,7 @@
 
 <div class="barra">
   <div class="envoltura barra-caja">
-    <div class="estado" id="estado">Completá el tema y sumá al menos dos participantes.</div>
+    <div class="estado" id="estado">Completá el tema y sumá al menos dos actores.</div>
     <button type="button" id="b-bajar">Bajar archivo</button>
     <button type="button" class="b-principal" id="b-enviar">Enviar a correr</button>
   </div>
@@ -532,7 +534,7 @@ var MOTORES = [
   ["asynchronous",    "Asincrónico",       "Cada uno actúa cuando le toca, sin esperar a los demás."],
   ["step_controller", "Paso a paso",       "Se frena en cada paso hasta que alguien lo destraba."],
   ["interview",       "Entrevista",        "Formato de preguntas y respuestas."],
-  ["survey",          "Encuesta",          "Cada participante responde un cuestionario."]
+  ["survey",          "Encuesta",          "Cada actor responde un cuestionario."]
 ];
 
 var ORDENES = [
@@ -574,7 +576,7 @@ var RASGOS = [
 ];
 
 var CONTRIB = [
-  ["death",                "Muerte",                 "Los participantes pueden morir durante el relato."],
+  ["death",                "Muerte",                 "Los actores pueden morir durante el relato."],
   ["gm_working_memory",    "Memoria de trabajo",     "La mesa recuerda mejor lo reciente."],
   ["npc_event_generator",  "Eventos externos",       "Aparecen hechos del entorno que nadie decidió."],
   ["location_based_filter","Filtro por lugar",       "Cada uno solo se entera de lo que pasa donde está."],
@@ -678,7 +680,7 @@ var CONTRIB = [
   }
 
   function nombreDe(a, i) {
-    return (a.nombre || "").trim() || "Participante " + (i + 1);
+    return (a.nombre || "").trim() || "Actor " + (i + 1);
   }
 
   function dibujarTurnos() {
@@ -688,7 +690,7 @@ var CONTRIB = [
     var max = parseInt($("pasos").value, 10) || 0;
 
     if (!estado.agentes.length) {
-      cont.appendChild(el("p", "ayuda", "Sumá participantes para ver el orden de la palabra."));
+      cont.appendChild(el("p", "ayuda", "Sumá actores para ver el orden de la palabra."));
       $("aviso-vueltas").textContent = "";
       return;
     }
@@ -711,7 +713,7 @@ var CONTRIB = [
     var vueltas = Math.floor(max / n);
     if (vueltas === 0) {
       caja.appendChild(aviso("No alcanza para todos. ",
-        "Con " + n + " participantes y " + max + " pasos, algunos no llegan a hablar. " +
+        "Con " + n + " actores y " + max + " pasos, algunos no llegan a hablar. " +
         "Necesitás al menos " + n + " pasos."));
     } else if (vueltas === 1) {
       caja.appendChild(aviso("Cada uno habla una sola vez. ",
@@ -731,13 +733,13 @@ var CONTRIB = [
     return d;
   }
 
-  /* ---------- participantes ---------- */
+  /* ---------- actores ---------- */
   function dibujarAgentes() {
     var cont = $("lista-agentes");
     cont.textContent = "";
     estado.agentes.forEach(function (ag, i) {
       var f = el("div", "ficha");
-      f.appendChild(cabezaFicha("Participante " + (i + 1), function () {
+      f.appendChild(cabezaFicha("Actor " + (i + 1), function () {
         estado.agentes.splice(i, 1); dibujarAgentes(); dibujarTurnos(); dibujarDecisiones(); actualizar();
       }));
 
@@ -755,7 +757,7 @@ var CONTRIB = [
           function (v) { ag.memorias = v; actualizar(); })));
 
       var det = el("details", "avanzado");
-      var sum = el("summary", null, "Más opciones de este participante");
+      var sum = el("summary", null, "Más opciones de este actor");
       det.appendChild(sum);
       var cuerpo = el("div", "cuerpo-avanzado");
 
@@ -767,7 +769,7 @@ var CONTRIB = [
       });
       var dIni = PREFABS_AGENTE.filter(function (o) { return o[0] === (ag.prefab || "basic__Entity"); })[0];
       ayudaP.textContent = dIni ? dIni[2] : "";
-      cuerpo.appendChild(campo("Tipo de participante", null, selP));
+      cuerpo.appendChild(campo("Tipo de actor", null, selP));
       cuerpo.appendChild(ayudaP);
 
       cuerpo.appendChild(campo("Contexto propio", "solo lo sabe él; opcional",
@@ -782,14 +784,24 @@ var CONTRIB = [
          que más pesa es el último: es el que decide qué hace, y viene en 5
          por defecto, así que algo anunciado unos turnos antes puede quedar
          afuera justo cuando tiene que actuar. */
-      /* Perfil psicologico. Solo el participante "Minimo" lo recibe como
-         componente siempre presente; en los demas entra como memoria, que
-         compite por ser recuperada. Se avisa en la interfaz porque cambia
-         cuanto pesa. */
+      /* Perfil psicologico. Solo el actor "Minimo" lo recibe como
+         componente siempre presente; en los demas entra como memoria y hay
+         que recuperarla. Esto era una advertencia teorica hasta que lo
+         medimos sobre una corrida real: no se recupero ni una vez en doce
+         turnos, asi que los cinco sesgos configurados no operaron. El aviso
+         dice el numero, porque "puede que no siempre pesen" se lee como un
+         matiz y en los hechos fue todo o nada. */
       var psico = el("div", "sub-bloque");
       psico.appendChild(el("p", "ayuda",
-        "Rasgos que afectan cómo decide. Con el tipo «Mínimo» quedan siempre presentes; " +
-        "con los demás entran como recuerdo y puede que no siempre pesen."));
+        "Rasgos que afectan cómo decide. Con el tipo «Mínimo» quedan siempre presentes " +
+        "en cada acción. Con los demás entran como recuerdo y tienen que ser recuperados " +
+        "para influir en algo."));
+      psico.appendChild(el("p", "ayuda aviso-medido",
+        "Lo medimos sobre una corrida: con «Básico», el perfil no se recuperó en ninguno " +
+        "de los 12 turnos, y los cinco sesgos configurados no operaron. Si querés que " +
+        "pesen, usá el tipo «Mínimo», o escribí el rasgo dentro de los recuerdos del " +
+        "actor con las palabras del caso —el motor lo inyecta como una frase " +
+        "genérica en inglés, y la búsqueda de memoria no la encuentra."));
 
       var parSesgo = el("div", "par");
       parSesgo.appendChild(campo("Sesgo al decidir", null,
@@ -868,7 +880,7 @@ var CONTRIB = [
       f.appendChild(campo("Nombre", null,
         entrada("text", v.nombre, "Nivel de consenso", function (x) { v.nombre = x; })));
       f.appendChild(campo("Qué mide", null,
-        entrada("text", v.descripcion, "Grado de acuerdo explícito entre los participantes.",
+        entrada("text", v.descripcion, "Grado de acuerdo explícito entre los actores.",
           function (x) { v.descripcion = x; })));
 
       var extra = el("div");
@@ -915,7 +927,7 @@ var CONTRIB = [
     });
   }
 
-  /* ---------- momentos de decisión ---------- */
+  /* ---------- hitos críticos ---------- */
   function dibujarDecisiones() {
     var cont = $("lista-decisiones");
     cont.textContent = "";
@@ -994,7 +1006,7 @@ var CONTRIB = [
 
   /* Para los indicadores se conservan los acentos: el nombre se muestra tal
      cual en el informe, y «Diseno final» en vez de «Diseño final» queda mal.
-     Los nombres de los participantes ya viajan con acentos por todo el motor
+     Los nombres de los actores ya viajan con acentos por todo el motor
      sin problema, así que el riesgo es bajo. */
   function idIndicador(nombre, i) {
     var base = (nombre || "").toLowerCase().trim()
@@ -1189,11 +1201,11 @@ var CONTRIB = [
   function problemas() {
     var f = [];
     if (!($("premisa").value || "").trim()) f.push("describir el tema");
-    if (estado.agentes.length < 2) f.push("sumar al menos dos participantes");
+    if (estado.agentes.length < 2) f.push("sumar al menos dos actores");
     var sn = estado.agentes.filter(function (a) { return !(a.nombre || "").trim(); }).length;
-    if (sn) f.push("ponerle nombre a " + (sn === 1 ? "un participante" : sn + " participantes"));
+    if (sn) f.push("ponerle nombre a " + (sn === 1 ? "un actor" : sn + " actores"));
     var so = estado.agentes.filter(function (a) { return !(a.objetivo || "").trim(); }).length;
-    if (so) f.push("decir qué busca " + (so === 1 ? "un participante" : so + " de ellos"));
+    if (so) f.push("decir qué busca " + (so === 1 ? "un actor" : so + " de ellos"));
     var mal = estado.variables.filter(function (v) {
       return (v.tipo === "categorical") && (v.nombre || "").trim() && lineas(v.opciones).length < 2;
     }).length;
@@ -1205,7 +1217,7 @@ var CONTRIB = [
     var f = problemas(), listo = f.length === 0, caja = $("estado");
     caja.className = "estado" + (listo ? "" : " mal");
     caja.textContent = listo
-      ? "Listo: " + estado.agentes.length + " participantes, " + (parseInt($("pasos").value, 10) || 0) + " pasos."
+      ? "Listo: " + estado.agentes.length + " actores, " + (parseInt($("pasos").value, 10) || 0) + " pasos."
       : "Falta " + f.join("; ") + ".";
     $("b-bajar").disabled = !listo;
     $("b-enviar").disabled = !listo;
@@ -1350,7 +1362,7 @@ var CONTRIB = [
   var GUIA = [
     ["El tema", [
       ["¿Qué función cumple la premisa?",
-       ["Define el espacio de lo que puede ocurrir. Los participantes no tienen más mundo que este texto: lo que no esté acá, o lo inventan sobre la marcha, o no pasa.",
+       ["Define el espacio de lo que puede ocurrir. Los actores no tienen más mundo que este texto: lo que no esté acá, o lo inventan sobre la marcha, o no pasa.",
         "Por eso una premisa vaga no produce respuestas neutras sino genéricas. El modelo rellena los huecos con lugares comunes, y esa variabilidad no la controlás vos."]],
       ["¿Qué tiene que incluir?",
        ["Escenario y momento. Estado inicial con magnitudes concretas. El repertorio de acciones posibles. Las restricciones que acotan. Y qué está en juego si no se resuelve.",
@@ -1363,9 +1375,9 @@ var CONTRIB = [
     ["Los datos del caso", [
       ["¿En qué se diferencian de las memorias de cada uno?",
        ["Estos los conocen todos por igual —el equivalente a lo que en un experimento reciben todos los grupos—. Las memorias son privadas y definen puntos de vista distintos sobre los mismos hechos.",
-        "Si querés que dos participantes discrepen sobre una cifra, la cifra va en los datos compartidos y la interpretación en las memorias de cada uno."]],
+        "Si querés que dos actores discrepen sobre una cifra, la cifra va en los datos compartidos y la interpretación en las memorias de cada uno."]],
       ["¿Por qué conviene ser exhaustivo?",
-       ["Porque lo que no fijás queda disponible para que alguien lo invente. El motor no distingue entre un hecho que configuraste y uno que un participante afirmó en su turno: ambos pasan a ser parte del mundo.",
+       ["Porque lo que no fijás queda disponible para que alguien lo invente. El motor no distingue entre un hecho que configuraste y uno que un actor afirmó en su turno: ambos pasan a ser parte del mundo.",
         "Lo verificamos: en una corrida aparecieron una falla informática, una sequía anticipada y una carta con amenaza judicial. Ninguna estaba configurada."]],
       ["¿Qué forma les doy?",
        ["Una proposición por línea, verificable, sin adjetivos. «Las sanciones le cuestan a A dos mil millones anuales» sirve; «la situación económica es difícil» no."]]]],
@@ -1380,20 +1392,22 @@ var CONTRIB = [
         "Lo medimos: en un escenario con cinco intereses en tensión pero objetivos compatibles, el consenso trepó al máximo en el turno siete y no volvió a bajar. Nadie sostuvo una objeción.",
         "La otra palanca, más eficaz todavía, es el tipo de narrador. Está en Opciones avanzadas."]],
       ["¿Cuántas memorias?",
-       ["Entre cinco y diez por participante, según la guía. Con menos el comportamiento se vuelve genérico; con más el modelo pierde el foco y deja de usarlas.",
+       ["Entre cinco y diez por actor, según la guía. Con menos el comportamiento se vuelve genérico; con más el modelo pierde el foco y deja de usarlas.",
         "Conviene cubrir identidad y trayectoria, qué sabe de la situación, cómo ve a los demás, qué cree y valora, y qué no está dispuesto a conceder."]],
       ["¿Para qué sirve el perfil psicológico?",
-       ["Para que el sesgo sea una propiedad del participante y no una descripción en su memoria. Un sesgo de anclaje fuerte hace que se aferre al primer número que escuchó; uno de confirmación, que descarte lo que lo contradice.",
+       ["Para que el sesgo sea una propiedad del actor y no una descripción en su memoria. Un sesgo de anclaje fuerte hace que se aferre al primer número que escuchó; uno de confirmación, que descarte lo que lo contradice.",
         "La guía documenta que apilarlos produce comportamientos más definidos: confirmación fuerte más identidad social fuerte más valores tradicionales da un escéptico consistente. Así construyeron la plantilla de vacunación.",
-        "Ojo con un límite que verificamos: solo el tipo «Mínimo» los recibe como componente siempre presente. En los demás entran como recuerdo y compiten por ser recuperados."]]]],
+        "Ojo con un límite que medimos: solo el tipo «Mínimo» los recibe como componente presente en cada acción. En los demás entran como recuerdo, y en una corrida real de doce turnos no se recuperaron ni una vez: los cinco sesgos configurados no operaron.",
+        "El motivo probable es que el motor los inyecta como una frase genérica en inglés —«tends to seek information confirming existing beliefs»— sin ninguna palabra del caso, mientras la búsqueda de memoria va sobre el tema del escenario.",
+        "Dos salidas: usar el tipo «Mínimo», o escribir el rasgo dentro de los recuerdos del actor, redactado con las palabras del caso."]]]],
 
     ["Cómo se da la palabra", [
       ["¿Qué cambia el orden?",
        ["Con orden fijo el turno es determinístico y podés fijar de antemano quién interviene en cada momento crítico. Con orden al azar o a criterio del narrador, perdés ese control.",
         "El recuadro de turnos te dice exactamente en qué pasos habla cada uno."]],
       ["¿Cuántos pasos necesito?",
-       ["Con un participante por paso, pasos dividido participantes son las vueltas efectivas. Cinco participantes en cinco pasos es una vuelta: cada uno enuncia su posición y nadie replica.",
-        "El proyecto sugiere: decisión única con 2 participantes, 2 a 5 pasos. Interacción corta con 2-3, entre 10 y 15. Escenario extendido con 3-5, entre 20 y 30. Simulación de política con 5-8, entre 30 y 50."]],
+       ["Con un actor por paso, pasos dividido actores son las vueltas efectivas. Cinco actores en cinco pasos es una vuelta: cada uno enuncia su posición y nadie replica.",
+        "El proyecto sugiere: decisión única con 2 actores, 2 a 5 pasos. Interacción corta con 2-3, entre 10 y 15. Escenario extendido con 3-5, entre 20 y 30. Simulación de política con 5-8, entre 30 y 50."]],
       ["¿Cómo sé si me quedé corto?",
        ["Mirá los indicadores al final. Si todavía se están moviendo en el último paso, cortaste antes de tiempo. Si se estabilizaron varios pasos antes, podés reducir.",
         "Cuidado con una lectura fácil: que los objetivos queden parcialmente cumplidos puede ser el resultado correcto, no falta de pasos. Muchos escenarios de política están diseñados para ser difíciles. La señal es si todavía había movimiento —propuestas nuevas, alianzas cambiando— cuando terminó."]]]],
@@ -1412,7 +1426,7 @@ var CONTRIB = [
         "Un límite verificado: el motor no valida la lista de opciones. En una corrida devolvió un valor que no estaba entre los permitidos."]]]],
 
     ["Dónde hay que decidir", [
-      ["¿Qué hace un momento de decisión?",
+      ["¿Qué hace un hito crítico?",
        ["Inyecta un hecho en un paso determinado. Funciona como manipulación experimental: cambiás una cosa en un momento conocido y el resto queda constante.",
         "Sirve para forzar una votación, o para meter un golpe externo —una crisis, un recorte, una norma nueva— y observar la reacción."]],
       ["¿Dónde los ubico?",
@@ -1421,15 +1435,15 @@ var CONTRIB = [
       ["¿Garantizan que se responda?",
        ["No, y conviene saberlo. El evento entra en la premisa, pero la consigna con la que el narrador le da la palabra a quien habla en ese turno la redacta él.",
         "Lo verificamos: un recorte presupuestario inyectado en el paso 15 no apareció en la consigna de ese turno, y nadie lo respondió. El informe lo mostraba como ocurrido igual.",
-        "Mitigación: redactar el evento nombrando al participante y diciendo qué tiene que responder."]]]],
+        "Mitigación: redactar el evento nombrando al actor y diciendo qué tiene que responder."]]]],
 
     ["Qué modelo usa", [
       ["¿Por qué dos modelos distintos?",
-       ["Porque el límite de uso del plan gratuito se cuenta por modelo: 500 pedidos diarios cada uno. Usar modelos distintos para participantes y narrador duplica el techo y reduce las esperas.",
-        "Una corrida de 22 pasos con 5 participantes consume entre 450 y 690 llamadas. Es decir: una o dos corridas largas por día."]],
+       ["Porque el límite de uso del plan gratuito se cuenta por modelo: 500 pedidos diarios cada uno. Usar modelos distintos para actores y narrador duplica el techo y reduce las esperas.",
+        "Una corrida de 22 pasos con 5 actores consume entre 450 y 690 llamadas. Es decir: una o dos corridas largas por día."]],
       ["¿La temperatura controla la variabilidad?",
-       ["En los participantes, no. El motor la fija por su cuenta en cada acción e ignora este valor —lo comprobamos en los registros—. Donde sí opera es en el narrador, que resuelve y reparte observaciones.",
-        "Si buscás más variabilidad entre participantes, la palanca está en los objetivos y el tipo de narrador, no acá."]]]],
+       ["En los actores, no. El motor la fija por su cuenta en cada acción e ignora este valor —lo comprobamos en los registros—. Donde sí opera es en el narrador, que resuelve y reparte observaciones.",
+        "Si buscás más variabilidad entre actores, la palanca está en los objetivos y el tipo de narrador, no acá."]]]],
 
     ["Opciones avanzadas", [
       ["¿Cuál es la variable más influyente?",
@@ -1438,27 +1452,27 @@ var CONTRIB = [
         "Con el general, la consigna cambió en cada turno y preguntó por posturas concretas. El consenso subió a 100 en el turno siete y cayó a 60. Apareció desacuerdo sostenido."]],
       ["¿Cuándo conviene el motor simultáneo?",
        ["Cuando importa la participación pareja: en el secuencial los dominantes acaparan y tapan a los callados. En el simultáneo todos actúan en cada paso sin ver lo del resto.",
-        "También cuando el orden no debería influir —votaciones, ofertas cerradas, respuestas independientes— y cuando necesitás más datos por paso: diez pasos con cinco participantes dan cincuenta acciones en simultáneo contra diez en secuencial.",
+        "También cuando el orden no debería influir —votaciones, ofertas cerradas, respuestas independientes— y cuando necesitás más datos por paso: diez pasos con cinco actores dan cincuenta acciones en simultáneo contra diez en secuencial.",
         "Quedate en secuencial si el escenario depende del diálogo reactivo: negociaciones, entrevistas."]],
       ["¿Para qué restringir las acciones?",
        ["Para convertir respuestas abiertas en categorías comparables entre corridas. Es la vía para tener una variable dependiente codificable en vez de texto libre.",
-        "Se pueden definir para todos o restringir a un subconjunto por participante."]],
+        "Se pueden definir para todos o restringir a un subconjunto por actor."]],
       ["¿Qué capacidades quedan sin exponer?",
-       ["Tres, documentadas en el proyecto pero no accesibles desde acá: generación de participantes por muestreo, con marginales independientes o perfiles conjuntos cuando importan las correlaciones, y semilla fija para reproducibilidad.",
+       ["Tres, documentadas en el proyecto pero no accesibles desde acá: generación de actores por muestreo, con marginales independientes o perfiles conjuntos cuando importan las correlaciones, y semilla fija para reproducibilidad.",
         "Barridos de parámetros: correr la misma configuración variando temperatura o cantidad de pasos, con repeticiones por combinación.",
         "Y confiabilidad entre corridas por ICC(3,1), para verificar si el comportamiento es estable ante la aleatoriedad."]]]]
   ];
 
   var AYUDAS = [
     ["El tema",
-     ["La premisa es el estímulo experimental: define el espacio de lo que puede pasar. Todo lo que no esté acá, o los participantes lo inventan, o no ocurre.",
+     ["La premisa es el estímulo experimental: define el espacio de lo que puede pasar. Todo lo que no esté acá, o los actores lo inventan, o no ocurre.",
       "Una premisa vaga no produce respuestas neutras, produce respuestas genéricas —el modelo rellena con lugares comunes—. La especificidad no es estilo: es control sobre la variabilidad."],
      "«Dos países en guerra quieren la paz» deja todo librado al modelo. «Tres rondas de negociación; A tiene ventaja militar y está sancionado; B controla las rutas comerciales; si no hay acuerdo escalan las sanciones» fija las condiciones iniciales y el criterio de cierre.",
      ["Qué operacionalizar", ["Escenario y momento", "Estado inicial, con magnitudes", "Repertorio de acciones posibles", "Restricciones que acotan", "Qué está en juego"]]],
 
     ["Los datos del caso",
-     ["Información compartida por todos los participantes: el equivalente a lo que en un experimento se le da a todos los grupos por igual.",
-      "Lo que ponés acá deja de ser materia de disputa y pasa a ser dato. Lo que dejes afuera queda disponible para que alguien lo invente —el motor no distingue entre un hecho configurado y uno que un participante afirmó—.",
+     ["Información compartida por todos los actores: el equivalente a lo que en un experimento se le da a todos los grupos por igual.",
+      "Lo que ponés acá deja de ser materia de disputa y pasa a ser dato. Lo que dejes afuera queda disponible para que alguien lo invente —el motor no distingue entre un hecho configurado y uno que un actor afirmó—.",
       "Una proposición por línea, verificable, sin adjetivos."],
      "«Las sanciones le cuestan a A dos mil millones anuales.» «La zona en disputa tiene 500.000 desplazados.»",
      null],
@@ -1467,15 +1481,15 @@ var CONTRIB = [
      ["El objetivo funciona como instrucción, no como caracterización. La guía del proyecto recomienda verbos de acción explícitos, incluidas las negativas: qué acepta, qué rechaza, bajo qué condición cede.",
       "Para que haya deliberación y no coordinación, los objetivos tienen que ser incompatibles entre sí en algún punto. Si todos pueden cumplirse a la vez, el resultado va a ser consenso temprano sin fricción —lo verificamos: el consenso trepa al máximo y no vuelve a bajar—.",
       "Las memorias definen el punto de vista: identidad, qué sabe, cómo ve a los demás, qué no está dispuesto a conceder."],
-     "El proyecto sugiere entre 5 y 10 memorias por participante. Con menos el comportamiento se vuelve genérico; con más el modelo pierde el foco y deja de usarlas.",
+     "El proyecto sugiere entre 5 y 10 memorias por actor. Con menos el comportamiento se vuelve genérico; con más el modelo pierde el foco y deja de usarlas.",
      ["Qué fija cada memoria", ["Identidad y trayectoria", "Conocimiento de la situación", "Vínculos con los demás", "Creencias y valores", "Restricciones autoimpuestas"]]],
 
     ["Cómo se da la palabra",
      ["Con orden fijo el turno es determinístico y podés fijar de antemano quién interviene en cada momento crítico. Con orden al azar o a criterio del narrador perdés ese control.",
-      "El motor por turnos introduce ventaja de posición: quien habla primero fija el marco, y los participantes dominantes tienden a acaparar. El motor simultáneo lo evita —todos actúan en cada paso sin ver lo del resto— y multiplica las observaciones por paso. Está en Opciones avanzadas.",
-      "Con un participante por paso, la cantidad de pasos dividida por la cantidad de participantes son las vueltas efectivas."],
-     "Cinco participantes en cinco pasos es una sola vuelta: cada uno enuncia su posición y nadie replica. Recién con cuatro vueltas aparece ida y vuelta.",
-     ["Pasos sugeridos por el proyecto", ["Decisión única, 2 participantes: 2 a 5", "Interacción corta, 2-3: 10 a 15", "Escenario extendido, 3-5: 20 a 30", "Simulación de política, 5-8: 30 a 50"]]],
+      "El motor por turnos introduce ventaja de posición: quien habla primero fija el marco, y los actores dominantes tienden a acaparar. El motor simultáneo lo evita —todos actúan en cada paso sin ver lo del resto— y multiplica las observaciones por paso. Está en Opciones avanzadas.",
+      "Con un actor por paso, la cantidad de pasos dividida por la cantidad de actores son las vueltas efectivas."],
+     "Cinco actores en cinco pasos es una sola vuelta: cada uno enuncia su posición y nadie replica. Recién con cuatro vueltas aparece ida y vuelta.",
+     ["Pasos sugeridos por el proyecto", ["Decisión única, 2 actores: 2 a 5", "Interacción corta, 2-3: 10 a 15", "Escenario extendido, 3-5: 20 a 30", "Simulación de política, 5-8: 30 a 50"]]],
 
     ["Qué se observa",
      ["Son las variables de resultado. Las actualiza el narrador interpretando la discusión: son juicios de un modelo, no mediciones. El informe las marca como estimadas por eso.",
@@ -1492,9 +1506,9 @@ var CONTRIB = [
      null],
 
     ["Qué modelo usa",
-     ["El límite de uso del plan gratuito se cuenta por modelo: 500 pedidos diarios cada uno. Usar modelos distintos para participantes y narrador duplica el techo y reduce las esperas.",
-      "La temperatura de los participantes no controla su variabilidad: el motor la fija en cada acción e ignora este valor. Donde sí opera es en el narrador, que resuelve y reparte observaciones.",
-      "Una corrida de 22 pasos con 5 participantes consume entre 450 y 690 llamadas. Planificá en consecuencia."],
+     ["El límite de uso del plan gratuito se cuenta por modelo: 500 pedidos diarios cada uno. Usar modelos distintos para actores y narrador duplica el techo y reduce las esperas.",
+      "La temperatura de los actores no controla su variabilidad: el motor la fija en cada acción e ignora este valor. Donde sí opera es en el narrador, que resuelve y reparte observaciones.",
+      "Una corrida de 22 pasos con 5 actores consume entre 450 y 690 llamadas. Planificá en consecuencia."],
      "",
      null],
 
@@ -1654,8 +1668,8 @@ var CONTRIB = [
     if (document.getElementById("avance")) pintarAvance(-1);
   }
 
-  /* Ejemplo completo. Los momentos de decisión caen en turnos elegidos a
-     propósito: con cinco participantes y orden fijo, quien conduce (la segunda
+  /* Ejemplo completo. Los hitos críticos caen en turnos elegidos a
+     propósito: con cinco actores y orden fijo, quien conduce (la segunda
      de la lista) habla en los pasos 2, 7, 12, 17 y 22. Por eso el recorte va
      en el 17 y el cierre en el 22 — así propone, los demás objetan entre medio,
      y recién después cierra. */
@@ -1716,7 +1730,7 @@ var CONTRIB = [
         descripcion: "Capacidad del diseño para repartir oportunidades y liderazgo.",
         regla: "Sube con reservas territoriales y apoyo a capacidades emergentes; baja con concentración." },
       { nombre: "Nivel de consenso", tipo: "percentage", inicial: 25,
-        descripcion: "Grado de acuerdo explícito entre los participantes.",
+        descripcion: "Grado de acuerdo explícito entre los actores.",
         regla: "Sube solo ante aceptación explícita; una objeción sin resolver impide considerar que haya consenso." },
       { nombre: "Diseño final", tipo: "categorical", inicial: "pendiente",
         opciones: "pendiente\ncompetencia_abierta\nun_proyecto_por_provincia\nfondo_mixto\nredes_interprovinciales\nreformular\npostergar",
