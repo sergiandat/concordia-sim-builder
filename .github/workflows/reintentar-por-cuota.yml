@@ -1,9 +1,15 @@
 name: Reintentar las que cortó la cuota
 
-# La cuota diaria del plan gratuito de Gemini son 500 pedidos por modelo y se
-# repone a medianoche del Pacífico. Una corrida que se topa con ese techo queda
-# incompleta y no hay nada que hacer hasta el día siguiente, así que en vez de
-# pedirle a alguien que se acuerde de relanzarla, se relanza sola.
+# La cuota diaria del plan gratuito de Gemini son 500 pedidos por modelo. Una
+# corrida que se topa con ese techo queda incompleta y no hay nada que hacer en
+# el momento, así que en vez de pedirle a alguien que se acuerde de relanzarla,
+# se relanza sola.
+#
+# El horario de abajo supone que repone alrededor de medianoche del Pacífico,
+# que es lo que documenta el plan gratuito. No lo pudimos confirmar: un día
+# repuso y al siguiente estaba agotada a media tarde sin que corriéramos nada
+# en el medio. Si el relanzamiento vuelve a fallar por cuota, el horario es lo
+# primero a revisar, y el panel de AI Studio dice el estado real.
 
 on:
   schedule:

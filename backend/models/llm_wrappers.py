@@ -323,7 +323,7 @@ class GeminiModel:
         self._default_timeout = timeout
 
     @staticmethod
-    def _rate_limit_delay(err: Exception) -> float | None:
+    def _rate_limit_delay(err: Exception, modelo: str = '') -> float | None:
         """
         Seconds to wait before retrying, or None if the error is not retryable.
 
@@ -339,13 +339,24 @@ class GeminiModel:
         text = str(err)
 
         # La cuota diaria no se recupera esperando: reintentar seis veces con
-        # pausas de un minuto solo retrasa el fracaso diez minutos. Se corta de
-        # una y el mensaje dice cuándo vuelve a haber cupo.
+        # pausas de un minuto solo retrasa el fracaso diez minutos, así que se
+        # corta de una.
+        #
+        # El mensaje decía que la cuota "se repone a medianoche del Pacífico".
+        # Es lo que documenta el plan gratuito, pero no coincide con lo que
+        # medimos —un día repuso y al siguiente estaba agotada a media tarde sin
+        # que corriéramos nada en el medio—, y alguien puede planificar sobre esa
+        # frase. Se dice solo lo verificado, y se nombra el modelo: el cupo se
+        # cuenta por modelo, así que saber cuál se agotó es lo que permite
+        # cambiarlo en vez de suponer que no hay nada disponible.
         if 'PerDay' in text or 'per day' in text.lower():
             raise RuntimeError(
-                'Se agotó la cuota DIARIA del modelo (500 pedidos por modelo en el '
-                'plan gratuito). No se recupera esperando: se repone a medianoche '
-                'del Pacífico. Probá con otro modelo o habilitá facturación.'
+                f'Se agotó la cuota DIARIA de {modelo or "este modelo"} '
+                '(500 pedidos por modelo y por proyecto en el plan gratuito). '
+                'No se recupera esperando: reintentar solo retrasa el fracaso. '
+                'La cuenta es por modelo, así que otro puede tener cupo aunque '
+                'este no; para ver el estado real y cuándo repone, mirá el panel '
+                'de cuotas en Google AI Studio.'
             ) from err
 
         retryable = ('429' in text or 'RESOURCE_EXHAUSTED' in text
@@ -407,7 +418,7 @@ class GeminiModel:
                     _anotar(self._model_name, 'llamadas')
                     break
                 except Exception as call_err:
-                    delay = self._rate_limit_delay(call_err)
+                    delay = self._rate_limit_delay(call_err, self._model_name)
                     if delay is None or attempt == self._MAX_RETRIES:
                         raise
                     wait = delay or min(2 ** attempt, 30)
