@@ -1,0 +1,19 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-08-13T16:29:13",
+  "duracion_min": 12.7,
+  "pasos_completados": 1,
+  "pasos_pedidos": 22,
+  "completa": false,
+  "error": "RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01hxmt23gvefys22n28bs33k9g` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 98365, Requested 3849. Please try again in 31m52.896s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+  "corto_por_cuota": false,
+  "agentes": [
+    "Laura Benítez — DIE",
+    "Mariana Roldán — SI",
+    "Martín Salvatierra — CECT",
+    "Verónica Cruz — COFECyT-NOA",
+    "Sergio Ledesma — CP-NOA"
+  ],
+  "modelo": "LLMProvider.GROQ/llama-3.1-8b-instant",
+  "modelo_gm": "LLMProvider.GROQ/llama-3.3-70b-versatile"
+}
