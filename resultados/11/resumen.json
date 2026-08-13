@@ -1,8 +1,8 @@
 {
   "escenario": "escenario.json",
-  "terminada": "2026-08-13T18:04:33",
-  "duracion_min": 13.2,
-  "pasos_completados": 0,
+  "terminada": "2026-08-13T18:40:52",
+  "duracion_min": 28.5,
+  "pasos_completados": 1,
   "pasos_pedidos": 22,
   "completa": false,
   "error": "TypeError: 'int' object is not iterable",
@@ -18,17 +18,20 @@
   "modelo_gm": "LLMProvider.NVIDIA/nvidia/llama-3.3-nemotron-super-49b-v1",
   "consumo": {
     "nvidia/llama-3.3-nemotron-super-49b-v1": {
-      "llamadas": 22,
+      "llamadas": 48,
       "esperas": 0,
       "segundos_esperando": 0,
-      "tokens": 85434
+      "tokens": 185447
     },
     "meta/llama-3.1-8b-instruct": {
-      "llamadas": 6,
+      "llamadas": 18,
       "esperas": 0,
       "segundos_esperando": 0,
-      "tokens": 6618
+      "tokens": 22079
     }
   },
-  "consumo_por_paso": {}
+  "consumo_por_paso": {
+    "nvidia/llama-3.3-nemotron-super-49b-v1": 48.0,
+    "meta/llama-3.1-8b-instruct": 18.0
+  }
 }
