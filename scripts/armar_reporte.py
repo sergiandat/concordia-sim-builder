@@ -1686,26 +1686,76 @@ Reglas estrictas:
 - Si la corrida quedó incompleta, tenelo en cuenta: lo que no pasó puede deberse a que se cortó, no al diseño."""
 
 
-def pedir_a_gemini(prompt: str, modelo: str, clave: str, timeout: int = 180,
-                   tope: int = 4000) -> str:
+# A qué modelo caer cuando falta la clave del proveedor que usó la corrida.
+POR_DEFECTO = {"gemini": "gemini-3.5-flash-lite", "groq": "llama-3.3-70b-versatile"}
+
+
+def clave_para(modelo: str) -> tuple[str, str, str]:
+    """
+    Con qué clave, contra qué proveedor y con qué modelo se pide el análisis.
+
+    El proveedor sale del nombre del modelo, igual que en el constructor. Si la
+    corrida usó Groq, pedirle el análisis a Gemini con un nombre como
+    «llama-3.3-70b-versatile» falla, y el informe sale sin resumen, sin
+    veredictos y sin hallazgos: justo las secciones que cuestan una llamada.
+
+    Cuando falta la clave del proveedor que corresponde se cae al otro, y ahí
+    hay que cambiar también el modelo: mandar el nombre de un modelo de Groq al
+    endpoint de Gemini falla igual que no tener clave. El análisis lee la
+    transcripción, no la continúa, así que otro modelo sirve.
+
+    Devuelve ("", "", "") si no hay ninguna clave.
+    """
+    import os
+    claves = {"gemini": os.getenv("GEMINI_API_KEY", "").strip(),
+              "groq": os.getenv("GROQ_API_KEY", "").strip()}
+    propio = "gemini" if modelo.startswith("gemini") else "groq"
+    if claves[propio]:
+        return claves[propio], propio, modelo
+    otro = "groq" if propio == "gemini" else "gemini"
+    if claves[otro]:
+        return claves[otro], otro, POR_DEFECTO[otro]
+    return "", "", ""
+
+
+def pedir_al_modelo(prompt: str, modelo: str, clave: str, timeout: int = 180,
+                    tope: int = 4000, proveedor: str = "gemini") -> str:
     """
     Llamada REST con biblioteca estándar. A propósito no se usa el motor de
     simulación: así este script corre sobre resultados viejos, en una máquina
     sin las dependencias pesadas instaladas, o lo corre otra persona.
+
+    Groq habla el protocolo de OpenAI, así que cambian la URL, la forma del
+    cuerpo y dónde viaja la clave, pero no el resto del script.
     """
-    import urllib.error
     import urllib.request
 
-    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
-           f"{modelo}:generateContent?key={clave}")
-    cuerpo = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": tope},
-    }).encode("utf-8")
-    pedido = urllib.request.Request(
-        url, data=cuerpo, headers={"Content-Type": "application/json"}, method="POST")
+    if proveedor == "groq":
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        cuerpo = json.dumps({
+            "model": modelo,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3,
+            "max_tokens": tope,
+        }).encode("utf-8")
+        cabeceras = {"Content-Type": "application/json",
+                     "Authorization": f"Bearer {clave}"}
+    else:
+        url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+               f"{modelo}:generateContent?key={clave}")
+        cuerpo = json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": tope},
+        }).encode("utf-8")
+        cabeceras = {"Content-Type": "application/json"}
+
+    pedido = urllib.request.Request(url, data=cuerpo, headers=cabeceras, method="POST")
     with urllib.request.urlopen(pedido, timeout=timeout) as r:
         datos = json.loads(r.read().decode("utf-8"))
+
+    if proveedor == "groq":
+        opciones = datos.get("choices") or [{}]
+        return (opciones[0].get("message", {}).get("content") or "").strip()
     partes = datos.get("candidates", [{}])[0].get("content", {}).get("parts", [])
     return "".join(p.get("text", "") for p in partes).strip()
 
@@ -1761,8 +1811,9 @@ def analizar_hallazgos(pasos, series, esc, resumen_datos) -> dict:
     tiene lugar y una falla no arrastra a la otra. Contra la cuota diaria esto
     cuesta una llamada más por informe, no por turno.
     """
-    import os
-    clave = os.getenv("GEMINI_API_KEY", "").strip()
+    crudo_nombre = (resumen_datos or {}).get("modelo_gm") or (resumen_datos or {}).get("modelo") or ""
+    modelo = crudo_nombre.split("/")[-1].strip() or "gemini-3.5-flash-lite"
+    clave, proveedor, modelo = clave_para(modelo)
     if not clave or not pasos:
         return {}
 
@@ -1800,10 +1851,8 @@ def analizar_hallazgos(pasos, series, esc, resumen_datos) -> dict:
         transcripcion=transcripcion[:45000],
     )
 
-    crudo_nombre = (resumen_datos or {}).get("modelo_gm") or (resumen_datos or {}).get("modelo") or ""
-    modelo = crudo_nombre.split("/")[-1].strip() or "gemini-3.5-flash-lite"
     try:
-        bruto = pedir_a_gemini(prompt, modelo, clave, tope=8000)
+        bruto = pedir_al_modelo(prompt, modelo, clave, tope=8000, proveedor=proveedor)
     except Exception as e:
         detalle = getattr(e, "reason", None) or e
         print(f"  hallazgos omitidos: {type(e).__name__}: {str(detalle)[:160]}")
@@ -1833,10 +1882,11 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
     Devuelve {} si algo falla: el reporte tiene que salir igual, porque el resto
     no depende de esto.
     """
-    import os
-    clave = os.getenv("GEMINI_API_KEY", "").strip()
+    crudo_nombre = (resumen_datos or {}).get("modelo_gm") or (resumen_datos or {}).get("modelo") or ""
+    modelo = crudo_nombre.split("/")[-1].strip() or "gemini-3.5-flash-lite"
+    clave, proveedor, modelo = clave_para(modelo)
     if not clave:
-        print("  análisis omitido: falta GEMINI_API_KEY")
+        print("  análisis omitido: no hay clave de ningún proveedor")
         return {}
 
     objetivos, orden = {}, []
@@ -1862,10 +1912,8 @@ def analizar_con_modelo(pasos, series, resumen_datos, premisa: str, agentes=None
     )
 
     # Se reusa el modelo de la corrida para no introducir uno nuevo sin aviso
-    crudo_nombre = (resumen_datos or {}).get("modelo_gm") or (resumen_datos or {}).get("modelo") or ""
-    modelo = crudo_nombre.split("/")[-1].strip() or "gemini-3.5-flash-lite"
     try:
-        bruto = pedir_a_gemini(prompt, modelo, clave)
+        bruto = pedir_al_modelo(prompt, modelo, clave, proveedor=proveedor)
     except Exception as e:
         detalle = getattr(e, "reason", None) or e
         print(f"  análisis omitido: {type(e).__name__}: {str(detalle)[:160]}")
