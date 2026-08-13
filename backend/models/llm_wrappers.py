@@ -215,6 +215,21 @@ class CustomGPTModel:
 
                 response = self._client.chat.completions.create(**request_params)
 
+                # El contador vivía solo en el envoltorio de Gemini, así que una
+                # corrida sobre cualquier proveedor compatible con OpenAI —Groq,
+                # DeepSeek, NVIDIA— no dejaba ningún dato de consumo. Se cuentan
+                # pedidos y tokens: en Groq el techo que nos cortó fue el de
+                # tokens por día, no el de pedidos, y sin medirlo no había forma
+                # de anticiparlo.
+                _anotar(self._model_name, 'llamadas')
+                try:
+                    uso = getattr(response, 'usage', None)
+                    total = getattr(uso, 'total_tokens', 0) or 0
+                    if total:
+                        _anotar(self._model_name, 'tokens', int(total))
+                except Exception:
+                    pass
+
                 elapsed = time.time() - attempt_start
                 llm_print(f"[LLM] Response received in {elapsed:.1f}s")
 
@@ -301,9 +316,11 @@ class CustomGPTModel:
 CONSUMO: dict[str, dict[str, int]] = {}
 
 
-def _anotar(modelo: str, clave: str) -> None:
-    CONSUMO.setdefault(modelo, {'llamadas': 0, 'esperas': 0, 'segundos_esperando': 0})
-    CONSUMO[modelo][clave] += 1
+def _anotar(modelo: str, clave: str, cuanto: int = 1) -> None:
+    CONSUMO.setdefault(modelo, {'llamadas': 0, 'esperas': 0, 'segundos_esperando': 0,
+                                'tokens': 0})
+    CONSUMO[modelo].setdefault(clave, 0)
+    CONSUMO[modelo][clave] += cuanto
 
 
 class GeminiModel:
@@ -416,6 +433,17 @@ class GeminiModel:
                     # rechazados por el límite por minuto no descuentan del cupo
                     # diario, y contarlos inflaría el consumo real.
                     _anotar(self._model_name, 'llamadas')
+                    # El techo que primero se toca no siempre es el de pedidos:
+                    # en Groq nos corto el de tokens por dia con una sola de las
+                    # 22 vueltas hechas. Contar pedidos y no tokens dejaba
+                    # invisible al que manda.
+                    try:
+                        uso = getattr(response, 'usage_metadata', None)
+                        total = getattr(uso, 'total_token_count', 0) or 0
+                        if total:
+                            _anotar(self._model_name, 'tokens', int(total))
+                    except Exception:
+                        pass
                     break
                 except Exception as call_err:
                     delay = self._rate_limit_delay(call_err, self._model_name)

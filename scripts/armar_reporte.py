@@ -2583,6 +2583,15 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         for m, d in sorted(consumo.items()):
             pp = por_paso.get(m)
             detalle = f"{d['llamadas']} pedidos"
+            # Los tokens van primero cuando los hay: es el techo que primero se
+            # toca. Una corrida murió con 98.365 de 100.000 tokens diarios
+            # gastados en un solo turno, mientras los pedidos ni se acercaban al
+            # suyo.
+            if d.get("tokens"):
+                por_turno = d["tokens"] / hechos if hechos else 0
+                detalle += f" · {d['tokens']:,} tokens".replace(",", ".")
+                if por_turno:
+                    detalle += f" ({por_turno:,.0f} por turno)".replace(",", ".")
             if pp:
                 detalle += f" · {pp} por turno"
             if d.get("esperas"):
