@@ -2337,6 +2337,14 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     partes.append('<p class="ayuda-sec">Cada turno se abre y muestra la secuencia completa: '
                   "qué se le preguntó, qué respondió y qué se enteraron los demás. "
                   "Los textos son literales, sin resumir.</p>")
+    # Cada etapa dice de quién es la mano. La distinción no es decorativa: de
+    # las seis, cuatro son del narrador, y son las únicas que pueden meter un
+    # hecho nuevo en el mundo. Sin la marca hay que acordarse de cuál era cuál.
+    partes.append('<p class="ayuda-sec">Cada etapa lleva de quién es: '
+                  '<span class="autor a-n">narrador</span> o '
+                  '<span class="autor a-p">participante</span>. Cuatro de las seis son del '
+                  "narrador, y son las únicas que pueden introducir un hecho en el mundo: lo "
+                  "que dice un participante recién existe cuando el narrador lo registra.</p>")
     # El reparto de turnos encabeza la transcripcion, no la configuracion: es lo
     # que efectivamente paso, y sirve de mapa de lo que se va a leer.
 
@@ -2359,25 +2367,25 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
         partes.append('<div class="cuerpo-turno">')
 
         if mesa.get("consigna"):
-            partes.append('<div class="etapa-turno"><span class="et">Se le preguntó</span>'
+            partes.append('<div class="etapa-turno"><span class="et">Se le preguntó<span class="autor a-n">narrador</span></span>'
                           f'<p class="consigna">{html.escape(mesa["consigna"])}</p></div>')
 
-        partes.append('<div class="etapa-turno"><span class="et">Respondió</span>'
+        partes.append('<div class="etapa-turno"><span class="et">Respondió<span class="autor a-p">participante</span></span>'
                       f'<div class="dicho">{parrafos(dicho)}</div></div>')
 
         # Si el hecho registrado difiere de lo dicho, el narrador intervino y
         # conviene poder verlo; si es igual, decirlo evita repetir el texto.
         if p["evento"] and p["dicho"]:
             if parecido(p["dicho"], p["evento"]) > 0.95:
-                partes.append('<div class="etapa-turno"><span class="et">Quedó registrado</span>'
+                partes.append('<div class="etapa-turno"><span class="et">Quedó registrado<span class="autor a-n">narrador</span></span>'
                               '<p class="igual">Tal cual, sin cambios del narrador.</p></div>')
             else:
-                partes.append('<div class="etapa-turno"><span class="et">Quedó registrado</span>'
+                partes.append('<div class="etapa-turno"><span class="et">Quedó registrado<span class="autor a-n">narrador</span></span>'
                               f'<div class="dicho">{parrafos(p["evento"])}</div></div>')
 
         obs = mesa.get("observaciones") or {}
         if obs:
-            partes.append('<details class="interno"><summary>Qué se enteró cada uno '
+            partes.append('<details class="interno"><summary><span class="autor a-n">narrador</span>Qué se enteró cada uno '
                           f'({len(obs)} participantes)</summary><div>')
             for quien, texto in obs.items():
                 partes.append(f'<p class="quien-obs">{html.escape(quien)}</p>')
@@ -2391,7 +2399,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
                 ("Qué haría alguien como él o ella", p["haria"], "PersonBySituation")]
         if any(t[1] for t in tres):
             pasos_cot = sum(len(p["razonamiento"].get(c) or []) for _, _, c in tres)
-            partes.append('<details class="interno"><summary>Cómo razonó antes de hablar'
+            partes.append('<details class="interno"><summary><span class="autor a-p">participante</span>Cómo razonó antes de hablar'
                           + (f" ({pasos_cot} pasos)" if pasos_cot else "")
                           + "</summary><div>")
             for titulo, texto, campo in tres:
@@ -2412,7 +2420,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
 
         mem = p.get("memoria") or {}
         if mem.get("recuerdos"):
-            partes.append('<details class="interno"><summary>Qué recordó '
+            partes.append('<details class="interno"><summary><span class="autor a-p">participante</span>Qué recordó '
                           f'({len(mem["recuerdos"])} recuerdos)</summary><div>')
             if mem.get("consulta"):
                 partes.append('<p class="quien-obs">Buscó en su memoria con esto</p>')
@@ -2688,6 +2696,12 @@ gap:.55rem;max-width:52rem}
 .produjo li{font-size:.9rem;line-height:1.6;color:var(--ink-soft);padding-left:.9rem;
 border-left:2px solid var(--rule-strong)}
 .donde{color:var(--ink-faint);font-size:.85rem}
+.autor{display:inline-block;margin-left:.45rem;font-size:.66rem;letter-spacing:.05em;
+text-transform:uppercase;font-family:var(--mono);border-radius:3px;padding:.1rem .32rem;
+vertical-align:middle;font-weight:500}
+.a-n{background:var(--pendiente-suave);color:var(--pendiente)}
+.a-p{background:var(--acuerdo-suave);color:var(--acuerdo)}
+summary>.autor{margin-left:0;margin-right:.5rem}
 .controles{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
 max-width:52rem}
 .controles li{display:flex;gap:.8rem;align-items:flex-start;background:var(--surface);
