@@ -1,0 +1,32 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-08-13T14:55:53",
+  "duracion_min": 2.0,
+  "pasos_completados": 0,
+  "pasos_pedidos": 22,
+  "completa": false,
+  "error": "RuntimeError: Se agotó la cuota DIARIA del modelo (500 pedidos por modelo en el plan gratuito). No se recupera esperando: se repone a medianoche del Pacífico. Probá con otro modelo o habilitá facturación.",
+  "corto_por_cuota": true,
+  "agentes": [
+    "Laura Benítez — DIE",
+    "Mariana Roldán — SI",
+    "Martín Salvatierra — CECT",
+    "Verónica Cruz — COFECyT-NOA",
+    "Sergio Ledesma — CP-NOA"
+  ],
+  "modelo": "LLMProvider.GEMINI/gemini-3.5-flash-lite",
+  "modelo_gm": "LLMProvider.GEMINI/gemini-3.5-flash",
+  "consumo": {
+    "gemini-3.5-flash": {
+      "llamadas": 12,
+      "esperas": 2,
+      "segundos_esperando": 25
+    },
+    "gemini-3.5-flash-lite": {
+      "llamadas": 3,
+      "esperas": 0,
+      "segundos_esperando": 0
+    }
+  },
+  "consumo_por_paso": {}
+}
