@@ -143,7 +143,11 @@ jobs:
       - name: Armar el reporte legible
         if: always()
         env:
+          # Las dos: el informe elige el proveedor según el modelo con que se
+          # corrió la simulación. Con una sola, una corrida de Groq se queda sin
+          # resumen, sin veredictos y sin hallazgos.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         # Sin `continue-on-error` una falla acá tiraría abajo una corrida que ya
         # terminó bien; el log crudo y el de Concordia se publican igual.
         continue-on-error: true
