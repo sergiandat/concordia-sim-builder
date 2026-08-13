@@ -770,6 +770,141 @@ HUELLAS_PERFIL = (
 )
 
 
+PAL_ING = re.compile(r"\b(the|and|of|for|with|that|this|from|would|stated|declared|"
+                     r"assembly|meeting|before|during|which|should|about)\b", re.I)
+PAL_ESP = re.compile(r"\b(el|la|los|las|de|que|para|con|debe|sobre|como|declaró|mesa|"
+                     r"una|del|por|más|entre)\b", re.I)
+
+
+def idioma_de(texto: str) -> str:
+    """Grueso pero suficiente: solo hay que distinguir castellano de inglés."""
+    if not texto or not texto.strip():
+        return ""
+    i, e = len(PAL_ING.findall(texto)), len(PAL_ESP.findall(texto))
+    if not i and not e:
+        return ""
+    return "inglés" if i > e * 1.3 else "castellano" if e > i * 1.3 else "mezcla"
+
+
+def seccion_controles(pasos, esc) -> str:
+    """
+    Verificaciones mecánicas sobre lo que hizo el motor.
+
+    No dicen nada sobre la deliberación: dicen si la maquinaria se comportó como
+    debía. Van juntas porque cada una, suelta, parece un detalle, y leídas
+    seguidas responden si se puede confiar en lo que se leyó más arriba. Todas
+    salen del registro, sin pedirle nada a ningún modelo.
+    """
+    if not pasos:
+        return ""
+    filas = []
+
+    # Los prefabs de Concordia escriben sus consignas en inglés y el modelo a
+    # veces las devuelve así. Importa porque el idioma de la pregunta arrastra
+    # el de la respuesta, y el escenario está escrito en castellano.
+    consignas = [(p["n"], (p.get("mesa") or {}).get("consigna")) for p in pasos]
+    en_ingles = [n for n, c in consignas if c and idioma_de(c) == "inglés"]
+    if any(c for _, c in consignas):
+        total = sum(1 for _, c in consignas if c)
+        if en_ingles:
+            filas.append(("aviso", "Idioma de las consignas",
+                          f"{len(en_ingles)} de {total} se le hicieron en inglés "
+                          f"(turnos {', '.join(map(str, en_ingles[:8]))}). El escenario está "
+                          "en castellano: el idioma de la pregunta arrastra al de la "
+                          "respuesta, y eso introduce una diferencia entre turnos que no "
+                          "configuró nadie."))
+        else:
+            filas.append(("ok", "Idioma de las consignas",
+                          f"Las {total} se hicieron en castellano."))
+
+    mezclados = [p["n"] for p in pasos
+                 if p.get("evento") and idioma_de(p["evento"]) in ("inglés", "mezcla")]
+    if mezclados:
+        filas.append(("aviso", "Idioma de lo registrado",
+                      f"En {len(mezclados)} de {len(pasos)} turnos el hecho quedó registrado "
+                      f"en inglés o mezclado (turnos {', '.join(map(str, mezclados[:8]))})."))
+
+    # Que las tres preguntas se repitan idénticas turno a turno es un modo de
+    # falla conocido: el participante deja de actualizar y responde en piloto.
+    pares = repetidos = 0
+    for q in {p["quien"] for p in pasos}:
+        for campo in ("persona", "situacion", "haria"):
+            suyos = [p[campo] for p in pasos if p["quien"] == q and p.get(campo)]
+            for a, b in zip(suyos, suyos[1:]):
+                pares += 1
+                repetidos += parecido(a, b) > 0.9
+    if pares:
+        if repetidos:
+            filas.append(("aviso", "Los participantes se actualizan",
+                          f"{repetidos} de {pares} respuestas consecutivas a «quién soy», "
+                          "«dónde estoy» y «qué haría» quedaron casi idénticas: en esos "
+                          "turnos el participante no incorporó lo que había pasado."))
+        else:
+            filas.append(("ok", "Los participantes se actualizan",
+                          f"Las {pares} respuestas consecutivas a «quién soy», «dónde estoy» "
+                          "y «qué haría» cambiaron entre turno y turno: nadie quedó "
+                          "contestando en piloto automático."))
+
+    # Si cada uno recibe el hecho tal cual, no hay información privada y el
+    # escenario pierde las asimetrías sobre las que se apoya.
+    tot = dif_publico = 0
+    dif_entre = 0
+    for p in pasos:
+        obs = (p.get("mesa") or {}).get("observaciones") or {}
+        if len(set(obs.values())) > 1:
+            dif_entre += 1
+        for o in obs.values():
+            tot += 1
+            if parecido(o, p.get("evento") or "") < 0.9:
+                dif_publico += 1
+    if tot:
+        if dif_publico == tot and dif_entre == len(pasos):
+            filas.append(("ok", "Cada uno se entera de algo distinto",
+                          f"Las {tot} observaciones difieren del hecho público, y en los "
+                          f"{len(pasos)} turnos difieren también entre participantes. Hay "
+                          "información privada de verdad, no el mismo texto repartido."))
+        else:
+            filas.append(("aviso", "Cada uno se entera de algo distinto",
+                          f"{dif_publico} de {tot} observaciones difieren del hecho público; "
+                          f"entre participantes difieren en {dif_entre} de {len(pasos)} "
+                          "turnos. Donde coinciden no hay información privada."))
+
+    # Recuperar siempre los mismos recuerdos significaría razonar sobre una
+    # rebanada fija de la memoria, sin importar lo que pase.
+    fijos = []
+    for q in {p["quien"] for p in pasos}:
+        sets = [set((p.get("memoria") or {}).get("recuerdos") or [])
+                for p in pasos if p["quien"] == q]
+        sets = [s for s in sets if s]
+        if len(sets) > 1 and len(set.union(*sets)) == len(set.intersection(*sets)):
+            fijos.append(q)
+    if any((p.get("memoria") or {}).get("recuerdos") for p in pasos):
+        if fijos:
+            filas.append(("aviso", "La memoria se consulta de nuevo cada turno",
+                          "Recuperaron siempre los mismos recuerdos: "
+                          + html.escape(", ".join(fijos))
+                          + ". Están razonando sobre una porción fija de su memoria."))
+        else:
+            filas.append(("ok", "La memoria se consulta de nuevo cada turno",
+                          "Todos trajeron recuerdos distintos según el momento, no una "
+                          "porción fija."))
+
+    if not filas:
+        return ""
+    p = ['<section id="controles"><h2>Controles sobre el motor</h2>']
+    p.append(f'<p class="ayuda-sec">{marca("medido")} No dicen nada sobre la deliberación: '
+             "dicen si la maquinaria hizo lo que tenía que hacer. Salen del registro, sin "
+             "intervención de ningún modelo.</p>")
+    p.append('<ul class="controles">')
+    for estado, titulo, detalle in filas:
+        p.append(f'<li class="c-{estado}"><span class="c-marca" aria-hidden="true">'
+                 + ("✓" if estado == "ok" else "!") + "</span>"
+                 f'<div><p class="c-titulo">{html.escape(titulo)}</p>'
+                 f'<p class="c-detalle">{detalle}</p></div></li>')
+    p.append("</ul></section>")
+    return "".join(p)
+
+
 def llegada_del_perfil(pasos, esc) -> str:
     """
     Si el perfil configurado llegó o no a la acción del participante.
@@ -1086,6 +1221,7 @@ ROTULO_INDICE = {
     "hitos": "Hitos",
     "datos": "Datos",
     "hallazgos": "Hallazgos",
+    "controles": "Controles",
     "variaciones": "Qué probar",
     "perfiles": "Perfiles",
     "sintesis": "En pocas palabras",
@@ -1112,7 +1248,7 @@ GRUPOS = [
     # recibe la palabra, y los turnos desplegados de abajo muestran esa misma
     # secuencia. Separado de ellos era una explicacion sin su ejemplo.
     ("g-delib", "La deliberación", ["ciclo", "reparto", "deliberacion"]),
-    ("g-armado", "Qué dice del armado", ["senales", "hallazgos", "variaciones"]),
+    ("g-armado", "Qué dice del armado", ["senales", "controles", "hallazgos", "variaciones"]),
     ("g-datos", "Datos", ["datos", "tecnica"]),
 ]
 
@@ -2056,6 +2192,7 @@ def armar(pasos, series, franjas, resumen, decisiones, esc=None, analisis=None,
     partes.append(seccion_narrador(pasos, esc, resumen, series, franjas))
     partes.append(seccion_variables(series, franjas, esc))
     partes.append(seccion_hitos(pasos, esc, resumen))
+    partes.append(seccion_controles(pasos, esc))
     partes.append(ayuda_interpretacion(pasos, series, franjas, esc, resumen))
     partes.append(seccion_datos(archivos, resumen))
 
@@ -2551,6 +2688,16 @@ gap:.55rem;max-width:52rem}
 .produjo li{font-size:.9rem;line-height:1.6;color:var(--ink-soft);padding-left:.9rem;
 border-left:2px solid var(--rule-strong)}
 .donde{color:var(--ink-faint);font-size:.85rem}
+.controles{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
+max-width:52rem}
+.controles li{display:flex;gap:.8rem;align-items:flex-start;background:var(--surface);
+border:1px solid var(--rule);border-radius:8px;padding:.75rem .9rem}
+.c-marca{flex:none;width:1.35rem;height:1.35rem;border-radius:50%;display:grid;
+place-items:center;font-size:.8rem;font-weight:700}
+.c-ok .c-marca{background:var(--acuerdo-suave);color:var(--acuerdo)}
+.c-aviso .c-marca{background:var(--pendiente-suave);color:var(--pendiente)}
+.c-titulo{margin:0 0 .2rem;font-size:.9rem;font-weight:600}
+.c-detalle{margin:0;font-size:.88rem;color:var(--ink-soft);line-height:1.55}
 .veredictos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem;
 max-width:52rem}
 .veredictos li{display:flex;gap:.85rem;align-items:flex-start;background:var(--surface);
