@@ -1,7 +1,7 @@
 {
   "escenario": "escenario.json",
-  "terminada": "2026-08-13T18:40:52",
-  "duracion_min": 28.5,
+  "terminada": "2026-08-14T13:45:00",
+  "duracion_min": 32.7,
   "pasos_completados": 1,
   "pasos_pedidos": 22,
   "completa": false,
@@ -18,20 +18,20 @@
   "modelo_gm": "LLMProvider.NVIDIA/nvidia/llama-3.3-nemotron-super-49b-v1",
   "consumo": {
     "nvidia/llama-3.3-nemotron-super-49b-v1": {
-      "llamadas": 48,
+      "llamadas": 45,
       "esperas": 0,
       "segundos_esperando": 0,
-      "tokens": 185447
+      "tokens": 180812
     },
     "meta/llama-3.1-8b-instruct": {
-      "llamadas": 18,
+      "llamadas": 14,
       "esperas": 0,
       "segundos_esperando": 0,
-      "tokens": 22079
+      "tokens": 13367
     }
   },
   "consumo_por_paso": {
-    "nvidia/llama-3.3-nemotron-super-49b-v1": 48.0,
-    "meta/llama-3.1-8b-instruct": 18.0
+    "nvidia/llama-3.3-nemotron-super-49b-v1": 45.0,
+    "meta/llama-3.1-8b-instruct": 14.0
   }
 }
