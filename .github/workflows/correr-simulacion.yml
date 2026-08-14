@@ -165,10 +165,21 @@ jobs:
 
       - name: Publicar los resultados
         id: publicar
+        # `always()` para que también publique cuando el job se cancela o se
+        # topa con su límite de tiempo. Sin esto, una corrida cortada guardaba
+        # los archivos en el runner y este paso quedaba salteado, así que se
+        # perdían igual: casi dos horas de corrida sobre NVIDIA no dejaron nada.
+        if: always()
         env:
           NUMERO: ${{ github.event.issue.number || env.NUMERO_ISSUE }}
         run: |
           DESTINO="resultados/$NUMERO"
+          # Si la corrida murió antes de escribir nada, no hay qué publicar y
+          # fallar acá solo enturbia el registro.
+          if [ -z "$(ls -A salida 2>/dev/null)" ]; then
+            echo "No hay archivos en salida/: la corrida no alcanzó a guardar nada."
+            exit 0
+          fi
           git fetch origin gh-pages --depth 1 2>/dev/null \
             && git worktree add ../pages gh-pages \
             || { git worktree add --detach ../pages \
