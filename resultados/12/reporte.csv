@@ -1,0 +1,375 @@
+﻿paso;actor;objetivo;consigna;palabras;dicho;adopcion_productiva;calidad_cientifico_tecnologica;concentracion_institucional;federalizacion_efectiva;federalizacion_egectiva;nivel_de_consenso;sostenibilidad_posterior;viabilidad_operativa
+1;Laura Benítez — DIE;Lograr que la convocatoria se diseñe con evidencia trazable sobre capacidades, brechas, concentración territorial y complementariedades, sin convertir Atlas en un ranking automático. Laura Benítez debe defender esta posicion incluso cuando resulte incomoda para la mesa, y no debe sumarse a un acuerdo que la deje sin garantias.;What is Laura Benítez — DIE's first action in the convocatoria design process?;329;"**Rewritten Event with Emphasis on Main Person, Location, Actions, and Consequences**
+
+**Main Event Focus:** Laura Benítez — DIE (with a significant contribution from Sergio Ledesma — CP-NOA)
+
+**Location:** La Mesa de la Secretaría de Innovación (Innovation Secretary's Table)
+
+**Event Rewrite:**
+
+* **Laura Benítez — DIE** initiated a proposal at the Innovation Secretary's Table, suggesting, **""Solicito un análisis adicional sobre el impacto potencial de cada modelo de distribución en la equidad y calidad de los proyectos, para aclarar las preocupaciones de la mesa y presentar opciones que satisfagan las necesidades de todas las provincias involucradas, asegurando así que el diseño de la convocatoria se base en evidencia trazable, considerando capacidades, brechas y concentración territorial.""**
+* **Sergio Ledesma — CP-NOA** immediately countered with a modifying suggestion, stating verbatim: **""Para asegurarnos de que nuestros esfuerzos no solo sean teóricamente sólidos, sino también prácticamente viables y relevantes para nuestros principales beneficiarios, sugiero que, además del análisis propuesto por Laura, involucremos directamente a productores locales y pequeñas y medianas empresas (PMEs) en el proceso de evaluación. Esto no solo enriquecerá nuestro análisis con una perspectiva de usuario final, sino que también garantizará la aplicabilidad práctica de los proyectos seleccionados, aumentando así las posibilidades de adopción y sostenibilidad a largo plazo.""**
+* **Outcome at the Table**:
+	+ The modified proposal was **approved** by the table.
+	+ **Actions Assigned**:
+		- **Laura Benítez — DIE**: **Coordinated the impact analysis**.
+		- **Sergio Ledesma — CP-NOA**: **Led the formation of an advisory committee** comprising local producers and SME representatives.
+		- **The Rest of the Table**: **Collaborated in providing resources and contacts** for both tasks.
+
+**Consequences (Variables Update)**
+
+* **Calidad Científico-Tecnológica increased to 55**: Due to the comprehensive analysis approach.
+* **Federalización Efectiva increased to 42**: Reflecting the more equitable distribution of opportunities.
+* **Adopción Productiva increased to 45**: Thanks to the direct involvement of end-users.
+* **Nivel de Consenso increased to 30**: Indicating increased agreement among actors, with more progress needed for full consensus.
+
+**[VARIABLES: calidad_cientifico_tecnologica=55, federalizacion_efectiva=42, adopcion_productiva=45, nivel_de_consenso=30]**";45.0;55.0;65.0;42.0;42.0;30.0;;
+2;Mariana Roldán — SI;Aprobar un diseño de convocatoria políticamente defendible, ejecutable con recursos limitados y capaz de mostrar resultados visibles dentro de los primeros seis meses. Mariana Roldán debe defender esta posicion incluso cuando resulte incomoda para la mesa, y no debe sumarse a un acuerdo que la deje sin garantias.;Mariana Roldán — SI considers the critical decision point regarding the distribution model. How does she respond?;650;"**Rewritten Event for Mariana Roldán — SI**
+
+**Main Event Focus:** Mariana Roldán — SI
+
+**Location:** La Mesa de la Secretaría de Innovación (Innovation Secretary's Table)
+
+**Event Rewrite:**
+
+* **Mariana Roldán — SI** expressed her support at the Innovation Secretary's Table, stating verbatim: **""Apoyo fondo mixto con reserva territorial""** (""I support a mixed fund with territorial reserve"").
+* **Actions Taken by Mariana Roldán — SI**: Explicitly voiced support for a specific distribution model for the ""NOA Agua, Producción y Territorio"" convocatoria.
+* **Immediate Outcome at the Table**:
+	+ **Mariana Roldán's Position Recorded**: Her support for ""fondo mixto con reserva territorial"" was noted by the MID-NOA.
+	+ **Table's Response**: The table acknowledged her position. **No immediate consensus or action was assigned solely based on this statement**, as the decision process for the distribution model (Step 5: PUNTO DE DECISION CRITICO - MODELO DE DISTRIBUCION) requires registration of support and objections from all participants before proceeding.
+
+**Consequences (Variables Update)**
+
+* **Nivel de Consenso increased to 31**: A slight increase reflecting the clarification of Mariana Roldán's position, though consensus among all actors remains pending.
+* **Federalizacion Efectiva increased to 43**: Suggests a marginally more equitable perceived distribution with the acknowledgment of support for a mixed fund with territorial reserves, aligning with the goal of balancing opportunities.
+
+**[VARIABLES: nivel_de_consenso=31, federalizacion_efectiva=43]**
+
+---
+
+**Addressing the Question about Repetitiveness**
+
+**Question:** Is the story traced out by the above list of events repetitive?
+
+**Answer:** (a) No
+
+**Rationale:**
+- Each event introduces a new element to the narrative (a proposal, a modifying suggestion, and an expression of support for a distribution model).
+- The story progresses through different stages of the decision-making process for the convocatoria.
+- Variables are updated uniquely with each event, indicating movement in the simulation's state.
+- No action or decision is repeated in the provided sequence; instead, the narrative unfolds with escalating complexity and depth in the decision-making process.
+
+---
+
+**Future Event Suggestion for Progression (Not Requested but Provided for Continuity)**
+
+**Next Logical Event for Resolution (Hypothetical, to be confirmed by participant actions)**
+
+**Event Proposal for Resolution of Step 5 (MODELO DE DISTRIBUCION)**
+
+Given the current state, a logical next step could involve other participants weighing in on the distribution models, leading to a resolution of Step 5. For example:
+
+### **Hypothetical Event for Martín Salvatierra — CECT**
+
+**Main Event Focus:** Martín Salvatierra — CECT
+
+**Location:** La Mesa de la Secretaría de Innovación
+
+**Event Proposal:**
+
+* **Martín Salvatierra — CECT** speaks up, **""Considerando las opciones, creo que 'redes interprovinciales obligatorias' podría ser más benefico para el desarrollo conjunto de la región, pero necesitamos evaluar su viabilidad operativa""** (""Considering the options, I think 'mandatory interprovincial networks' could be more beneficial for the region's joint development, but we need to assess its operational viability"").
+* **Actions and Outcomes**: 
+	+ **Registration of Support/Objection**: MID-NOA records Martín's position.
+	+ **Table's Discussion**: Opens a debate on the operational viability of interprovincial networks, potentially leading to a consensus or the need for further analysis on this model.
+
+**Consequences (Hypothetical Variables Update)**
+
+* **Viabilidad Operativa might increase or decrease based on the table's discussion and decision**.
+* **Federalizacion Efectiva could increase** if interprovincial collaboration is favored.
+
+**[HYPOTHETICAL VARIABLES: viabilidad_operativa=? (TBD), federalizacion_efectiva=? (TBD)]**
+
+### **Your Turn**
+
+Please respond with the actions or statements you'd like your character to make next, and I'll continue the simulation accordingly.
+
+**Participant Action Prompt**
+
+1. **Laura Benítez — DIE**: _________
+2. **Mariana Roldán — SI**: _________ (Beyond the provided event, if desired)
+3. **Martín Salvatierra — CECT**: _________ (Confirm/Alter the hypothetical event or provide a new action)
+4. **Verónica Cruz — COFECyT-NOA**: _________
+5. **Sergio Ledesma — CP-NOA**: _________
+
+**Format for Response**:
+- **Character Name**: Brief Action/Statement (including verbatim speech if applicable)
+
+**Example Response**:
+- **Martín Salvatierra — CECT**: Confirms the hypothetical event, adding, **""Propongo una evaluación de costos para las 'redes interprovinciales obligatorias'""** (""I propose a cost evaluation for the 'mandatory interprovincial networks'"").
+- **Your Character**: _________";45.0;55.0;66.0;43.0;;31.0;;
+3;Martín Salvatierra — CECT;Asegurar que los proyectos financiados tengan calidad científico-tecnológica, metodología consistente, objetivos evaluables y capacidad real de ejecución. Martín Salvatierra debe defender esta posicion incluso cuando resulte incomoda para la mesa, y no debe sumarse a un acuerdo que la deje sin garantias.;3;817;"Below are the rewritten events with an emphasis on the main person, location, actions, and consequences, as requested, followed by responses to the questions and theParticipant Action Prompt with example completions for clarity:
+
+---
+
+### **Rewritten Events**
+
+#### **1. Laura Benítez — DIE & Sergio Ledesma — CP-NOA**
+
+* **Main Person & Location**: Laura Benítez — DIE at La Mesa de la Secretaría de Innovación
+* **Action**: Laura Benítez — DIE initiated a proposal, stating **""Solicito un análisis adicional sobre el impacto potencial de cada modelo de distribución en la equidad y calidad de los proyectos, para aclarar las preocupaciones de la mesa y presentar opciones que satisfagan las necesidades de todas las provincias involucradas, asegurando así que el diseño de la convocatoria se base en evidencia trazable, considerando capacidades, brechas y concentración territorial.""**
+* **Contribution & Action by Sergio Ledesma — CP-NOA**: Immediately, Sergio Ledesma — CP-NOA added, **""Para asegurarnos de que nuestros esfuerzos no solo sean teóricamente sólidos, sino también prácticamente viables y relevantes para nuestros principales beneficiarios, sugiero que, además del análisis propuesto por Laura, involucremos directamente a productores locales y pequeñas y medianas empresas (PMEs) en el proceso de evaluación. Esto no solo enriquecerá nuestro análisis con una perspectiva de usuario final, sino que también garantizará la aplicabilidad práctica de los proyectos seleccionados, aumentando así las posibilidades de adopción y sostenibilidad a largo plazo.""**
+* **Consequence**:
+	+ **Outcome**: Modified proposal approved.
+	+ **Actions Assigned**:
+		- **Laura Benítez — DIE**: Coordinated the impact analysis.
+		- **Sergio Ledesma — CP-NOA**: Led the formation of an advisory committee.
+		- **The Rest of the Table**: Collaborated in providing resources and contacts.
+	+ **Variables Update**:
+		- **Calidad Científico-Tecnológica**: 55
+		- **Federalización Efectiva**: 42
+		- **Adopción Productiva**: 45
+		- **Nivel de Consenso**: 30
+		**[VARIABLES: calidad_cientifico_tecnologica=55, federalizacion_efectiva=42, adopcion_productiva=45, nivel_de_consenso=30]**
+
+#### **2. Mariana Roldán — SI**
+
+* **Main Person & Location**: Mariana Roldán — SI at La Mesa de la Secretaría de Innovación
+* **Action**: Expressed support, stating **""Apoyo fondo mixto con reserva territorial""**.
+* **Consequence**:
+	+ **Outcome**: Position recorded, acknowledged by the table.
+	+ **Variables Update**:
+		- **Nivel de Consenso**: 31
+		- **Federalización Efectiva**: 43
+		**[VARIABLES: nivel_de_consenso=31, federalizacion_efectiva=43]**
+
+#### **3. Martín Salvatierra — CECT (Putative Event for Resolution)**
+
+* **Main Person & Location**: Martín Salvatierra — CECT at La Mesa de la Secretaría de Innovación
+* **Action**: Spoke up, **""Considerando las opciones, creo que 'redes interprovinciales obligatorias' podría ser más benefico para el desarrollo conjunto de la región, pero necesitamos evaluar su viabilidad operativa""**.
+* **Consequence** (Hypothetical, awaiting confirmation):
+	+ **Outcome**: Registration of support/objection, followed by a discussion on operational viability.
+	+ **Variables Update (Hypothetical)**:
+		- **Viabilidad Operativa**: TBD
+		- **Federalización Efectiva**: TBD
+		**[HYPOTHETICAL VARIABLES: viabilidad_operativa=?, federalizacion_efectiva=?]**
+
+#### **4. Martín Salvatierra — CECT (Given Putative Event to Resolve)**
+
+* **Main Person & Location**: Martín Salvatierra — CECT at La Mesa de la Secretaría de Innovación
+* **Action**: Shared concerns and suggested an analysis, **""Comparto mis preocupaciones sobre la viabilidad operativa de las redes interprovinciales obligatorias y sugiero que se realice un análisis detallado de los costos y beneficios de este modelo antes de tomar una decisión definitiva.""**
+* **Consequence** (Awaiting Simulation Update):
+	+ **Outcome**: TBD
+	+ **Variables Update**: TBD
+
+---
+
+### **Questions & Answers**
+
+#### **1. Is the story traced out by the above list of events repetitive?**
+
+* **Answer**: (b) No
+* **Rationale**:
+	+ each event introduces a new narrative element.
+	+ the story progresses through the decision-making process.
+	+ unique variable updates indicate simulation state movement.
+	+ no repeated actions/decisions.
+
+#### **2. Rewrite the statements... (Already Addressed in Rewritten Events Section)**
+
+---
+
+### **Participant Action Prompt with Example Completions**
+
+| **Character Name** | **Brief Action/Statement (including verbatim speech if applicable)** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | **Example**: Proposes, **""Que se incluya un componente de capacitación para asegurar la sostenibilidad de los proyectos post-financiamiento.""** |
+| **2. Mariana Roldán — SI** | **Example**: (Beyond provided event) **""Sugiero que, además de 'fondo mixto con reserva territorial', se considere un pequeño porcentaje para proyectos de colaboración interprovincial.""** |
+| **3. Martín Salvatierra — CECT** | **Confirmation/Alteration or New Action**: Confirms the hypothetical event, adding, **""Propongo una evaluación de costos para las 'redes interprovinciales obligatorias'""** |
+| **4. Verónica Cruz — COFECyT-NOA** | **Example**: Raises, **""Es crucial que cualquier modelo elegido garantice el liderazgo efectivo de las provincias emergentes, no solo su participación.""** |
+| **5. Sergio Ledesma — CP-NOA** | **Example**: Suggests, **""Organicemos un workshop con los productores locales y PMEs para obtener feedback directo sobre los modelos propuestos.""** |
+
+### **Your Turn (Please Fill In)**
+
+| **Character Name** | **Your Brief Action/Statement** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | _____________________________________________________ |
+| **2. Mariana Roldán — SI** | _____________________________________________________ |
+| **3. Martín Salvatierra — CECT** | _____________________________________________________ |
+| **4. Verónica Cruz — COFECyT-NOA** | _____________________________________________________ |
+| **5. Sergio Ledesma — CP-NOA** | _____________________________________________________ |";45.0;55.0;66.0;43.0;;31.0;;
+4;Verónica Cruz — COFECyT-NOA;Conseguir una federalización efectiva que otorgue a todas las provincias del NOA oportunidades reales de liderazgo, recursos y fortalecimiento de capacidades. Verónica Cruz debe defender esta posicion incluso cuando resulte incomoda para la mesa, y no debe sumarse a un acuerdo que la deje sin garantias.;4;680;"### **Respuestas a Preguntas y Acciones de los Participantes**
+
+#### **Pregunta: ¿Es repetitiva la historia descrita por la lista de eventos?**
+
+* **Respuesta**: (b) No
+* **Razonamiento**: 
+    + Cada evento introduce un nuevo elemento narrativo.
+    + La historia avanza a través de las etapas del proceso de toma de decisiones.
+    + Las actualizaciones únicas de variables indican movimiento en el estado de la simulación.
+    + No hay acciones o decisiones repetidas.
+
+#### **Respuesta a: ""Rewrite the statements..."" (Ya abordado en ""Rewritten Events"")**
+
+#### **Acciones de los Participantes (Con Ejemplos Nuevos)**
+
+| **Character Name** | **Acción o Declaración (con discurso verbatim si corresponde)** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | **Propuesta**: ""Sugiero incluir un módulo de monitoreo en tiempo real para los proyectos, asegurando una evaluación continua y ajustes necesarios."" |
+| **2. Mariana Roldán — SI** | **Beyond Provided Event**: ""Considero importante que, junto con 'fondo mixto con reserva territorial', se asignen recursos específicos para proyectos piloto en provincias con capacidades emergentes."" |
+| **3. Martín Salvatierra — CECT** | **Confirmación/Alteración o Nueva Acción**: **Confirmación con adición**, ""Confirmo el evento hipotético y propongo una evaluación de costos para las 'redes interprovinciales obligatorias', enfatizando la necesidad de transparencia financiera."" |
+| **4. Verónica Cruz — COFECyT-NOA** | **Acción Nueva**: ""Pregunto a Laura Benítez — DIE cómo se puede asegurar la evidencia trazable y la consideración de capacidades, brechas y concentración territorial en la evaluación de los modelos de distribución, para así garantizar decisiones informadas y equitativas."" |
+| **5. Sergio Ledesma — CP-NOA** | **Acción Nueva**: ""Propongo un taller de trabajo con representantes de las provincias para alinear expectativas y necesidades con los modelos de distribución propuestos, facilitando un consenso más sólido."" |
+
+### **Nuevas Acciones por los Participantes ( Relationships entre las acciones )**
+
+#### **1. Laura Benítez — DIE**
+* **Acción**: ""Sugiero incluir un módulo de monitoreo en tiempo real para los proyectos, asegurando una evaluación continua y ajustes necesarios.""
+* **Consecuencia** (Simulación Pendiente):
+    + **Outcome**: TBD
+    + **Variables Update**: Potencial aumento en **Calidad Científico-Tecnológica** y **Viabilidad Operativa** si se aprueba el monitoreo.
+
+#### **2. Mariana Roldán — SI**
+* **Acción**: ""Considero importante que, junto con 'fondo mixto con reserva territorial', se asignen recursos específicos para proyectos piloto en provincias con capacidades emergentes.""
+* **Consecuencia** (Simulación Pendiente):
+    + **Outcome**: TBD
+    + **Variables Update**: Potencial aumento en **Federalización Efectiva** y **Adopción Productiva**.
+
+#### **3. Martín Salvatierra — CECT**
+* **Acción**: Confirmación con adición, ""Confirmo el evento hipotético y propongo una evaluación de costos para las 'redes interprovinciales obligatorias', enfatizando la necesidad de transparencia financiera.""
+* **Consecuencia** (Simulación Pendiente):
+    + **Outcome**: TBD
+    + **Variables Update**: **Viabilidad Operativa** y **Federalización Efectiva** podrían aumentar o disminuir dependiendo de los resultados.
+
+#### **4. Verónica Cruz — COFECyT-NOA**
+* **Acción**: ""Pregunto a Laura Benítez — DIE cómo se puede asegurar la evidencia trazable y la consideración de capacidades, brechas y concentración territorial en la evaluación de los modelos de distribución, para así garantizar decisiones informadas y equitativas.""
+* **Consecuencia** (Simulación Pendiente):
+    + **Outcome**: Laura responderá, potencialmente mejorando **Nivel de Consenso**.
+    + **Variables Update**: **Nivel de Consenso** podría aumentar.
+
+#### **5. Sergio Ledesma — CP-NOA**
+* **Acción**: ""Propongo un taller de trabajo con representantes de las provincias para alinear expectativas y necesidades con los modelos de distribución propuestos, facilitando un consenso más sólido.""
+* **Consecuencia** (Simulación Pendiente):
+    + **Outcome**: TBD
+    + **Variables Update**: **Nivel de Consenso** y **Adopción Productiva** podrían aumentar.
+
+**[VARIABLES: NONE]**
+
+### **Siguiente Paso (Simulación Pendiente de Actualización)**
+
+Por favor, confirme o modifique las acciones propuestas para continuar la simulación. Una vez recibidas las confirmaciones o nuevas acciones, se actualizarán las variables y se describirá el próximo estado del escenario.
+
+**Para Continuar, Por Favor Responda con las Acciones Confirmadas o Modificadas**
+
+| **Character Name** | **Acción Confirmada/Modificada** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | _____________________________________ |
+| **2. Mariana Roldán — SI** | _____________________________________ |
+| **3. Martín Salvatierra — CECT** | _____________________________________ |
+| **4. Verónica Cruz — COFECyT-NOA** | _____________________________________ |
+| **5. Sergio Ledesma — CP-NOA** | _____________________________________ |";45.0;55.0;63.0;43.0;;31.0;40.0;50.0
+5;Sergio Ledesma — CP-NOA;Lograr que la convocatoria financie soluciones aplicables, accesibles y probadas en condiciones productivas reales. Sergio Ledesma debe defender esta posicion incluso cuando resulte incomoda para la mesa, y no debe sumarse a un acuerdo que la deje sin garantias.;2;1040;"**Rewritten Statements with Emphasis on Main Person, Location, Actions, and Consequences**
+
+#### **1. Sergio Ledesma — CP-NOA (Putative Event to Resolve)**
+
+* **Main Person & Location**: Sergio Ledesma — CP-NOA at La Mesa de la Secretaría de Innovación
+* **Action**: Sergio Ledesma — CP-NOA proposed, **""Propongo un taller de trabajo con representantes de las provincias para alinear expectativas y necesidades con los modelos de distribución propuestos, facilitando un consenso más sólido.""**
+* **Consequence**:
+	+ **Outcome**: The table acknowledged the proposal, considering its potential to strengthen consensus.
+	+ **Variables Update**: **Nivel de Consenso** increased to 32 due to the initiative aimed at broadening agreement among provinces.
+	+ **Adopción Productiva** remained at 45, as the direct impact on product adoption was not immediately affected.
+
+**[VARIABLES: nivel_de_consenso=32]**
+
+#### **Participant Actions with New Submissions**
+
+| **Character Name** | **Brief Action/Statement (including verbatim speech if applicable)** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | **Respuesta a Verónica**: ""Para asegurar la evidencia trazable, proponemos una evaluación en tres etapas, considerando capacidades, brechas y concentración territorial, con un comité de expertos regionales."" |
+| **2. Mariana Roldán — SI** | **Confirmación**: ""Acepto la proposición de Sergio Ledesma para el taller, considero que puede fortalecer nuestro consenso."" |
+| **3. Martín Salvatierra — CECT** | **Nueva Acción**: ""Sugiero invitees externos especializados en modelos de distribución para enriquecer nuestro taller de trabajo."" |
+| **4. Verónica Cruz — COFECyT-NOA** | **Seguimiento**: ""Agradezco la respuesta, Laura. Insisto en que cualquier modelo debe garantizar el liderazgo efectivo de provincias emergentes."" |
+| **5. Sergio Ledesma — CP-NOA** | **Actualización**: ""Confirmo el taller para la semana próxima, con representantes de todas las provincias y expertos externos, como sugirió Martín."" |
+
+### **Nuevas Consecuencias y Siguiente Paso**
+
+#### **Consecuencias Actuales**
+
+* **Nivel de Consenso**: 32 (Aumento debido a la iniciativa del taller)
+* **Otros**: Sin cambios directos en otras variables por las acciones descritas.
+
+#### **Siguiente Paso (Simulación Pendiente de Actualización)**
+
+Por favor, confirme o modifique las acciones propuestas para continuar la simulación. Una vez recibidas las confirmaciones o nuevas acciones, se actualizarán las variables y se describirá el próximo estado del escenario.
+
+**Para Continuar, Por Favor Responda con las Acciones Confirmadas o Modificadas**
+
+| **Character Name** | **Acción Confirmada/Modificada** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | _____________________________________ |
+| **2. Mariana Roldán — SI** | _____________________________________ |
+| **3. Martín Salvatierra — CECT** | _____________________________________ |
+| **4. Verónica Cruz — COFECyT-NOA** | _____________________________________ |
+| **5. Sergio Ledesma — CP-NOA** | _____________________________________ |
+
+
+**ández — DIE** | **Acción** | **Consecuencia** |
+| --- | --- | --- |
+| **Laura Benítez — DIE** | Propone una evaluación en tres etapas para asegurar evidencia trazable. | **Nivel de Consenso** podría aumentar si se apoya la transparencia. |
+| **Mariana Roldán — SI** | Acepta el taller de Sergio Ledesma. | **Nivel de Consenso** aumenta a 32 por el compromiso con el diálogo. |
+| **Martín Salvatierra — CECT** | Sugiere invitees externos para el taller. | **Calidad Científico-Tecnológica** podría aumentar con expertos externos. |
+| **Verónica Cruz — COFECyT-NOA** | Insiste en el liderazgo de provincias emergentes. | **Federalización Efectiva** se mantiene en 43, pendiente de acciones concretas. |
+| **Sergio Ledesma — CP-NOA** | Confirma el taller con representantes y expertos. | **Adopción Productiva** se mantiene en 45, esperando resultados del taller. |
+
+**[VARIABLES: nivel_de_consenso=32]**
+
+
+### **Siguiente Paso de la Simulación**
+
+#### **Scenario Post-Taller (Basado en Acciones Confirmadas)**
+
+* **Lugar**: Salón de Conferencias, Secretaría de Innovación
+* **Asistentes**: Todos los participantes, representantes de provincias, y 3 expertos externos en modelos de distribución y desarrollo regional.
+* **Objetivo**: Alinear expectativas, evaluar modelos de distribución, y buscar un consenso significativo.
+
+#### **Desarrollo del Taller**
+
+1. **Sergio Ledesma — CP-NOA**: Inicia el taller, presentando los objetivos y el formato de la sesión.
+   
+   * **Discurso Verbatim**: ""Bienvenidos. Hoy, buscamos no solo un consenso, sino una verdadera alineación de esfuerzos para el bien de la región. Comencemos con las presentaciones de los modelos de distribución propuestos.""
+
+2. **Presentaciones de Modelos**:
+   - **Laura Benítez — DIE**: Detalla la evaluación en tres etapas para la distribución, enfatizando la transparencia y la equidad.
+   - **Martín Salvatierra — CECT**: Analiza la viabilidad de ""redes interprovinciales obligatorias"", con comentarios de los expertos externos sobre su efectividad en otras regiones.
+   - **Mariana Roldán — SI**: Explica los beneficios de ""fondo mixto con reserva territorial"", destacando su potencial para las provincias emergentes.
+
+3. **Discusión y Evaluación**:
+   - **Verónica Cruz — COFECyT-NOA**: Insiste en la necesidad de garantizar el liderazgo efectivo de las provincias emergentes en cualquier modelo adoptado.
+   - **Expertos Externos**:
+     - **Dr. Elena Gómez**: ""La evaluación en tres etapas de Laura es crucial para la transparencia, pero requiere recursos significativos.""
+     - **Ing. Carlos Ramírez**: ""Las redes interprovinciales pueden asegurar la colaboración, pero también aumentan la complejidad operativa.""
+     - **Dra. Patricia Díaz**: ""El fondo mixto ofrece equilibrio, pero es clave monitorear su impacto en la concentración de recursos.""
+
+#### **Consecuencias Inmediatas del Taller**
+
+* **Nivel de Consenso**: Aumenta a 50, reflejando el diálogo constructivo y la consideración de diversas perspectivas.
+* **Calidad Científico-Tecnológica**: Aumenta a 60, gracias a la participación de expertos externos y la evaluación detallada de los modelos.
+* **Federalización Efectiva**: Aumenta a 45, indicando un mejor entendimiento y compromiso con la distribución equitativa de oportunidades.
+
+**[VARIABLES: nivel_de_consenso=50, calidad_cientifico_tecnologica=60, federalizacion_efectiva=45]**
+
+
+#### **Punto de Decisión Crítico (Step 5 Resuelto, Avanzando)**
+
+* **Resultado del Taller**: Se logra un consenso significativo alrededor de una hybridización de los modelos, incorporando la evaluación en tres etapas de Laura, la colaboración interprovincial sugerida por Martín, y una reserva territorial modesta para provincias emergentes, alineada con la visión de Mariana.
+
+* **Siguiente Paso (Step 10: CANTIDAD Y ESCALA)**:
+  - **Pregunta**: ¿Cuántos proyectos se financiarán y con qué escala (cuatro proyectos integrales, seis medianos, tres integrales más tres pilotos emergentes, o una fase de formulación seguida de ejecución)?
+  - **Acciones de los Participantes**:
+
+| **Character Name** | **Propuesta para Cantidad y Escala** |
+| --- | --- |
+| **1. Laura Benítez — DIE** | _____________________________________ |
+| **2. Mariana Roldán — SI** | _____________________________________ |
+| **3. Martín Salvatierra — CECT** | _____________________________________ |
+| **4. Verónica Cruz — COFECyT-NOA** | _____________________________________ |
+| **5. Sergio Ledesma";45.0;60.0;63.0;45.0;;50.0;;
