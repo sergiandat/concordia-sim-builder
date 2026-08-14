@@ -133,10 +133,49 @@ def patch_action_spec_parser():
 
     original_parser = engine_mod.action_spec_parser
 
+    def _sanear(spec_dict):
+        """
+        Corrige los tipos que el modelo emite mal dentro de un JSON valido.
+
+        El fallo no es de formato sino de contenido: la corrida sobre NVIDIA
+        murio con «TypeError: 'int' object is not iterable» dentro de
+        action_spec_from_dict, que da un JSON bien formado con algun campo del
+        tipo equivocado —tipicamente `options` como numero en vez de lista—.
+        Como no era ni RuntimeError ni JSONDecodeError, el parche de arriba ni
+        se enteraba.
+
+        Se normaliza en vez de rechazar: una opcion mal tipeada no justifica
+        perder la corrida entera.
+        """
+        if not isinstance(spec_dict, dict):
+            return spec_dict
+        limpio = dict(spec_dict)
+
+        opciones = limpio.get('options')
+        if opciones is not None and not isinstance(opciones, (list, tuple)):
+            # Un escalar suelto se toma como una unica opcion; lo demas se
+            # descarta, que equivale a una accion libre.
+            limpio['options'] = ([str(opciones)]
+                                 if isinstance(opciones, (str, int, float)) else [])
+        if isinstance(limpio.get('options'), (list, tuple)):
+            limpio['options'] = [str(o) for o in limpio['options'] if o is not None]
+
+        for campo in ('call_to_action', 'output_type', 'tag'):
+            if campo in limpio and limpio[campo] is not None:
+                if not isinstance(limpio[campo], str):
+                    limpio[campo] = str(limpio[campo])
+
+        # Un tipo CHOICE sin opciones no se puede resolver; se degrada a libre.
+        tipo = str(limpio.get('output_type', '')).lower()
+        if 'choice' in tipo and not limpio.get('options'):
+            limpio['output_type'] = 'free'
+            limpio.pop('options', None)
+        return limpio
+
     def patched_parser(next_action_spec_string: str):
         try:
             return original_parser(next_action_spec_string)
-        except (RuntimeError, json.JSONDecodeError):
+        except (RuntimeError, json.JSONDecodeError, TypeError):
             pass
 
         # Try to extract an embedded JSON object from the verbose string.
@@ -144,9 +183,14 @@ def patch_action_spec_parser():
         if match:
             try:
                 spec_dict = json.loads(match.group())
-                return entity_lib.action_spec_from_dict(spec_dict)
-            except (json.JSONDecodeError, KeyError, ValueError):
-                pass
+            except json.JSONDecodeError:
+                spec_dict = None
+            if spec_dict is not None:
+                for intento in (spec_dict, _sanear(spec_dict)):
+                    try:
+                        return entity_lib.action_spec_from_dict(intento)
+                    except (KeyError, ValueError, TypeError):
+                        continue
 
         # No embedded JSON found — re-raise via original to get a clear error.
         return original_parser(next_action_spec_string)
