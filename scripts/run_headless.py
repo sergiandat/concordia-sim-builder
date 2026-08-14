@@ -95,6 +95,19 @@ def main() -> int:
     inicio = time.time()
     paso = [0]
 
+    # Todo se guarda al terminar el bucle, así que si el workflow corta por su
+    # propio límite de tiempo GitHub mata el proceso y no queda nada: ni el
+    # registro, ni el informe, ni los turnos que sí se completaron. Una corrida
+    # sobre NVIDIA se perdió entera de ese modo tras casi dos horas.
+    #
+    # Con un plazo propio, más corto que el del workflow, el bucle se detiene
+    # solo y el guardado de siempre se ocupa del resto. Vale la pena parar en el
+    # turno 17 y publicarlo antes que llegar al 19 y perder los diecinueve.
+    minutos_tope = float(os.getenv("MINUTOS_MAXIMOS", "100"))
+
+    class SeAcaboElTiempo(Exception):
+        pass
+
     def on_step(checkpoint_data):
         # checkpoint_counter es 0-indexed; +1 para el numero que ve una persona
         n = checkpoint_data.get("checkpoint_counter", 0) + 1
@@ -107,10 +120,19 @@ def main() -> int:
                 resto = f", faltan ~{faltan / 60:.0f} min" if faltan > 90 else f", faltan ~{faltan:.0f}s"
         log(f"  paso {n}/{config.max_steps} listo ({transcurrido / 60:.1f} min{resto})")
 
+        if minutos_tope and transcurrido / 60 >= minutos_tope:
+            raise SeAcaboElTiempo(
+                f"se cumplieron los {minutos_tope:.0f} minutos de plazo en el turno {n} "
+                f"de {config.max_steps}; corto acá para poder guardar lo hecho")
+
     log("Arrancando. A partir de aca cada paso son varias llamadas al modelo.")
     error = None
     try:
         sim.play(max_steps=config.max_steps, get_state_callback=on_step)
+    except SeAcaboElTiempo as e:
+        # No es una falla: es un corte ordenado para no perder lo hecho.
+        error = f"Se cortó por tiempo: {e}"
+        log(f"TIEMPO CUMPLIDO en el paso {paso[0]} — guardo lo que hay")
     except KeyboardInterrupt:
         error = "interrumpida a mano"
         log(f"INTERRUMPIDA en el paso {paso[0]} — igual guardo lo que hay")

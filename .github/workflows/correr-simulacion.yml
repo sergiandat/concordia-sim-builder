@@ -136,6 +136,11 @@ jobs:
           # que no alcanza; con seis, las esperas escalonadas cubren la ventana.
           # Gemini no lo lee: lleva su propio contador de reintentos.
           LLM_MAX_RETRIES: '6'
+          # Veinte minutos menos que el timeout del job. Cuando GitHub corta por
+          # su cuenta mata el proceso y no se guarda nada —ni el registro, ni el
+          # informe, ni los turnos hechos—; con un plazo propio la corrida se
+          # detiene sola y alcanza a publicar lo que llevaba.
+          MINUTOS_MAXIMOS: '100'
           PYTHONUNBUFFERED: '1'
           TOKENIZERS_PARALLELISM: 'false'
         run: python scripts/run_headless.py escenario.json -o salida/
