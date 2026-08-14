@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qué es Concordia — Simulación deliberativa</title>
+<style>
+  /* Misma paleta y tipografia que el constructor: son la misma herramienta y
+     no tiene sentido que parezcan dos proyectos distintos. */
+  :root{
+    --ground:#f7f7f5; --surface:#fff; --surface-alt:#f1f2ef;
+    --ink:#17191c; --ink-soft:#5b6168; --ink-faint:#878d94;
+    --rule:#dfe0dc; --rule-strong:#c9cbc5;
+    --accent:#2d5f5d; --accent-ink:#fff;
+    --warn:#8a6a1f; --warn-soft:#f8f1de;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#15171a; --surface:#1c1f23; --surface-alt:#23272c;
+      --ink:#e8e9e6; --ink-soft:#a8aeb5; --ink-faint:#7d848c;
+      --rule:#2e3238; --rule-strong:#414751;
+      --accent:#6fb3ae; --accent-ink:#12201f;
+      --warn:#d2b06a; --warn-soft:#2b2618;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .ancho{max-width:52rem;margin:0 auto;padding:0 1.5rem}
+  header{border-bottom:1px solid var(--rule);padding:3rem 0 2rem;margin-bottom:2.5rem}
+  .rotulo{font-family:var(--mono);font-size:.74rem;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-faint);margin:0 0 .8rem}
+  h1{font-family:var(--serif);font-size:2.35rem;line-height:1.15;margin:0 0 1rem;
+    font-weight:400;text-wrap:balance;letter-spacing:-.01em}
+  .bajada{font-size:1.08rem;color:var(--ink-soft);margin:0;max-width:38rem}
+  h2{font-family:var(--serif);font-size:1.5rem;font-weight:400;margin:2.8rem 0 .9rem;
+    text-wrap:balance}
+  h3{font-size:1rem;font-weight:600;margin:1.8rem 0 .5rem}
+  p{margin:0 0 1rem}
+  strong{font-weight:600}
+  section{margin-bottom:.5rem}
+  .destacado{background:var(--surface);border:1px solid var(--rule);border-radius:10px;
+    padding:1.4rem 1.5rem;margin:1.5rem 0}
+  .destacado p:last-child{margin-bottom:0}
+  .cita{border-left:3px solid var(--accent);padding-left:1rem;margin:1.4rem 0;
+    color:var(--ink-soft);font-style:italic}
+  .cita cite{display:block;font-style:normal;font-size:.86rem;color:var(--ink-faint);
+    margin-top:.5rem}
+  dl.piezas{margin:1.2rem 0;display:grid;gap:.1rem}
+  dl.piezas dt{font-weight:600;font-size:.95rem;margin-top:.9rem}
+  dl.piezas dd{margin:.1rem 0 0;color:var(--ink-soft);font-size:.94rem}
+  .enlaces{list-style:none;margin:1rem 0 0;padding:0;display:grid;gap:.75rem}
+  .enlaces li{background:var(--surface);border:1px solid var(--rule);border-radius:9px;
+    padding:.95rem 1.1rem}
+  .enlaces a{color:var(--accent);text-decoration:none;font-weight:600;font-size:.97rem}
+  .enlaces a:hover{text-decoration:underline}
+  .enlaces .que{display:block;color:var(--ink-soft);font-size:.89rem;margin-top:.25rem}
+  .enlaces .url{font-family:var(--mono);font-size:.78rem;color:var(--ink-faint);
+    word-break:break-all;display:block;margin-top:.3rem}
+  .botones{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.4rem 0 .5rem}
+  .boton{display:inline-block;background:var(--accent);color:var(--accent-ink);
+    text-decoration:none;padding:.72rem 1.3rem;border-radius:7px;font-weight:600;
+    font-size:.95rem}
+  .boton.suave{background:transparent;color:var(--accent);
+    border:1px solid var(--rule-strong)}
+  .aviso{background:var(--warn-soft);border-left:3px solid var(--warn);
+    padding:.9rem 1.1rem;border-radius:0 7px 7px 0;margin:1.4rem 0;font-size:.94rem}
+  .aviso p:last-child{margin-bottom:0}
+  table{border-collapse:collapse;width:100%;margin:1.2rem 0;font-size:.93rem}
+  th,td{text-align:left;padding:.6rem .9rem .6rem 0;vertical-align:top;
+    border-bottom:1px solid var(--rule)}
+  th{font-weight:600;white-space:nowrap;width:12rem}
+  td{color:var(--ink-soft)}
+  footer{border-top:1px solid var(--rule);margin-top:3.5rem;padding:1.5rem 0 3rem;
+    font-size:.87rem;color:var(--ink-faint)}
+  footer a{color:var(--ink-soft)}
+  @media (max-width:34rem){
+    h1{font-size:1.85rem}
+    th{width:auto;display:block;border:0;padding-bottom:.1rem}
+    td{display:block;padding-top:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ancho">
+    <p class="rotulo">Simulación deliberativa</p>
+    <h1>Qué es Concordia</h1>
+    <p class="bajada">Una biblioteca para simular deliberaciones entre actores con
+      intereses distintos, usando modelos de lenguaje. Esta página explica qué hace,
+      de dónde viene y cómo usar nuestra versión.</p>
+  </div>
+</header>
+
+<main class="ancho">
+
+<section>
+  <h2>La idea</h2>
+  <p>Concordia permite armar una situación —una mesa de negociación, un comité, una
+    consulta— y poblarla con <strong>actores</strong> que tienen cada uno su objetivo,
+    sus recuerdos y su forma de decidir. Después los deja interactuar por turnos y
+    registra qué pasó.</p>
+  <p>No predice lo que va a ocurrir en la realidad. Sirve para explorar cómo podrían
+    evolucionar tensiones, acuerdos y bloqueos <strong>bajo un conjunto explícito de
+    supuestos</strong> — supuestos que uno escribe y puede cambiar para ver qué pasa
+    entonces.</p>
+
+  <div class="cita">
+    Una biblioteca para construir y trabajar con modelos generativos basados en agentes.
+    <cite>Vezhnevets, Agapiou, Aharon y otros — Google DeepMind, 2023</cite>
+  </div>
+</section>
+
+<section>
+  <h2>Las piezas</h2>
+  <p>Cuatro conceptos alcanzan para leer cualquier resultado:</p>
+  <dl class="piezas">
+    <dt>Actores</dt>
+    <dd>Los participantes. Cada uno lleva un objetivo, recuerdos que le dan su punto de
+      vista, y opcionalmente rasgos y sesgos que afectan cómo decide.</dd>
+
+    <dt>El narrador</dt>
+    <dd>Concordia lo llama <em>Game Master</em>: una entidad especial que simula el
+      entorno. Da la palabra, decide qué queda registrado como ocurrido, le cuenta a
+      cada actor lo que le corresponde saber, y asigna el valor de las variables. Es la
+      pieza más influyente de todas.</dd>
+
+    <dt>Variables de seguimiento</dt>
+    <dd>Lo que se quiere observar: nivel de consenso, viabilidad, lo que sea. No se
+      miden: <strong>las estima el narrador</strong> leyendo la discusión, con la regla
+      de cambio que uno le escribe.</dd>
+
+    <dt>Hitos críticos</dt>
+    <dd>Hechos que se inyectan en un turno determinado para forzar una definición: un
+      recorte, una norma nueva, una votación. Funcionan como manipulación experimental.</dd>
+  </dl>
+</section>
+
+<section>
+  <h2>Qué se puede y qué no</h2>
+  <div class="aviso">
+    <p>Una corrida es <strong>una muestra</strong>, no un resultado. El comportamiento
+      varía entre corridas porque el modelo muestrea sus respuestas; la documentación
+      del proyecto recomienda correr el mismo escenario de tres a cinco veces para
+      conocer el rango.</p>
+    <p>Lo que sí es informativo de una sola corrida es la <em>forma</em>: si hubo
+      ruptura, cuándo, y quién la produjo.</p>
+  </div>
+  <p>Los informes que produce esta versión marcan cada afirmación según de dónde sale:
+    <strong>medido</strong> si viene del registro, <strong>estimado</strong> si lo asignó
+    el narrador, <strong>inferido</strong> si lo dedujo un modelo leyendo la
+    transcripción después.</p>
+</section>
+
+<section>
+  <h2>Nuestra versión</h2>
+  <p>Sobre el constructor de UNU agregamos un camino que no necesita instalar nada ni
+    saber programar: se arma el escenario en el navegador, se pega en un issue de
+    GitHub, y la corrida se ejecuta sola y publica un informe en castellano.</p>
+
+  <div class="botones">
+    <a class="boton" href="../constructor/">Armar un escenario</a>
+    <a class="boton suave" href="../">Ver las corridas</a>
+  </div>
+
+  <table>
+    <tr><th>Cómo se arma</th>
+      <td>En el constructor, con ayuda en cada paso. Produce un archivo que describe
+        el escenario completo.</td></tr>
+    <tr><th>Cómo se corre</th>
+      <td>Se abre un issue con ese archivo. GitHub lo ejecuta; no hace falta tener
+        una máquina prendida.</td></tr>
+    <tr><th>Qué devuelve</th>
+      <td>Un informe con la deliberación turno por turno, cómo evolucionaron las
+        variables, qué dice el armado y con qué alcance leerlo.</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>De dónde viene</h2>
+  <p>Tres capas, cada una sobre la anterior:</p>
+  <ul class="enlaces">
+    <li>
+      <a href="https://github.com/google-deepmind/concordia">Concordia — Google DeepMind</a>
+      <span class="que">La biblioteca original. El motor de simulación.</span>
+      <span class="url">github.com/google-deepmind/concordia</span>
+    </li>
+    <li>
+      <a href="https://arxiv.org/abs/2312.03664">El paper que la presenta</a>
+      <span class="que">«Generative agent-based modeling with actions grounded in
+        physical, social, or digital space using Concordia». Explica el diseño y por
+        qué el narrador es una pieza aparte.</span>
+      <span class="url">arxiv.org/abs/2312.03664</span>
+    </li>
+    <li>
+      <a href="https://c3.unu.edu/projects/ai/simulator/">Simulator — UNU Centre for
+        Policy Research</a>
+      <span class="que">El proyecto de la Universidad de las Naciones Unidas que le
+        puso una interfaz web y lo orientó a políticas públicas.</span>
+      <span class="url">c3.unu.edu/projects/ai/simulator/</span>
+    </li>
+    <li>
+      <a href="https://github.com/ngstcf/concordia-sim-builder">Concordia Sim Builder — UNU</a>
+      <span class="que">El código de ese constructor. Es de acá que sale nuestra
+        versión.</span>
+      <span class="url">github.com/ngstcf/concordia-sim-builder</span>
+    </li>
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder">Nuestra versión</a>
+      <span class="que">Agrega el circuito por issues, el informe en castellano y la
+        guía del constructor.</span>
+      <span class="url">github.com/sergiandat/concordia-sim-builder</span>
+    </li>
+  </ul>
+</section>
+
+<section>
+  <h2>Documentación técnica</h2>
+  <p>Del proyecto de UNU, en inglés. Es la fuente de casi todo lo que dice la ayuda del
+    constructor:</p>
+  <ul class="enlaces">
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder/blob/main/docs/SIMULATION_BUILDING_GUIDE.md">Guía
+        para construir simulaciones</a>
+      <span class="que">Cómo se escribe una premisa, cómo se redactan objetivos, cuántos
+        pasos usar, y una lista de problemas frecuentes con su causa.</span>
+    </li>
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder/blob/main/docs/SIMULATION_TEMPLATES_GUIDE.md">Guía
+        de plantillas y componentes</a>
+      <span class="que">Los tipos de actor y de narrador, y los componentes
+        psicológicos: qué hace cada sesgo y cómo se combinan.</span>
+    </li>
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder/blob/main/docs/QUANTITATIVE_RESEARCH_FEATURES.md">Funciones
+        para investigación cuantitativa</a>
+      <span class="que">Generación de poblaciones por muestreo, acciones restringidas,
+        barridos de parámetros y confiabilidad entre corridas.</span>
+    </li>
+  </ul>
+  <p style="margin-top:1.2rem"><a href="../constructor/">El constructor</a> trae su propia
+    guía, en castellano y por preguntas, en el botón «Cómo se diseña esto».</p>
+</section>
+
+</main>
+
+<footer class="ancho">
+  Construido sobre <a href="https://github.com/google-deepmind/concordia">Concordia</a>
+  (Google DeepMind) y el
+  <a href="https://github.com/ngstcf/concordia-sim-builder">Simulation Builder</a> de
+  UNU. Código y corridas en
+  <a href="https://github.com/sergiandat/concordia-sim-builder">GitHub</a>.
+</footer>
+
+</body>
+</html>
