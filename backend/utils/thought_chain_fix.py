@@ -173,13 +173,22 @@ def patch_action_spec_parser():
         return limpio
 
     def patched_parser(next_action_spec_string: str):
+        # Se normaliza a texto de entrada: el motor puede entregar None o algo
+        # que no sea cadena, y entonces revienta antes de llegar a cualquiera de
+        # las salidas de abajo. La funcion tiene que poder tragar lo que sea.
+        texto = '' if next_action_spec_string is None else str(next_action_spec_string)
         try:
             return original_parser(next_action_spec_string)
-        except (RuntimeError, json.JSONDecodeError, TypeError):
+        except Exception:
+            # Cualquier excepcion, no una lista de tipos: la lista dejaba pasar
+            # justo la que aparecia. Lo que importa es que ninguna cadena mate
+            # la corrida, y mas abajo hay un camino de salida para todas.
             pass
 
         # Try to extract an embedded JSON object from the verbose string.
-        match = re.search(r'\{.*\}', next_action_spec_string, re.DOTALL)
+        # `or ''` porque el motor puede entregar None, y buscar dentro de None
+        # revienta antes de llegar a la salida de emergencia de mas abajo.
+        match = re.search(r'\{.*\}', texto, re.DOTALL)
         if match:
             try:
                 spec_dict = json.loads(match.group())
@@ -189,11 +198,31 @@ def patch_action_spec_parser():
                 for intento in (spec_dict, _sanear(spec_dict)):
                     try:
                         return entity_lib.action_spec_from_dict(intento)
-                    except (KeyError, ValueError, TypeError):
+                    except Exception:
                         continue
 
-        # No embedded JSON found — re-raise via original to get a clear error.
-        return original_parser(next_action_spec_string)
+        # Llegado acá no se pudo interpretar de ninguna forma. Antes se volvía a
+        # llamar al parser original para que reventara con un error claro, y eso
+        # mataba la corrida entera: la de NVIDIA murió dos veces en el paso 1
+        # después de media hora, sin dejar rastro de QUÉ cadena la había roto.
+        #
+        # Ahora se registra el texto —que es el dato que hacía falta y no
+        # estaba— y se sigue con una acción libre. Un turno con la consigna
+        # genérica es un resultado pobre; perder la corrida entera no es un
+        # resultado.
+        recorte = texto[:600].replace("\n", " ⏎ ")
+        print("[AVISO] No pude interpretar la especificación de acción que dio "
+              "el narrador. Sigo con una acción libre.")
+        print(f"[AVISO] La cadena era: {recorte}")
+        try:
+            return entity_lib.action_spec_from_dict({
+                "call_to_action": "¿Qué hace {name} a continuación?",
+                "output_type": "free",
+                "tag": "accion",
+            })
+        except Exception as e:
+            print(f"[AVISO] Tampoco pude armar una acción libre: {type(e).__name__}: {e}")
+            return original_parser(next_action_spec_string)
 
     engine_mod.action_spec_parser = patched_parser
 
