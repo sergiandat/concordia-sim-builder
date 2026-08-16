@@ -1,0 +1,37 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-08-16T17:38:58",
+  "duracion_min": 51.6,
+  "pasos_completados": 12,
+  "pasos_pedidos": 12,
+  "completa": true,
+  "error": null,
+  "corto_por_cuota": false,
+  "agentes": [
+    "Laura Benítez — DIE",
+    "Mariana Roldán — SI",
+    "Martín Salvatierra — CECT",
+    "Verónica Cruz — COFECyT-NOA",
+    "Sergio Ledesma — CP-NOA"
+  ],
+  "modelo": "LLMProvider.GEMINI/gemini-3.5-flash-lite",
+  "modelo_gm": "LLMProvider.GEMINI/gemini-3.1-flash-lite",
+  "consumo": {
+    "gemini-3.1-flash-lite": {
+      "llamadas": 346,
+      "esperas": 19,
+      "segundos_esperando": 118,
+      "tokens": 1644006
+    },
+    "gemini-3.5-flash-lite": {
+      "llamadas": 130,
+      "esperas": 0,
+      "segundos_esperando": 0,
+      "tokens": 150969
+    }
+  },
+  "consumo_por_paso": {
+    "gemini-3.1-flash-lite": 28.8,
+    "gemini-3.5-flash-lite": 10.8
+  }
+}
