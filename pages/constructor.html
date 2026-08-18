@@ -225,6 +225,19 @@ padding:.5rem .7rem;border-radius:0 5px 5px 0;color:var(--ink)}
       <label for="gm-nombre">Cómo se llama el narrador <span class="pista">quien describe qué pasa y resuelve las consecuencias</span></label>
       <input id="gm-nombre" type="text" placeholder="Mesa Interinstitucional de Diseño">
     </div>
+
+    <div class="par">
+      <div class="campo">
+        <label for="gm-prefab">Tipo de narrador <span class="pista">lo que más cambia el resultado</span></label>
+        <select id="gm-prefab"></select>
+      </div>
+      <div class="campo">
+        <label for="motor">Motor <span class="pista">cómo se reparten los turnos</span></label>
+        <select id="motor"></select>
+      </div>
+    </div>
+    <p class="ayuda" id="ayuda-gm-prefab"></p>
+    <p class="ayuda" id="ayuda-motor"></p>
   </section>
 
   <section>
@@ -391,19 +404,9 @@ padding:.5rem .7rem;border-radius:0 5px 5px 0;color:var(--ink)}
     </p>
 
     <details class="avanzado">
-      <summary>Tipo de narrador y motor</summary>
+      <summary>Instrucciones al narrador</summary>
       <div class="cuerpo-avanzado">
         <div class="campo" style="margin-top:1rem">
-          <label for="gm-prefab">Tipo de narrador</label>
-          <select id="gm-prefab"></select>
-        </div>
-        <p class="ayuda" id="ayuda-gm-prefab"></p>
-        <div class="campo">
-          <label for="motor">Motor</label>
-          <select id="motor"></select>
-        </div>
-        <p class="ayuda" id="ayuda-motor"></p>
-        <div class="campo">
           <label for="moderacion">Instrucciones para el narrador <span class="pista">opcional</span></label>
           <textarea id="moderacion" rows="4" placeholder="Pedir propuestas concretas, registrar acuerdos y desacuerdos, no dar por acordado lo que nadie aceptó en voz alta."></textarea>
         </div>
@@ -521,8 +524,8 @@ var PREFABS_AGENTE = [
 ];
 
 var PREFABS_MESA = [
-  ["dialogic__GameMaster",                     "Conversación",        "Centrada en el diálogo. Es la que conviene para una mesa que delibera."],
-  ["generic__GameMaster",                      "General",             "Narrativa de propósito general, sirve para la mayoría de los casos."],
+  ["generic__GameMaster",                      "General",             "Redacta una consigna distinta en cada turno y pregunta por posiciones concretas. Con el mismo escenario produjo desacuerdo sostenido: el consenso subió a 100 y cayó a 60. Es el que conviene para una mesa que delibera."],
+  ["dialogic__GameMaster",                     "Conversación",        "Centrada en el diálogo, pero repite la misma consigna genérica en todos los turnos. Lo medimos: el consenso llegó al máximo en el turno 7 y no volvió a bajar, sin que nadie sostuviera una objeción."],
   ["dialogic_and_dramaturgic__GameMaster",     "Conversación con escenas", "Diálogo organizado en escenas dramáticas."],
   ["game_theoretic_and_dramaturgic__GameMaster","Juego con pagos",    "Matriz de pagos, puntajes y decisiones estratégicas."],
   ["interviewer__GameMaster",                  "Entrevista guiada",   "Administra un cuestionario estructurado."],

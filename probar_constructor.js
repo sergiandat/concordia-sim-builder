@@ -251,6 +251,12 @@ Object.keys(PROVEEDORES).forEach(function (m) {
 });
 chk(!('provider' in (d.config || {})), 'el proveedor no va dentro de config');
 chk(gm.prefab.endsWith('__GameMaster'), 'el tipo de mesa no es un prefab de mesa');
+// Sin tocar nada, el narrador que queda es el primero de la lista. Medimos que
+// el conversacional fija el consenso en el maximo desde el turno siete sin que
+// nadie sostenga una objecion, asi que no puede ser el que se lleve quien no
+// sabe que hay que elegir.
+chk(gm.prefab === 'generic__GameMaster',
+    'el narrador por defecto es ' + gm.prefab + ' y deberia ser generic__GameMaster');
 chk(c.agents.every(a => a.prefab.endsWith('__Entity')), 'algun participante no tiene prefab de entidad');
 // Las ventanas y las acciones solo deben aparecer en quien las configuro
 chk(Array.isArray(c.agents[2].available_actions) && c.agents[2].available_actions.length === 3,
