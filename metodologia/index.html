@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guía metodológica — Simulación deliberativa con Concordia</title>
+<style>
+  :root{
+    --ground:#f7f7f5; --surface:#fff; --surface-alt:#f1f2ef;
+    --ink:#17191c; --ink-soft:#5b6168; --ink-faint:#878d94;
+    --rule:#dfe0dc; --rule-strong:#c9cbc5;
+    --accent:#2d5f5d; --accent-ink:#fff;
+    --warn:#8a6a1f; --warn-soft:#f8f1de;
+    --medido:#2d5f5d; --medido-suave:#e4efee;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#15171a; --surface:#1c1f23; --surface-alt:#23272c;
+      --ink:#e8e9e6; --ink-soft:#a8aeb5; --ink-faint:#7d848c;
+      --rule:#2e3238; --rule-strong:#414751;
+      --accent:#6fb3ae; --accent-ink:#12201f;
+      --warn:#d2b06a; --warn-soft:#2b2618;
+      --medido:#6fb3ae; --medido-suave:#1d2b2a;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .ancho{max-width:50rem;margin:0 auto;padding:0 1.5rem}
+  header{border-bottom:1px solid var(--rule);padding:3rem 0 2rem}
+  .rotulo{font-family:var(--mono);font-size:.74rem;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-faint);margin:0 0 .8rem}
+  h1{font-family:var(--serif);font-size:2.3rem;line-height:1.15;margin:0 0 1rem;
+    font-weight:400;text-wrap:balance;letter-spacing:-.01em}
+  .bajada{font-size:1.05rem;color:var(--ink-soft);margin:0;max-width:36rem}
+  nav.indice{position:sticky;top:0;z-index:20;background:var(--ground);
+    border-bottom:1px solid var(--rule);margin-bottom:2.5rem}
+  nav.indice .barra{display:flex;gap:1.1rem;overflow-x:auto;scrollbar-width:thin;
+    padding:.7rem 0}
+  nav.indice a{color:var(--ink-soft);text-decoration:none;font-size:.84rem;
+    white-space:nowrap}
+  nav.indice a:hover{color:var(--accent)}
+  section{scroll-margin-top:3.5rem;margin-bottom:2.8rem}
+  h2{font-family:var(--serif);font-size:1.55rem;font-weight:400;margin:2.6rem 0 .3rem;
+    text-wrap:balance}
+  h2 .num{font-family:var(--mono);font-size:.78rem;color:var(--ink-faint);
+    display:block;margin-bottom:.35rem;letter-spacing:.06em}
+  h3{font-size:1.02rem;font-weight:600;margin:1.9rem 0 .5rem}
+  p{margin:0 0 1rem}
+  ul,ol{margin:0 0 1rem;padding-left:1.3rem}
+  li{margin-bottom:.45rem}
+  strong{font-weight:600}
+  code{font-family:var(--mono);font-size:.87em;background:var(--surface-alt);
+    padding:.1rem .35rem;border-radius:4px}
+  .medido{background:var(--medido-suave);border-left:3px solid var(--medido);
+    padding:1rem 1.2rem;border-radius:0 8px 8px 0;margin:1.4rem 0}
+  .medido .etq{display:block;font-family:var(--mono);font-size:.7rem;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--medido);
+    margin-bottom:.5rem;font-weight:600}
+  .medido p:last-child{margin-bottom:0}
+  .aviso{background:var(--warn-soft);border-left:3px solid var(--warn);
+    padding:1rem 1.2rem;border-radius:0 8px 8px 0;margin:1.4rem 0}
+  .aviso p:last-child{margin-bottom:0}
+  table{border-collapse:collapse;width:100%;margin:1.3rem 0;font-size:.92rem}
+  th,td{text-align:left;padding:.55rem .9rem .55rem 0;vertical-align:top;
+    border-bottom:1px solid var(--rule)}
+  thead th{font-family:var(--mono);font-size:.72rem;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--ink-faint);border-bottom:1px solid var(--rule-strong)}
+  tbody th{font-weight:600;width:13rem}
+  td{color:var(--ink-soft)}
+  .cita{border-left:3px solid var(--rule-strong);padding-left:1.1rem;margin:1.4rem 0;
+    color:var(--ink-soft);font-style:italic}
+  .cita cite{display:block;font-style:normal;font-size:.85rem;color:var(--ink-faint);
+    margin-top:.5rem}
+  .fuentes{list-style:none;padding:0}
+  .fuentes li{background:var(--surface);border:1px solid var(--rule);border-radius:9px;
+    padding:.9rem 1.1rem;margin-bottom:.7rem}
+  .fuentes a{color:var(--accent);text-decoration:none;font-weight:600}
+  .fuentes a:hover{text-decoration:underline}
+  .fuentes .det{display:block;color:var(--ink-soft);font-size:.88rem;margin-top:.25rem}
+  footer{border-top:1px solid var(--rule);margin-top:3rem;padding:1.5rem 0 3rem;
+    font-size:.87rem;color:var(--ink-faint)}
+  footer a{color:var(--ink-soft)}
+  @media (max-width:36rem){
+    h1{font-size:1.8rem}
+    tbody th{width:auto;display:block;border:0;padding-bottom:.1rem}
+    td{display:block;padding-top:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="ancho">
+    <p class="rotulo">Documento metodológico</p>
+    <h1>Cómo se diseña, se corre y se lee una simulación deliberativa</h1>
+    <p class="bajada">Guía completa para armar simulaciones con Concordia. Reúne lo que
+      documentan las fuentes y lo que medimos sobre nuestras propias corridas — que en
+      varios puntos no coincide.</p>
+  </div>
+</header>
+
+<nav class="indice">
+  <div class="ancho barra">
+    <a href="#alcance">1 · Alcance</a>
+    <a href="#marco">2 · Marco</a>
+    <a href="#premisa">3 · Premisa</a>
+    <a href="#datos">4 · Datos</a>
+    <a href="#actores">5 · Actores</a>
+    <a href="#narrador">6 · Narrador</a>
+    <a href="#variables">7 · Variables</a>
+    <a href="#hitos">8 · Hitos</a>
+    <a href="#turnos">9 · Turnos</a>
+    <a href="#dimensionar">10 · Dimensionar</a>
+    <a href="#validacion">11 · Validación</a>
+    <a href="#lectura">12 · Lectura</a>
+    <a href="#fallas">13 · Fallas</a>
+    <a href="#limites">14 · Límites</a>
+    <a href="#fuentes">15 · Fuentes</a>
+  </div>
+</nav>
+
+<main class="ancho">
+
+<section id="alcance">
+  <h2><span class="num">1</span>Qué es esto y qué no es</h2>
+  <p>Una simulación deliberativa pone actores con intereses distintos en una situación
+    y los deja interactuar por turnos. Cada actor es un modelo de lenguaje al que se le
+    dio un objetivo, unos recuerdos y una forma de decidir. Un componente aparte —el
+    narrador— resuelve qué ocurre y qué se entera cada uno.</p>
+
+  <p><strong>No predice.</strong> Sirve para explorar cómo podrían evolucionar
+    tensiones, acuerdos y bloqueos bajo un conjunto explícito de supuestos. El valor
+    está en que los supuestos son explícitos: uno los escribe, los cambia y compara.</p>
+
+  <div class="aviso">
+    <p><strong>Una corrida es una muestra, no un resultado.</strong> El comportamiento
+      varía entre corridas porque el modelo muestrea sus respuestas. La documentación
+      del proyecto recomienda correr el mismo escenario de tres a cinco veces para
+      conocer el rango de resultados.</p>
+    <p>Lo informativo de una sola corrida es la <em>forma</em>: si hubo ruptura, cuándo,
+      y quién la produjo. No el valor final de un indicador.</p>
+  </div>
+
+  <h3>Para qué conviene usarla</h3>
+  <ul>
+    <li>Anticipar dónde van a chocar los actores, antes de una consulta real</li>
+    <li>Poner a prueba un diseño: qué objeciones aparecen, qué falta, qué se malinterpreta</li>
+    <li>Preparar el instrumento de campo: qué preguntar en las entrevistas de verdad</li>
+    <li>Comparar condiciones: mismo escenario, una cosa cambiada</li>
+  </ul>
+
+  <h3>Para qué no</h3>
+  <ul>
+    <li>Medir percepciones o actitudes: es medible directo con usuarios reales, y acá
+      sería un número inventado por un modelo sobre texto inventado por otro</li>
+    <li>Estimar probabilidades de que algo ocurra</li>
+    <li>Reemplazar la consulta a los actores, el análisis documental o la evaluación
+      experta</li>
+  </ul>
+</section>
+
+<section id="marco">
+  <h2><span class="num">2</span>El marco de diseño</h2>
+  <p>La guía metodológica de Ferraz y otros propone cuatro pasos, en este orden:</p>
+  <ol>
+    <li><strong>Conceptualización.</strong> Definir la pregunta con un análisis de
+      quién, cuándo, dónde y cómo.</li>
+    <li><strong>Elección de herramientas.</strong> Qué modelo y qué plataforma.</li>
+    <li><strong>Diseño de actores y entorno.</strong> Contexto compartido y
+      características de cada uno.</li>
+    <li><strong>Ejecución.</strong> Correr, con el narrador interpretando las acciones.</li>
+  </ol>
+  <p>El paso que más se saltea es el primero, y es el que más cuesta después: si la
+    pregunta no está escrita, no hay forma de saber si el resultado la contesta.</p>
+
+  <h3>Antes de abrir el constructor</h3>
+  <p>Escribir en una línea: <em>qué quiero saber, y qué resultado me haría cambiar de
+    opinión.</em> Si la segunda parte no se puede contestar, el ejercicio va a confirmar
+    lo que uno ya pensaba, porque el modelo tiende a producir lo esperable.</p>
+</section>
+
+<section id="premisa">
+  <h2><span class="num">3</span>La premisa</h2>
+  <p>Define el espacio de lo que puede ocurrir. Los actores no tienen más mundo que ese
+    texto: lo que no esté ahí, o lo inventan sobre la marcha, o no pasa.</p>
+
+  <p>Una premisa vaga no produce respuestas neutras sino genéricas — el modelo rellena
+    los huecos con lugares comunes, y esa variabilidad no la controla nadie.</p>
+
+  <h3>Qué tiene que incluir</h3>
+  <table>
+    <tbody>
+      <tr><th>Escenario y momento</th><td>Dónde ocurre y cuándo</td></tr>
+      <tr><th>Estado inicial</th><td>Con magnitudes concretas, no adjetivos</td></tr>
+      <tr><th>Repertorio</th><td>Qué acciones son posibles</td></tr>
+      <tr><th>Restricciones</th><td>Qué acota lo que se puede decidir</td></tr>
+      <tr><th>Qué está en juego</th><td>Qué pasa si no se resuelve</td></tr>
+    </tbody>
+  </table>
+
+  <p>El control rápido: la premisa tiene que contestar <strong>quién, cuándo, dónde y
+    cómo</strong>. La que quede sin responder la responde el modelo.</p>
+
+  <h3>La diferencia, en concreto</h3>
+  <p><strong>Débil:</strong> «Dos países están en guerra y quieren la paz.»</p>
+  <p><strong>Fuerte:</strong> «Dos diplomáticos negocian un alto el fuego en tres
+    rondas. A tiene ventaja militar pero está sancionado; B controla las rutas
+    comerciales y tiene economía débil. Ambos tienen presión interna para mostrarse
+    firmes. Si no hay acuerdo en la ronda tres, las sanciones escalan para los dos.»</p>
+  <p>La segunda fija condiciones iniciales, asimetrías, presión y criterio de cierre.</p>
+</section>
+
+<section id="datos">
+  <h2><span class="num">4</span>Datos compartidos y memorias privadas</h2>
+  <p>Los datos del caso los conocen todos por igual — el equivalente a lo que en un
+    experimento reciben todos los grupos. Las memorias son privadas y definen puntos de
+    vista distintos sobre los mismos hechos.</p>
+  <p>Si dos actores tienen que discrepar sobre una cifra, la cifra va en los datos
+    compartidos y la interpretación en las memorias de cada uno.</p>
+
+  <div class="medido">
+    <span class="etq">Medido</span>
+    <p>Lo que no se fija queda disponible para que alguien lo invente, y el motor no
+      distingue un hecho configurado de uno que un actor afirmó en su turno: los dos
+      pasan a ser parte del mundo. En una corrida aparecieron una falla informática, una
+      sequía anticipada y una carta con amenaza judicial. Ninguna estaba configurada.</p>
+  </div>
+
+  <p>Forma: una proposición por línea, verificable, sin adjetivos. «Las sanciones le
+    cuestan a A dos mil millones anuales» sirve; «la situación económica es difícil» no.</p>
+</section>
+
+<section id="actores">
+  <h2><span class="num">5</span>Los actores</h2>
+
+  <h3>El objetivo</h3>
+  <p>Se escribe como instrucción, no como caracterización. Con verbos de acción
+    explícitos, incluidas las negativas: qué acepta, qué rechaza, bajo qué condición cede.</p>
+  <p><strong>Débil:</strong> «Alicia quiere la paz.»<br>
+     <strong>Fuerte:</strong> «Negociar un alto el fuego que proteja las fronteras de A.
+     Aceptar concesiones territoriales solo si levantan las sanciones. RECHAZAR
+     cualquier propuesta que exija retirar tropas del norte.»</p>
+
+  <div class="aviso">
+    <p><strong>Y hay que reforzarlo.</strong> La guía metodológica documenta que un actor
+      al que se le asignó difundir desinformación «reconsideró sus acciones, con reparos
+      éticos y morales»: los modelos traen frenos propios que desactivan el objetivo si
+      la instrucción no lo sostiene.</p>
+    <p>Agregar «debe defender esta posición incluso cuando resulte incómodo» no es
+      énfasis: es lo que impide que el actor se eche atrás de lo que se le pidió.</p>
+  </div>
+
+  <h3>Las memorias</h3>
+  <p>Entre cinco y diez por actor. Con menos, la conducta se vuelve genérica; con más,
+    el modelo pierde el foco y deja de usarlas. Conviene cubrir identidad y trayectoria,
+    qué sabe de la situación, cómo ve a los demás, qué cree y valora, y qué no está
+    dispuesto a conceder.</p>
+
+  <h3>El perfil psicológico</h3>
+  <p>Sirve para que el sesgo sea una propiedad del actor y no una descripción en su
+    memoria. Los tipos disponibles: anclaje, confirmación, disponibilidad, costo hundido
+    y endogrupo; más rasgos de los cinco grandes, identidad social, emoción y valores.</p>
+  <p>La guía de plantillas documenta que apilarlos produce conductas más definidas:
+    confirmación fuerte + identidad social fuerte + valores tradicionales da un escéptico
+    consistente.</p>
+
+  <div class="medido">
+    <span class="etq">Medido — importante</span>
+    <p>Solo el tipo <strong>«Mínimo»</strong> recibe el perfil como componente presente
+      en cada acción. En los demás entra al banco de memoria y tiene que ser recuperado
+      para influir en algo.</p>
+    <p>Lo verificamos en dos corridas independientes de doce turnos cada una:
+      <strong>no se recuperó ni una sola vez</strong>. Se habían cargado 17 recuerdos de
+      perfil, entre tres y cuatro por actor. Los sesgos configurados no operaron, y lo
+      que se observó en la conducta se explica por el objetivo y los recuerdos.</p>
+    <p>La causa probable: el motor lo inyecta como una frase genérica en inglés
+      —<code>tends to seek information confirming existing beliefs</code>— sin ninguna
+      palabra del caso, mientras la búsqueda de memoria va sobre el tema del escenario.</p>
+  </div>
+
+  <p><strong>Dos salidas.</strong> Usar el tipo «Mínimo», que los recibe como componente
+    fijo. O escribir el rasgo dentro de los recuerdos, en los términos del caso. La guía
+    metodológica sugiere para esto último contar experiencias formativas con la edad en
+    que ocurrieron.</p>
+</section>
+
+<section id="narrador">
+  <h2><span class="num">6</span>El narrador</h2>
+  <p>Concordia lo llama <em>Game Master</em> y lo define como una entidad especial que
+    simula el entorno. No es un actor más. En cada turno: da la palabra, redacta la
+    consigna, decide qué queda registrado como ocurrido, reparte lo que se entera cada
+    uno, y asigna el valor de todas las variables.</p>
+
+  <div class="medido">
+    <span class="etq">Medido — la variable más influyente</span>
+    <p>Corrimos el mismo escenario cambiando solo el tipo de narrador.</p>
+    <p>Con el <strong>conversacional</strong>, los veinte turnos recibieron la misma
+      consigna genérica —«¿qué diría probablemente esta persona?»— y el consenso llegó a
+      100 sin volver a bajar. Nadie sostuvo una objeción.</p>
+    <p>Con el <strong>general</strong>, la consigna cambió en cada turno y preguntó por
+      posturas concretas. El consenso subió a 100 en el turno siete y cayó a 60. Apareció
+      desacuerdo sostenido.</p>
+    <p>Para una mesa que delibera: <strong>general</strong>.</p>
+  </div>
+
+  <div class="medido">
+    <span class="etq">Medido — qué margen tiene</span>
+    <p>En los doce turnos de la corrida completa, el narrador <strong>registró
+      textualmente</strong> lo que dijo cada actor, sin cambiar nada. Es decir: lo que
+      alguien afirma pasa a ser un hecho del mundo sin que nada lo verifique.</p>
+    <p>Ese es el mecanismo detrás de los hechos inventados de la sección 4.</p>
+  </div>
+
+  <p>Los otros tipos —entrevista guiada, entrevista abierta, juego con pagos, mercado,
+    experimento, guionada, con lugar— sirven para formatos distintos de la deliberación.
+    El de juego con pagos y el conversacional con escenas son los únicos que admiten
+    escenas con opciones cerradas.</p>
+</section>
+
+<section id="variables">
+  <h2><span class="num">7</span>Variables de seguimiento</h2>
+  <p>Son las variables de resultado. Ninguna se mide: <strong>las asigna el narrador</strong>
+    interpretando la deliberación, turno a turno, y por eso el informe las marca como
+    estimadas.</p>
+
+  <h3>La regla de cambio</h3>
+  <p>Es la operacionalización: define qué evidencia cuenta como movimiento. Sin criterio
+    explícito, el narrador la mueve por impresión general.</p>
+  <p>«Sube cuando hay cooperación o se forman alianzas; baja cuando escalan los conflictos
+    o se recortan recursos» sirve. «Refleja el clima del grupo» no.</p>
+
+  <h3>Cuántas y de qué tipo</h3>
+  <p>Dos o tres. Con más, al narrador le cuesta seguirlas con precisión, y cada una
+    cuesta un pedido al modelo por turno.</p>
+  <table>
+    <thead><tr><th>Tipo</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr><th>Porcentaje</th><td>Grados: consenso, aprobación, moral</td></tr>
+      <tr><th>Número</th><td>Magnitudes con su escala: montos, cantidades</td></tr>
+      <tr><th>Opciones</th><td>Estados cualitativos: en riesgo, aprobado, postergado</td></tr>
+      <tr><th>Sí/no</th><td>Banderas</td></tr>
+    </tbody>
+  </table>
+  <div class="medido">
+    <span class="etq">Medido</span>
+    <p>El motor no valida la lista de opciones permitidas: en una corrida devolvió un
+      valor que no estaba entre los declarados.</p>
+  </div>
+</section>
+
+<section id="hitos">
+  <h2><span class="num">8</span>Hitos críticos</h2>
+  <p>Inyectan un hecho en un turno determinado. Funcionan como manipulación
+    experimental: se cambia una cosa en un momento conocido y el resto queda constante.</p>
+  <p>Conviene espaciarlos. En una simulación de 30 pasos, ubicarlos en el 10, el 20 y el
+    30 da tiempo a reaccionar entre uno y otro. Si se busca que alguien puntual formule
+    la decisión final, el hito tiene que caer en un turno suyo.</p>
+
+  <div class="medido">
+    <span class="etq">Medido</span>
+    <p><strong>No garantizan que se responda.</strong> El evento entra en la premisa, pero
+      la consigna con la que el narrador le da la palabra a quien habla en ese turno la
+      redacta él.</p>
+    <p>Un recorte presupuestario inyectado en el paso 15 no apareció en la consigna de ese
+      turno, y nadie lo respondió. El informe lo mostraba como ocurrido igual. En otra
+      corrida, ninguno de los dos hitos alcanzados llegó a su consigna.</p>
+    <p>Mitigación: redactar el evento nombrando al actor y diciendo qué tiene que
+      responder.</p>
+  </div>
+</section>
+
+<section id="turnos">
+  <h2><span class="num">9</span>Turnos y reparto de la palabra</h2>
+  <h3>El ciclo de un turno</h3>
+  <ol>
+    <li>Se determina a quién le toca</li>
+    <li>El narrador redacta la consigna</li>
+    <li>El actor responde</li>
+    <li>El narrador lo convierte en un hecho ocurrido</li>
+    <li>El narrador reparte a cada uno lo que le corresponde saber</li>
+  </ol>
+  <p>Cuatro de las cinco etapas son del narrador, y son las únicas que pueden introducir
+    un hecho en el mundo: lo que dice un actor recién existe cuando el narrador lo
+    registra.</p>
+
+  <h3>El orden</h3>
+  <p>Con orden <strong>fijo</strong> el narrador no elige: la rotación sigue la lista de
+    actores, y se puede fijar de antemano quién interviene en cada momento crítico. Con
+    orden <strong>al azar</strong> o <strong>a criterio del narrador</strong> se pierde
+    ese control — y con el segundo, el registro guarda a quién eligió pero no por qué.</p>
+
+  <h3>Cuántos pasos</h3>
+  <p>Con un actor por paso, pasos dividido actores son las vueltas efectivas. Cinco
+    actores en cinco pasos es una vuelta: cada uno enuncia su posición y nadie replica.</p>
+  <table>
+    <thead><tr><th>Tipo de ejercicio</th><th>Actores</th><th>Pasos</th></tr></thead>
+    <tbody>
+      <tr><th>Decisión única</th><td>2</td><td>2 a 5</td></tr>
+      <tr><th>Interacción corta</th><td>2 a 3</td><td>10 a 15</td></tr>
+      <tr><th>Escenario extendido</th><td>3 a 5</td><td>20 a 30</td></tr>
+      <tr><th>Simulación de política</th><td>5 a 8</td><td>30 a 50</td></tr>
+    </tbody>
+  </table>
+  <p>Para saber si se quedó corto: mirar los indicadores al final. Si todavía se mueven
+    en el último paso, se cortó antes de tiempo. Cuidado con una lectura fácil — que los
+    objetivos queden parcialmente cumplidos puede ser el resultado correcto, no falta de
+    pasos.</p>
+
+  <h3>Motor secuencial o simultáneo</h3>
+  <p>El simultáneo conviene cuando importa la participación pareja, cuando el orden no
+    debería influir —votaciones, ofertas cerradas— y cuando se necesitan más datos por
+    paso. El secuencial, cuando el escenario depende del diálogo reactivo.</p>
+</section>
+
+<section id="dimensionar">
+  <h2><span class="num">10</span>Dimensionar la corrida</h2>
+  <p>Es la parte que más corridas nos costó, y la que ninguna documentación cubre. Tres
+    techos distintos, y basta con tocar uno.</p>
+
+  <div class="medido">
+    <span class="etq">Medido — costo por turno</span>
+    <table>
+      <thead><tr><th></th><th>Pedidos por turno</th><th>Tokens por turno</th></tr></thead>
+      <tbody>
+        <tr><th>Narrador</th><td>29 a 33</td><td>85.000 a 150.000</td></tr>
+        <tr><th>Actores</th><td>10 a 12</td><td>~8.000</td></tr>
+      </tbody>
+    </table>
+    <p>Con ocho variables y cinco actores. Cada variable es un pedido del narrador por
+      turno: bajar de ocho a tres es la palanca más directa para abaratar.</p>
+  </div>
+
+  <h3>Los tres techos</h3>
+  <table>
+    <thead><tr><th>Proveedor</th><th>Techo</th><th>Máximo de pasos</th></tr></thead>
+    <tbody>
+      <tr><th>Gemini (gratuito)</th>
+        <td>500 pedidos por día y por modelo</td><td><strong>~17</strong></td></tr>
+      <tr><th>Groq (gratuito)</th>
+        <td>100.000 tokens por día en el modelo grande</td><td><strong>1</strong></td></tr>
+      <tr><th>NVIDIA (gratuito)</th>
+        <td>sin tope diario, pero ~20 min por turno</td><td><strong>~6</strong> en 2 horas</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">
+    <p><strong>Verificar el cupo con un solo pedido no sirve.</strong> Lo intentamos tres
+      veces: un pedido chico pasa y la corrida muere igual, porque lo único que prueba es
+      que quedaba lugar para ese pedido. Hay que mandar varios seguidos y contar cuántos
+      entran.</p>
+  </div>
+
+  <p>Dos modelos distintos —uno para actores y otro para el narrador— duplican el techo,
+    porque el cupo se cuenta por modelo. Pero basta que se agote el del narrador para que
+    la corrida no arranque, porque actúa primero.</p>
+</section>
+
+<section id="validacion">
+  <h2><span class="num">11</span>Validación</h2>
+  <p>La guía metodológica distingue tres caminos, según con qué se pueda contrastar:</p>
+  <ol>
+    <li><strong>Contra un caso real.</strong> Se reproduce un caso del que hay datos y se
+      mira si el resultado se acerca. Es el más exigente y el único que valida de verdad.</li>
+    <li><strong>Contra agregados.</strong> Si solo hay proporciones o promedios —de una
+      encuesta, de un registro—, se corre varias veces y se compara la distribución de
+      resultados contra ese agregado. No valida un caso, valida la tendencia.</li>
+    <li><strong>Examen de sentido.</strong> Si no hay con qué comparar: ¿las conductas se
+      explican por lo que se configuró? ¿Aparece algo que ningún actor podría haber
+      sabido? Es el más débil, y hay que declarar que se usó ese.</li>
+  </ol>
+  <p>En los tres casos hace falta repetir. Una sola corrida no permite distinguir un
+    efecto del diseño de una variación del muestreo.</p>
+</section>
+
+<section id="lectura">
+  <h2><span class="num">12</span>Cómo se lee el resultado</h2>
+  <p>Cada afirmación del informe lleva de dónde sale:</p>
+  <table>
+    <tbody>
+      <tr><th>Medido</th><td>Del registro de la corrida: turnos, quién habló, cuándo se
+        cortó, cuántos pedidos costó</td></tr>
+      <tr><th>Estimado</th><td>Lo asignó el narrador interpretando la deliberación. Son
+        juicios de un modelo, no mediciones</td></tr>
+      <tr><th>Inferido</th><td>Lo dedujo un modelo leyendo la transcripción después de
+        terminada la corrida</td></tr>
+    </tbody>
+  </table>
+  <p>Las variables de seguimiento son <em>estimadas</em>. Sirven para comparar momentos
+    dentro de una corrida —subió después de tal intervención— y no como magnitud
+    absoluta. Que un indicador valga 60 no significa que algo esté al 60 % de nada.</p>
+
+  <h3>Qué mirar primero</h3>
+  <ul>
+    <li>¿Hubo desacuerdo sostenido, o todos adhirieron sin objetar?</li>
+    <li>¿Los indicadores se movieron de forma coherente con lo que se dijo?</li>
+    <li>¿Los hitos llegaron a la consigna de su turno?</li>
+    <li>¿Aparecen hechos que no estaban configurados?</li>
+    <li>Si hay perfiles: ¿se recuperaron alguna vez?</li>
+  </ul>
+</section>
+
+<section id="fallas">
+  <h2><span class="num">13</span>Modos de falla conocidos</h2>
+  <table>
+    <thead><tr><th>Síntoma</th><th>Causa probable</th></tr></thead>
+    <tbody>
+      <tr><th>Consenso en el máximo, sin objeciones</th>
+        <td>Narrador conversacional, u objetivos compatibles entre sí. Medido: es el modo
+          de falla más frecuente</td></tr>
+      <tr><th>Una variable nunca se mueve</th>
+        <td>Los hitos no dicen qué valores cambian; la regla no es accionable; o el nombre
+          no coincide exactamente con el que usan los hitos</td></tr>
+      <tr><th>Varias variables se mueven juntas</th>
+        <td>Son demasiadas para que el narrador las distinga</td></tr>
+      <tr><th>Un sesgo configurado no se nota</th>
+        <td>El perfil no se recuperó. Verificable en el informe</td></tr>
+      <tr><th>Aparecen hechos que nadie configuró</th>
+        <td>El narrador registra textualmente lo que dicen los actores, sin filtro</td></tr>
+      <tr><th>Actores pasivos o genéricos</th>
+        <td>Objetivos sin verbos de acción, o sin refuerzo contra los frenos del modelo</td></tr>
+      <tr><th>Respuestas que se repiten turno a turno</th>
+        <td>El actor dejó de actualizar. Verificable en los controles del motor</td></tr>
+      <tr><th>Mezcla de idiomas</th>
+        <td>Los prefabs escriben sus consignas en inglés. Medido: 5 de 12 consignas
+          llegaron en inglés en un escenario escrito en castellano</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="limites">
+  <h2><span class="num">14</span>Límites de esta versión</h2>
+  <p>Capacidades que el proyecto documenta y el constructor todavía no expone:</p>
+  <ul>
+    <li><strong>Generación de actores por muestreo</strong>, con marginales independientes
+      o perfiles conjuntos cuando importan las correlaciones, y semilla fija para
+      reproducibilidad</li>
+    <li><strong>Barridos de parámetros</strong>: correr la misma configuración variando
+      temperatura o cantidad de pasos, con repeticiones por combinación</li>
+    <li><strong>Confiabilidad entre corridas</strong> por ICC(3,1)</li>
+    <li><strong>Simulaciones anidadas</strong>: un actor corre su propia simulación
+      interna antes de opinar. Se ejecuta una sola vez, en su primera acción, y multiplica
+      el costo</li>
+  </ul>
+
+  <h3>Reproducibilidad</h3>
+  <p>Volver a correr el mismo escenario no da el mismo resultado: el modelo muestrea sus
+    respuestas y el motor fija por su cuenta la temperatura de los actores, ignorando la
+    configurada. Lo reproducible es el <em>procedimiento</em>, no la corrida.</p>
+</section>
+
+<section id="fuentes">
+  <h2><span class="num">15</span>Fuentes</h2>
+  <ul class="fuentes">
+    <li>
+      <a href="https://arxiv.org/abs/2312.03664">Vezhnevets, A. S., Agapiou, J. P., Aharon,
+        A. y otros (2023). <em>Generative agent-based modeling with actions grounded in
+        physical, social, or digital space using Concordia</em></a>
+      <span class="det">El paper que presenta la biblioteca. Google DeepMind.</span>
+    </li>
+    <li>
+      <a href="https://arxiv.org/abs/2411.07038">Ferraz y otros (2024). <em>Designing
+        Reliable Experiments with Generative Agent-Based Modeling: A Comprehensive Guide
+        Using Concordia by Google DeepMind</em></a>
+      <span class="det">Guía metodológica: el marco de cuatro pasos, el refuerzo de
+        objetivos y las tres estrategias de validación salen de acá.</span>
+    </li>
+    <li>
+      <a href="https://github.com/google-deepmind/concordia">Concordia — Google DeepMind</a>
+      <span class="det">El código del motor.</span>
+    </li>
+    <li>
+      <a href="https://c3.unu.edu/projects/ai/simulator/">Simulator — UNU Centre for
+        Policy Research</a>
+      <span class="det">El proyecto que le puso interfaz y lo orientó a políticas públicas.</span>
+    </li>
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder/blob/main/docs/SIMULATION_BUILDING_GUIDE.md">Guía
+        para construir simulaciones</a>
+      <span class="det">Premisas, objetivos, cantidad de pasos y problemas frecuentes.</span>
+    </li>
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder/blob/main/docs/SIMULATION_TEMPLATES_GUIDE.md">Guía
+        de plantillas y componentes</a>
+      <span class="det">Tipos de actor y de narrador, componentes psicológicos.</span>
+    </li>
+    <li>
+      <a href="https://github.com/sergiandat/concordia-sim-builder/blob/main/docs/QUANTITATIVE_RESEARCH_FEATURES.md">Funciones
+        para investigación cuantitativa</a>
+      <span class="det">Muestreo, acciones restringidas, barridos, confiabilidad.</span>
+    </li>
+  </ul>
+
+  <h3>Sobre lo medido</h3>
+  <p>Todo lo marcado como <strong>medido</strong> proviene de corridas propias sobre el
+    escenario NOA —una mesa interinstitucional de cinco actores— entre agosto de 2026.
+    Los registros completos de cada corrida están publicados junto a su informe.</p>
+</section>
+
+</main>
+
+<footer class="ancho">
+  <a href="../intro/">Qué es Concordia</a> ·
+  <a href="../constructor/">Armar un escenario</a> ·
+  <a href="../">Ver las corridas</a>
+</footer>
+
+</body>
+</html>
