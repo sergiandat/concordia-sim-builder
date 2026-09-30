@@ -1,0 +1,15 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-09-30T15:04:50",
+  "duracion_min": 0.0,
+  "pasos_completados": 0,
+  "pasos_pedidos": 1,
+  "completa": false,
+  "error": "APIStatusError: Error code: 410 - {'type': 'about:blank', 'title': 'Gone', 'status': 410, 'detail': \"The model 'deepseek-ai/deepseek-v4-pro-0813' has reached its end of life on 2026-09-14T08:00:00Z and is no longer available.\"}",
+  "corto_por_cuota": false,
+  "agentes": [
+    "Ana"
+  ],
+  "modelo": "LLMProvider.NVIDIA/deepseek-ai/deepseek-v4-pro-0813",
+  "modelo_gm": "LLMProvider.NVIDIA/deepseek-ai/deepseek-v4-pro-0813"
+}

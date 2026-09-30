@@ -1,0 +1,50 @@
+{
+ "__make_observation__": [
+  {
+   "Key": "\nPrompt",
+   "Summary": "",
+   "Value": "",
+   "Prompt": ""
+  }
+ ],
+ "__resolution__": [
+  {
+   "Key": "Event",
+   "Summary": "",
+   "Value": "",
+   "Prompt": "",
+   "Details": "{'Observers prompt': ''}"
+  }
+ ],
+ "player_characters": [
+  {
+   "Key": "The player characters are:\n",
+   "Value": "Ana\n"
+  }
+ ],
+ "__observation__": [
+  {
+   "Key": "Observations (ordered from oldest to latest)",
+   "Value": "['[observation] [event] Ana debe decidir si lleva paraguas porque el pronóstico anuncia lluvia.']"
+  }
+ ],
+ "examples": [
+  {
+   "Key": "Game master workflow examples",
+   "Value": "\nExample exercises with default responses\n**--START EXAMPLES--**\n\n\nExercise 1 --- Response 1\nExercise: What is the current situation faced by Ianthe? What do they now observe? Only include information of which they are aware. --- Ianthe steps into the room. The air is thick and still, almost heavy. The only light comes from a single, bare bulb hanging precariously from the high ceiling, casting long, distorted shadows that dance with the slightest movement. The walls are rough, unfinished concrete, damp in places, and a slow, rhythmic dripping is audible somewhere in the distance. Directly ahead, there is a heavy steel door, slightly ajar, which dominates the far wall. A faint, metallic tang hangs in the air, like the smell of old blood. On the left, a rusted metal staircase spirals upwards into darkness. On the right, a pile of what looks like discarded machinery, covered in a thick layer of grime, sits against the wall.\n\nExercise 2 --- Response 2\nExercise: Who is next to act? --- Morwenna\n\nExercise 3 --- Response 3\nExercise: In what action spec format should Rowan respond? Respond in  one of the provided formats and use no additional words. --- {\"call_to_action\": \"What would Rowan do?\", \"output_type\": \"choice\", \"options\": [\"open the door\", \"bar the door\", \"flee\"], \"tag\": null}\n\nExercise 4 --- Response 4\nExercise: In what action spec format should Kerensa respond? Respond in  one of the provided formats and use no additional words. --- {\"call_to_action\": \"What would Kerensa say?\", \"output_type\": \"free\", \"options\": [], \"tag\": null}\n\nExercise 5 --- Response 5\nExercise: Because of all that came before, what happens next? --- What is Yorik attempting to do?\nYorik opens the enchanted storybook. --- Yorik opens the colorful storybook. As she turns the pages, she notices the delightful scent of cinnamon and vanilla fills the air, warm and inviting. Sparkling illustrations twinkle merrily on the pages, and leave a pleasant tingling on Yorik's fingers when she touches them. Yorik notices one section that glows slightly more brightly than the rest. It appears to be some kind of special chapter, marked by several golden ribbons.\n\nExercise 6 --- Response 6\nExercise: Is the game/simulation finished? --- No\n\nExercise 7 --- Response 7\nExercise: Is the game/simulation finished? --- Yes\n\n**--END EXAMPLES--**\n"
+  }
+ ],
+ "display_events": [
+  {
+   "Key": "Story so far (ordered from oldest to most recent events)",
+   "Summary": "0).  Ana debe decidir si lleva paraguas porque el pronóstico anuncia lluvia.",
+   "Value": "0).  Ana debe decidir si lleva paraguas porque el pronóstico anuncia lluvia."
+  }
+ ],
+ "instructions": [
+  {
+   "Key": "Game master instructions: ",
+   "Value": "This is a social science experiment. It is structured as a tabletop roleplaying game (like dungeons and dragons). You are the game master. You will describe the current situation to the participants in the experiment and then on the basis of what you tell them they will suggest actions for the character they control. Aside from you, each other participant controls just one character. You are the game master so you may control any non-player character. You will track the state of the world and keep it consistent as time passes in the simulation and the participants take actions and change things in their world. The game master is also responsible for controlling the overall flow of the game, including determining whose turn it is to act, and when the game is over. The game master also must keep track of which players are aware of which events in the world, and must tell the player whenever anything happens that their character would be aware of. Always use third-person limited perspective, even when speaking directly to the participants. Try to ensure the story always moves forward and never gets stuck, even if the participants make repetitive choices."
+  }
+ ]
+}
