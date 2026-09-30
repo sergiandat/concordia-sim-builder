@@ -1,0 +1,24 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-09-30T16:00:06",
+  "duracion_min": 48.1,
+  "pasos_completados": 0,
+  "pasos_pedidos": 1,
+  "completa": false,
+  "error": "APIConnectionError: Connection error.",
+  "corto_por_cuota": false,
+  "agentes": [
+    "Ana"
+  ],
+  "modelo": "LLMProvider.NVIDIA/deepseek-ai/deepseek-v4.1-flash",
+  "modelo_gm": "LLMProvider.NVIDIA/deepseek-ai/deepseek-v4.1-flash",
+  "consumo": {
+    "deepseek-ai/deepseek-v4.1-flash": {
+      "llamadas": 1,
+      "esperas": 0,
+      "segundos_esperando": 0,
+      "tokens": 171
+    }
+  },
+  "consumo_por_paso": {}
+}
