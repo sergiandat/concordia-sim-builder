@@ -1,0 +1,37 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-10-01T19:23:00",
+  "duracion_min": 23.3,
+  "pasos_completados": 8,
+  "pasos_pedidos": 8,
+  "completa": true,
+  "error": null,
+  "corto_por_cuota": false,
+  "agentes": [
+    "Laura Benítez — DIE",
+    "Mariana Roldán — SI",
+    "Andrés Molina — UN Metropolitana",
+    "Carla Quiroga — UN Patagonia Sur",
+    "Hugo Paredes — Organismo agropecuario"
+  ],
+  "modelo": "LLMProvider.GEMINI/gemini-3.5-flash-lite",
+  "modelo_gm": "LLMProvider.GEMINI/gemini-3.1-flash-lite",
+  "consumo": {
+    "gemini-3.1-flash-lite": {
+      "llamadas": 251,
+      "esperas": 70,
+      "segundos_esperando": 228,
+      "tokens": 1106357
+    },
+    "gemini-3.5-flash-lite": {
+      "llamadas": 97,
+      "esperas": 0,
+      "segundos_esperando": 0,
+      "tokens": 101595
+    }
+  },
+  "consumo_por_paso": {
+    "gemini-3.1-flash-lite": 31.4,
+    "gemini-3.5-flash-lite": 12.1
+  }
+}
