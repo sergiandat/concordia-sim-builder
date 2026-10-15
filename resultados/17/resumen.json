@@ -1,0 +1,39 @@
+{
+  "escenario": "escenario.json",
+  "terminada": "2026-10-15T16:44:43",
+  "duracion_min": 43.0,
+  "pasos_completados": 10,
+  "pasos_pedidos": 21,
+  "completa": false,
+  "error": "RuntimeError: Se agotó la cuota DIARIA de gemini-3.1-flash-lite (500 pedidos por modelo y por proyecto en el plan gratuito). No se recupera esperando: reintentar solo retrasa el fracaso. La cuenta es por modelo, así que otro puede tener cupo aunque este no; para ver el estado real y cuándo repone, mirá el panel de cuotas en Google AI Studio.",
+  "corto_por_cuota": true,
+  "agentes": [
+    "Valeria Ortiz — Marca socia mediana",
+    "Diego Sosa — Pyme socia",
+    "Rosa Mamani — Taller familiar",
+    "Marcelo Paz — Cooperativa textil",
+    "Lucía Ferreyra — Coordinación de la CIAI",
+    "Nicolás Herrera — Equipo técnico de la PDT",
+    "Héctor Lanús — Comisión directiva"
+  ],
+  "modelo": "LLMProvider.GEMINI/gemini-3.5-flash-lite",
+  "modelo_gm": "LLMProvider.GEMINI/gemini-3.1-flash-lite",
+  "consumo": {
+    "gemini-3.1-flash-lite": {
+      "llamadas": 415,
+      "esperas": 88,
+      "segundos_esperando": 484,
+      "tokens": 2768264
+    },
+    "gemini-3.5-flash-lite": {
+      "llamadas": 147,
+      "esperas": 0,
+      "segundos_esperando": 0,
+      "tokens": 201388
+    }
+  },
+  "consumo_por_paso": {
+    "gemini-3.1-flash-lite": 41.5,
+    "gemini-3.5-flash-lite": 14.7
+  }
+}
