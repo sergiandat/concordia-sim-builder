@@ -331,7 +331,10 @@ class GeminiModel:
     # back to back and exhausts that in seconds, so a 429 is an expected part of
     # normal operation, not a failure — without retries it aborts the whole run
     # at step 0.
-    _MAX_RETRIES = 6
+    # Los 503 por alta demanda duran mas que el minuto que aguantaban 6
+    # reintentos: las corridas #18 y #19 murieron asi en el paso 1. Con el tope
+    # de 30 s por espera, 15 reintentos aguantan unos 5 minutos y medio.
+    _MAX_RETRIES = 15
 
     def __init__(self, api_key: str, model_name: str, timeout: float = 300.0):
         import google.genai as genai
